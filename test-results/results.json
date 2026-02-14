@@ -29,7 +29,7 @@
         "testMatch": [
           "**/*.@(spec|test).?(c|m)[jt]s?(x)"
         ],
-        "timeout": 120000
+        "timeout": 30000
       }
     ],
     "quiet": false,
@@ -71,25 +71,25 @@
   },
   "suites": [
     {
-      "title": "autonomous-agent.spec.ts",
-      "file": "autonomous-agent.spec.ts",
+      "title": "sentinel-engine.spec.ts",
+      "file": "sentinel-engine.spec.ts",
       "column": 0,
       "line": 0,
       "specs": [],
       "suites": [
         {
-          "title": "🤖 AUTONOMOUS TEST AGENT",
-          "file": "autonomous-agent.spec.ts",
-          "line": 489,
+          "title": "🤖 PROJECT SENTINEL - Otonom Test Suite",
+          "file": "sentinel-engine.spec.ts",
+          "line": 770,
           "column": 6,
           "specs": [
             {
-              "title": "Admin Mode - Autonomous Exploration",
-              "ok": true,
+              "title": "👮‍♂️ Persona: Strict Admin - Controlled Exploration",
+              "ok": false,
               "tags": [],
               "tests": [
                 {
-                  "timeout": 120000,
+                  "timeout": 30000,
                   "annotations": [],
                   "expectedStatus": "passed",
                   "projectId": "Desktop Chrome",
@@ -98,107 +98,123 @@
                     {
                       "workerIndex": 0,
                       "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 6988,
-                      "errors": [],
+                      "status": "timedOut",
+                      "duration": 30575,
+                      "error": {
+                        "message": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m",
+                        "stack": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m"
+                      },
+                      "errors": [
+                        {
+                          "message": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m"
+                        },
+                        {
+                          "location": {
+                            "file": "C:\\Users\\YUNUS\\Desktop\\sahada\\sahada\\tests\\sentinel-engine.spec.ts",
+                            "column": 58,
+                            "line": 470
+                          },
+                          "message": "Error: locator.count: Target page, context or browser has been closed\n\n  468 |\n  469 |     for (const selector of errorSelectors) {\n> 470 |       const errorElements = await page.locator(selector).count();\n      |                                                          ^\n  471 |       if (errorElements > 0) {\n  472 |         issues.push(`Found ${errorElements} error elements (${selector})`);\n  473 |         score -= 10;\n    at CognitiveVision.analyzeScreenHealth (C:\\Users\\YUNUS\\Desktop\\sahada\\sahada\\tests\\sentinel-engine.spec.ts:470:58)\n    at SentinelEngine.run (C:\\Users\\YUNUS\\Desktop\\sahada\\sahada\\tests\\sentinel-engine.spec.ts:650:40)\n    at C:\\Users\\YUNUS\\Desktop\\sahada\\sahada\\tests\\sentinel-engine.spec.ts:774:5"
+                        }
+                      ],
                       "stdout": [
                         {
-                          "text": "\n👑 ADMIN MODE EXPLORATION\n"
+                          "text": "\n🚀 SENTINEL ENGINE STARTING...\n\n"
                         },
                         {
-                          "text": "\n🤖 Starting autonomous exploration...\n"
+                          "text": "🎭 Persona Selected: STRICT_ADMIN\n"
                         },
                         {
-                          "text": "\n📍 Exploring [Depth: 0, Step: 0]: http://localhost:3004/\n"
+                          "text": "\n📍 Step 1/50\n"
                         },
                         {
-                          "text": "🔍 Found 8 interactive elements\n"
+                          "text": "   Current URL: http://localhost:3004/\n"
                         },
                         {
-                          "text": "  🎯 Interacting: button - \"settings\"\n"
+                          "text": "   Health: HEALTHY (Score: 100/100)\n"
                         },
                         {
-                          "text": "    ✅ Clicked\n"
+                          "text": "   Found: 47 interactive elements, 0 forms\n"
                         },
                         {
-                          "text": "  🎯 Interacting: button - \"pollAnketler\"\n"
+                          "text": "   🖱️ Clicking: \"C:\\Users\\YUNUS\\Desktop\\sahada\\...\"\n"
                         },
                         {
-                          "text": "    ✅ Clicked\n"
+                          "text": "   ✅ Navigation detected!\n"
                         },
                         {
-                          "text": "  🎯 Interacting: button - \"check\"\n"
+                          "text": "\n📍 Step 2/50\n"
                         },
                         {
-                          "text": "    ✅ Clicked\n"
+                          "text": "   Current URL: http://localhost:3004/\n"
                         },
                         {
-                          "text": "\n📊 Exploration Complete!\n"
+                          "text": "   Health: HEALTHY (Score: 100/100)\n"
                         },
                         {
-                          "text": "\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+                          "text": "   Found: 46 interactive elements, 0 forms\n"
                         },
                         {
-                          "text": "  🤖 AUTONOMOUS CRAWLER SUMMARY\n"
+                          "text": "   🖱️ Clicking: \"C:\\Users\\YUNUS\\Desktop\\sahada\\...\"\n"
                         },
                         {
-                          "text": "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
+                          "text": "\n📍 Step 3/50\n"
                         },
                         {
-                          "text": "📍 URLs Visited: 1\n"
+                          "text": "   Current URL: http://localhost:3004/\n"
                         },
                         {
-                          "text": "   - http://localhost:3004/\n"
+                          "text": "   Health: HEALTHY (Score: 100/100)\n"
                         },
                         {
-                          "text": "\n🎯 Elements Interacted: 3\n"
+                          "text": "   Found: 45 interactive elements, 0 forms\n"
                         },
                         {
-                          "text": "\n❌ Errors Found: 0\n"
+                          "text": "   🖱️ Clicking: \"C:\\Users\\YUNUS\\Desktop\\sahada\\...\"\n"
                         },
                         {
-                          "text": "\n🚫 Dead Ends: 0\n"
+                          "text": "   ⚠️ Interaction failed: locator.click: Target page, context or browser has been closed\n"
                         },
                         {
-                          "text": "\n📊 State Map:\n"
+                          "text": "\n📍 Step 4/50\n"
                         },
                         {
-                          "text": "   http://localhost:3004/: 8 interactions\n"
-                        },
-                        {
-                          "text": "\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-                        },
-                        {
-                          "text": "\n✅ Explored 1 unique URLs\n"
+                          "text": "   Current URL: http://localhost:3004/\n"
                         }
                       ],
                       "stderr": [
                         {
-                          "text": "(node:2972) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.\n(Use `node --trace-warnings ...` to show where the warning was created)\n"
+                          "text": "(node:3792) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.\n(Use `node --trace-warnings ...` to show where the warning was created)\n"
                         }
                       ],
                       "retry": 0,
-                      "steps": [
+                      "startTime": "2026-02-14T20:20:56.141Z",
+                      "annotations": [],
+                      "attachments": [
                         {
-                          "title": "Login as Admin",
-                          "duration": 4960
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "C:\\Users\\YUNUS\\Desktop\\sahada\\sahada\\test-results\\sentinel-engine-🤖-PROJECT-ade65-in---Controlled-Exploration-Desktop-Chrome\\test-failed-1.png"
                         },
                         {
-                          "title": "Autonomous Crawl",
-                          "duration": 1680
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "C:\\Users\\YUNUS\\Desktop\\sahada\\sahada\\test-results\\sentinel-engine-🤖-PROJECT-ade65-in---Controlled-Exploration-Desktop-Chrome\\video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "C:\\Users\\YUNUS\\Desktop\\sahada\\sahada\\test-results\\sentinel-engine-🤖-PROJECT-ade65-in---Controlled-Exploration-Desktop-Chrome\\error-context.md"
                         }
-                      ],
-                      "startTime": "2026-02-14T19:56:39.163Z",
-                      "annotations": [],
-                      "attachments": []
+                      ]
                     }
                   ],
-                  "status": "expected"
+                  "status": "unexpected"
                 }
               ],
-              "id": "74ffe5ed4dcb58285a4f-4885e057c7b3a1e646a2",
-              "file": "autonomous-agent.spec.ts",
-              "line": 491,
+              "id": "97a81562c810d54121bb-d277836c854ed4ded16a",
+              "file": "sentinel-engine.spec.ts",
+              "line": 772,
               "column": 3
             }
           ]
@@ -208,11 +224,11 @@
   ],
   "errors": [],
   "stats": {
-    "startTime": "2026-02-14T19:56:36.412Z",
-    "duration": 10155.612,
-    "expected": 1,
+    "startTime": "2026-02-14T20:20:52.613Z",
+    "duration": 34608.507000000005,
+    "expected": 0,
     "skipped": 0,
-    "unexpected": 0,
+    "unexpected": 1,
     "flaky": 0
   }
 }

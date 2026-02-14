@@ -29,7 +29,13 @@
     "test:sentinel:random": "playwright test tests/sentinel-engine.spec.ts -g \"Random Mode\" --headed",
     "test:sentinel:marathon": "playwright test tests/sentinel-engine.spec.ts -g \"Marathon\" --headed",
     "test:sentinel:parallel": "playwright test tests/sentinel-engine.spec.ts -g \"Parallel\" --headed",
-    "test:sentinel:all": "playwright test tests/sentinel-engine.spec.ts"
+    "test:sentinel:all": "playwright test tests/sentinel-engine.spec.ts",
+    "test:sentinel:v2": "playwright test tests/sentinel-engine-v2.spec.ts --headed",
+    "test:sentinel:v2:admin": "playwright test tests/sentinel-engine-v2.spec.ts -g \"Strict Admin\" --headed",
+    "test:sentinel:v2:chaos": "playwright test tests/sentinel-engine-v2.spec.ts -g \"Chaos Monkey\" --headed",
+    "test:sentinel:v2:spy": "playwright test tests/sentinel-engine-v2.spec.ts -g \"Spy Member\" --headed",
+    "test:sentinel:v2:evolution": "playwright test tests/sentinel-engine-v2.spec.ts -g \"Full Evolution\" --headed",
+    "test:sentinel:compare": "npm run test:sentinel:strict && npm run test:sentinel:v2:admin"
   },
   "dependencies": {
     "react": "^19.2.4",
