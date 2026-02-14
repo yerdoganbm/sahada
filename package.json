@@ -43,7 +43,18 @@
     "test:omega:chaos": "playwright test tests/sentinel-omega.spec.ts -g \"Chaos\" --headed",
     "test:omega:semantic": "playwright test tests/sentinel-omega.spec.ts -g \"Semantic\" --headed",
     "test:omega:vitals": "playwright test tests/sentinel-omega.spec.ts -g \"Core Web Vitals\" --headed",
-    "test:omega:ab": "playwright test tests/sentinel-omega.spec.ts -g \"A/B\" --headed"
+    "test:omega:ab": "playwright test tests/sentinel-omega.spec.ts -g \"A/B\" --headed",
+    "test:libero": "playwright test tests/libero-v4-core.spec.ts --headed",
+    "test:libero:omniscient": "playwright test tests/libero-v4-core.spec.ts -g \"SINGULARITY\" --headed",
+    "test:libero:brain": "playwright test tests/libero-v4-core.spec.ts -g \"Cognitive Brain\" --headed",
+    "test:libero:platform": "playwright test tests/libero-v4-core.spec.ts -g \"Omni-Platform\" --headed",
+    "test:libero:oracle": "playwright test tests/libero-v4-core.spec.ts -g \"Oracle\" --headed",
+    "test:libero:security": "playwright test tests/libero-v4-core.spec.ts -g \"Guardian\" --headed",
+    "test:libero:ml": "playwright test tests/libero-v4-core.spec.ts -g \"ML Vision\" --headed",
+    "test:libero:cicd": "playwright test tests/libero-v4-core.spec.ts -g \"CI/CD\" --headed",
+    "test:libero:patch": "playwright test tests/libero-v4-core.spec.ts -g \"Self-Patcher\" --headed",
+    "libero:security-report": "playwright test tests/libero-v4-core.spec.ts -g \"Guardian\" --reporter=json > test-results/security-report.json",
+    "libero:predict": "playwright test tests/libero-v4-core.spec.ts -g \"Oracle\" --reporter=json > test-results/predictive-report.json"
   },
   "dependencies": {
     "react": "^19.2.4",
