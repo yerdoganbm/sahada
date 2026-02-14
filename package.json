@@ -35,7 +35,15 @@
     "test:sentinel:v2:chaos": "playwright test tests/sentinel-engine-v2.spec.ts -g \"Chaos Monkey\" --headed",
     "test:sentinel:v2:spy": "playwright test tests/sentinel-engine-v2.spec.ts -g \"Spy Member\" --headed",
     "test:sentinel:v2:evolution": "playwright test tests/sentinel-engine-v2.spec.ts -g \"Full Evolution\" --headed",
-    "test:sentinel:compare": "npm run test:sentinel:strict && npm run test:sentinel:v2:admin"
+    "test:sentinel:compare": "npm run test:sentinel:strict && npm run test:sentinel:v2:admin",
+    "test:omega": "playwright test tests/sentinel-omega.spec.ts --headed",
+    "test:omega:full": "playwright test tests/sentinel-omega.spec.ts -g \"Full\" --headed",
+    "test:omega:healing": "playwright test tests/sentinel-omega.spec.ts -g \"Self-Healing\" --headed",
+    "test:omega:visual": "playwright test tests/sentinel-omega.spec.ts -g \"Visual\" --headed",
+    "test:omega:chaos": "playwright test tests/sentinel-omega.spec.ts -g \"Chaos\" --headed",
+    "test:omega:semantic": "playwright test tests/sentinel-omega.spec.ts -g \"Semantic\" --headed",
+    "test:omega:vitals": "playwright test tests/sentinel-omega.spec.ts -g \"Core Web Vitals\" --headed",
+    "test:omega:ab": "playwright test tests/sentinel-omega.spec.ts -g \"A/B\" --headed"
   },
   "dependencies": {
     "react": "^19.2.4",
