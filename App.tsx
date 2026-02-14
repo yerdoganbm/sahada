@@ -8,7 +8,7 @@ import { MatchDetails } from './screens/MatchDetails';
 import { MatchCard } from './components/MatchCard'; 
 import { Header } from './components/Header';
 import { Icon } from './components/Icon';
-import { MOCK_MATCHES, MOCK_VENUES, MOCK_PLAYERS, MOCK_PAYMENTS, MOCK_TRANSACTIONS, MOCK_POLLS, MOCK_RESERVATIONS } from './constants';
+import { MOCK_MATCHES, MOCK_VENUES, MOCK_PLAYERS, MOCK_PAYMENTS, MOCK_TRANSACTIONS, MOCK_POLLS, MOCK_RESERVATIONS, MOCK_TALENT_POOL } from './constants';
 import { PaymentLedger } from './screens/PaymentLedger';
 import { AdminDashboard } from './screens/AdminDashboard';
 import { MemberManagement } from './screens/MemberManagement';
@@ -45,6 +45,10 @@ import { ReservationDetails } from './screens/ReservationDetails';
 import { VenueCalendar } from './screens/VenueCalendar';
 import { VenueFinancialReports } from './screens/VenueFinancialReports';
 import { CustomerManagement } from './screens/CustomerManagement';
+// SCOUT SYSTEM SCREENS
+import { ScoutDashboard } from './screens/ScoutDashboard';
+import { TalentPool } from './screens/TalentPool';
+import { ScoutReports } from './screens/ScoutReports';
 
 function App() {
   // ===========================================
@@ -77,6 +81,7 @@ function App() {
   const [transactions, setTransactions] = useState<Transaction[]>(MOCK_TRANSACTIONS);
   const [polls, setPolls] = useState<Poll[]>(MOCK_POLLS);
   const [reservations, setReservations] = useState<Reservation[]>(MOCK_RESERVATIONS); // VENUE OWNER
+  const [talentPool, setTalentPool] = useState<any[]>(MOCK_TALENT_POOL); // SCOUT SYSTEM
   
   // Additional States
   const [rsvpStatus, setRsvpStatus] = useState<RsvpStatus>('pending');
@@ -633,6 +638,124 @@ function App() {
     ));
     alert('Rezervasyon reddedildi. Müşteriye bildirim gönderildi.');
   };
+
+  // =========================================== 
+  // SCOUT SYSTEM HANDLERS
+  // ===========================================
+
+  const handleAddCandidate = (data: any) => {
+    const newCandidate = {
+      id: 'talent_' + Date.now(),
+      ...data,
+      discoveredBy: currentUser?.id || '1',
+      discoveredDate: new Date().toISOString(),
+      status: 'scouting',
+      trialMatchesPlayed: 0,
+      trialMatchesTotal: 3,
+      scoutReports: []
+    };
+    setTalentPool(prev => [...prev, newCandidate]);
+    console.log('✅ Yeni aday eklendi:', newCandidate.name);
+  };
+
+  const handleCreateScoutReport = (report: any) => {
+    const reportWithId = {
+      id: 'sr_' + Date.now(),
+      ...report,
+      date: new Date().toISOString()
+    };
+
+    setTalentPool(prev => prev.map(player => {
+      if (player.id === report.playerId) {
+        const updatedReports = [...(player.scoutReports || []), reportWithId];
+        
+        // Calculate average score
+        const avgScore = updatedReports.reduce((sum: number, r: any) => sum + r.overallScore, 0) / updatedReports.length;
+        const avgPotential = updatedReports.reduce((sum: number, r: any) => sum + r.potential, 0) / updatedReports.length;
+
+        return {
+          ...player,
+          scoutReports: updatedReports,
+          averageScore: Number(avgScore.toFixed(1)),
+          potentialRating: Number(avgPotential.toFixed(1))
+        };
+      }
+      return player;
+    }));
+
+    console.log('✅ Scout raporu oluşturuldu:', report.scoutName);
+  };
+
+  const handleMakeTalentDecision = (playerId: string, decision: 'sign' | 'reject' | 'extend_trial', notes: string) => {
+    setTalentPool(prev => prev.map(player => {
+      if (player.id === playerId) {
+        if (decision === 'sign') {
+          // Promote to member - also add to players array
+          const newPlayer: Player = {
+            id: player.id,
+            name: player.name,
+            position: player.position,
+            rating: player.averageScore || 7,
+            reliability: 100,
+            avatar: player.avatar,
+            role: 'member',
+            attributes: {
+              pac: 70,
+              sho: 70,
+              pas: 70,
+              dri: 70,
+              def: 70,
+              phy: 70
+            }
+          };
+          
+          setPlayers(prevPlayers => [...prevPlayers, newPlayer]);
+          
+          return {
+            ...player,
+            status: 'signed',
+            finalDecision: decision,
+            finalDecisionBy: currentUser?.id,
+            finalDecisionDate: new Date().toISOString(),
+            finalDecisionNotes: notes
+          };
+        } else if (decision === 'reject') {
+          return {
+            ...player,
+            status: 'rejected',
+            finalDecision: decision,
+            finalDecisionBy: currentUser?.id,
+            finalDecisionDate: new Date().toISOString(),
+            finalDecisionNotes: notes
+          };
+        } else {
+          // Extend trial
+          return {
+            ...player,
+            trialMatchesTotal: player.trialMatchesTotal + 3,
+            finalDecisionNotes: notes
+          };
+        }
+      }
+      return player;
+    }));
+
+    const decisionText = decision === 'sign' ? 'İmzalandı' : 
+                        decision === 'reject' ? 'Reddedildi' : 
+                        'Deneme süresi uzatıldı';
+    console.log(`✅ Karar: ${decisionText} - Notlar: ${notes}`);
+  };
+
+  const handleStartTrial = (playerId: string) => {
+    setTalentPool(prev => prev.map(player => 
+      player.id === playerId
+        ? { ...player, status: 'in_trial' }
+        : player
+    ));
+    console.log('✅ Deneme süreci başlatıldı');
+  };
+
+  // ===========================================
 
   // MVP Oylama
   const handleMVPVote = (matchId: string, playerId: string) => {
@@ -1278,6 +1401,53 @@ function App() {
             onBack={goBack}
             reservations={reservations}
             venueIds={currentUser.venueOwnerInfo?.venueIds || []}
+          />
+        );
+
+      // ========== SCOUT SYSTEM ==========
+      case 'scoutDashboard':
+        if (!currentUser) {
+          navigateTo('login');
+          return null;
+        }
+        return (
+          <ScoutDashboard
+            onBack={goBack}
+            onNavigate={navigateTo}
+            currentUser={currentUser}
+            talentPool={talentPool}
+            players={players}
+          />
+        );
+
+      case 'talentPool':
+        if (!currentUser) {
+          navigateTo('login');
+          return null;
+        }
+        return (
+          <TalentPool
+            onBack={goBack}
+            onNavigate={navigateTo}
+            currentUser={currentUser}
+            talentPool={talentPool}
+            onAddCandidate={handleAddCandidate}
+            onMakeDecision={handleMakeTalentDecision}
+          />
+        );
+
+      case 'scoutReports':
+        if (!currentUser) {
+          navigateTo('login');
+          return null;
+        }
+        return (
+          <ScoutReports
+            onBack={goBack}
+            onNavigate={navigateTo}
+            currentUser={currentUser}
+            talentPool={talentPool}
+            onCreateReport={handleCreateScoutReport}
           />
         );
 

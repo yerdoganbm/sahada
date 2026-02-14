@@ -159,6 +159,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 subtitle="A/B/C Taslaklar" 
                 onClick={() => onNavigate('lineupManager')} 
               />
+              <AdminActionBtn 
+                icon="person_search" 
+                title="Scout Merkezi" 
+                subtitle="Yetenek Keşfi" 
+                onClick={() => onNavigate('scoutDashboard')} 
+              />
            </div>
         </div>
 

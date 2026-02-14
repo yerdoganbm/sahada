@@ -87,6 +87,14 @@ export const LineupManager: React.FC<LineupManagerProps> = ({ onBack, onNavigate
                 </div>
              </div>
            </div>
+           
+           {/* Settings / Filter Icon */}
+           <button 
+             onClick={() => onNavigate?.('settings')}
+             className="w-10 h-10 rounded-full flex items-center justify-center bg-surface border border-white/5 active:scale-95 transition-transform"
+           >
+             <Icon name="tune" className="text-white" />
+           </button>
         </div>
 
         {/* Draft Tabs - Only show if enough players */}

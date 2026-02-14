@@ -6,7 +6,7 @@ export enum Tab {
   Profile = 'Profile'
 }
 
-export type ScreenName = 'welcome' | 'login' | 'joinTeam' | 'teamSetup' | 'createProfile' | 'dashboard' | 'matches' | 'team' | 'profile' | 'editProfile' | 'matchDetails' | 'matchCreate' | 'payments' | 'admin' | 'members' | 'venues' | 'venueDetails' | 'venueAdd' | 'lineupManager' | 'squadShare' | 'settings' | 'leaderboard' | 'financialReports' | 'debtList' | 'subscription' | 'polls' | 'booking' | 'tournament' | 'whatsappCenter' | 'attendance' | 'reserveSystem' | 'messageLogs' | 'notifications' | 'venueOwnerDashboard' | 'reservationManagement' | 'reservationDetails' | 'venueCalendar' | 'venueFinancialReports' | 'venueSettings' | 'customerManagement';
+export type ScreenName = 'welcome' | 'login' | 'joinTeam' | 'teamSetup' | 'createProfile' | 'dashboard' | 'matches' | 'team' | 'profile' | 'editProfile' | 'matchDetails' | 'matchCreate' | 'payments' | 'admin' | 'members' | 'venues' | 'venueDetails' | 'venueAdd' | 'lineupManager' | 'squadShare' | 'settings' | 'leaderboard' | 'financialReports' | 'debtList' | 'subscription' | 'polls' | 'booking' | 'tournament' | 'whatsappCenter' | 'attendance' | 'reserveSystem' | 'messageLogs' | 'notifications' | 'venueOwnerDashboard' | 'reservationManagement' | 'reservationDetails' | 'venueCalendar' | 'venueFinancialReports' | 'venueSettings' | 'customerManagement' | 'scoutDashboard' | 'scoutReports' | 'talentPool';
 
 export type SubscriptionTier = 'free' | 'premium' | 'partner';
 
@@ -57,6 +57,13 @@ export interface Player {
   referredBy?: string; // ID of the member who referred this player
   trialStatus?: 'pending_approval' | 'in_trial' | 'rejected'; // Trial phase status
   contactNumber?: string; // Contact information for guest players
+  
+  // SCOUT EVALUATION FIELDS
+  scoutReports?: ScoutReport[]; // Tüm scout raporları
+  potentialRating?: number; // 1-10 (gelecek potansiyeli)
+  scoutScore?: number; // 0-100 (toplam scout puanı)
+  lastEvaluationDate?: string;
+  
   // VENUE OWNER FIELDS
   venueOwnerInfo?: {
     venueIds: string[]; // Sahip olduğu sahalar
@@ -342,3 +349,90 @@ export interface AppNotification {
   isRead: boolean;
   actionScreen?: ScreenName;
 }
+
+// Scout & Talent Management Types
+export interface ScoutReport {
+  id: string;
+  playerId: string;
+  scoutId: string; // Who made the report
+  scoutName: string;
+  date: string;
+  matchId?: string; // Optional: Which match was evaluated
+  
+  // Performance Metrics (0-10)
+  technical: {
+    ballControl: number;
+    passing: number;
+    shooting: number;
+    dribbling: number;
+    firstTouch: number;
+  };
+  
+  physical: {
+    speed: number;
+    stamina: number;
+    strength: number;
+    agility: number;
+  };
+  
+  mental: {
+    positioning: number;
+    decisionMaking: number;
+    gameReading: number;
+    workRate: number;
+    teamwork: number;
+  };
+  
+  // Overall Assessment
+  overallScore: number; // Auto-calculated from above metrics
+  potential: number; // 1-10 (future potential)
+  recommendation: 'sign_now' | 'extend_trial' | 'watch_more' | 'reject';
+  
+  // Notes
+  strengths: string[];
+  weaknesses: string[];
+  detailedNotes: string;
+  
+  // Video/Photo Evidence
+  videoUrl?: string;
+  photoUrls?: string[];
+}
+
+export interface TalentPoolPlayer {
+  id: string;
+  name: string;
+  age: number;
+  position: 'GK' | 'DEF' | 'MID' | 'FWD';
+  contactNumber: string;
+  avatar: string;
+  
+  // Discovery Info
+  discoveredBy: string; // Scout/Member ID
+  discoveredDate: string;
+  source: 'referral' | 'open_trial' | 'tournament' | 'social_media' | 'other';
+  
+  // Current Status
+  status: 'scouting' | 'in_trial' | 'approved' | 'rejected' | 'signed';
+  trialMatchesPlayed: number;
+  trialMatchesTotal: number; // e.g., 3 trial matches
+  
+  // Evaluation
+  scoutReports: ScoutReport[];
+  averageScore?: number;
+  potentialRating?: number;
+  
+  // Decision
+  finalDecision?: 'sign' | 'reject' | 'extend_trial';
+  finalDecisionBy?: string; // Admin/Captain ID
+  finalDecisionDate?: string;
+  finalDecisionNotes?: string;
+}
+
+export interface ScoutingCriteria {
+  id: string;
+  name: string;
+  category: 'technical' | 'physical' | 'mental';
+  weight: number; // 0-100 (importance weight)
+  description: string;
+}
+

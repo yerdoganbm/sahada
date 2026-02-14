@@ -21,7 +21,15 @@
     "test:autonomous": "playwright test tests/autonomous-agent.spec.ts --headed",
     "test:agent-admin": "playwright test -g \"Admin Mode\" --headed",
     "test:agent-chaos": "playwright test -g \"Chaos Mode\" --headed",
-    "test:agent-hunter": "playwright test -g \"Error Hunter\" --headed"
+    "test:agent-hunter": "playwright test -g \"Error Hunter\" --headed",
+    "test:sentinel": "playwright test tests/sentinel-engine.spec.ts --headed",
+    "test:sentinel:strict": "playwright test tests/sentinel-engine.spec.ts -g \"Strict Admin\" --headed",
+    "test:sentinel:chaos": "playwright test tests/sentinel-engine.spec.ts -g \"Chaos Monkey\" --headed",
+    "test:sentinel:spy": "playwright test tests/sentinel-engine.spec.ts -g \"Spy Member\" --headed",
+    "test:sentinel:random": "playwright test tests/sentinel-engine.spec.ts -g \"Random Mode\" --headed",
+    "test:sentinel:marathon": "playwright test tests/sentinel-engine.spec.ts -g \"Marathon\" --headed",
+    "test:sentinel:parallel": "playwright test tests/sentinel-engine.spec.ts -g \"Parallel\" --headed",
+    "test:sentinel:all": "playwright test tests/sentinel-engine.spec.ts"
   },
   "dependencies": {
     "react": "^19.2.4",

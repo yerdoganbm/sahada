@@ -126,6 +126,13 @@ export const MemberManagement: React.FC<MemberManagementProps> = ({
         
         {isAdmin ? (
             <div className="flex gap-2">
+                <button 
+                  onClick={() => onNavigate('scoutDashboard')}
+                  className="bg-primary/10 border border-primary/20 text-primary text-xs font-bold px-3 h-9 flex items-center gap-1 rounded-lg active:scale-95 transition-transform"
+                >
+                  <Icon name="person_search" size={16} />
+                  Scout
+                </button>
                 <button onClick={() => setShowAddPlayerModal(true)} className="bg-surface border border-white/10 text-white text-xs font-bold w-9 h-9 flex items-center justify-center rounded-lg active:scale-95 transition-transform">
                    <Icon name="person_add_alt" size={18} />
                 </button>

@@ -378,3 +378,131 @@ export const MOCK_RESERVATIONS: Reservation[] = [
     paymentStatus: 'pending'
   }
 ];
+
+// TALENT POOL (Scout System Mock Data)
+export const MOCK_TALENT_POOL: any[] = [
+  {
+    id: 'talent_1',
+    name: 'Emre Kaya',
+    age: 22,
+    position: 'MID',
+    contactNumber: '0532 777 88 99',
+    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=EmreKaya',
+    discoveredBy: '1', // Admin
+    discoveredDate: '2026-02-10',
+    source: 'referral',
+    status: 'in_trial',
+    trialMatchesPlayed: 2,
+    trialMatchesTotal: 3,
+    scoutReports: [
+      {
+        id: 'sr1',
+        playerId: 'talent_1',
+        scoutId: '7',
+        scoutName: 'Mehmet Demir',
+        date: '2026-02-12',
+        technical: { ballControl: 7.5, passing: 8, shooting: 6, dribbling: 7, firstTouch: 7.5 },
+        physical: { speed: 6, stamina: 7, strength: 5.5, agility: 7 },
+        mental: { positioning: 7, decisionMaking: 7.5, gameReading: 8, workRate: 8.5, teamwork: 9 },
+        overallScore: 7.3,
+        potential: 8,
+        recommendation: 'sign_now',
+        strengths: ['Mükemmel pas yeteneği', 'Yüksek çalışkanlık', 'Takım oyununa uygun'],
+        weaknesses: ['Fiziksel güç düşük', 'Şut isabeti gelişmeli'],
+        detailedNotes: 'Orta saha için harika bir aday. Takım oyununa çok uygun, iletişimi güçlü.'
+      }
+    ],
+    averageScore: 7.3,
+    potentialRating: 8
+  },
+  {
+    id: 'talent_2',
+    name: 'Burak Özdemir',
+    age: 19,
+    position: 'FWD',
+    contactNumber: '0533 888 99 00',
+    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=BurakOzdemir',
+    discoveredBy: '2',
+    discoveredDate: '2026-02-11',
+    source: 'tournament',
+    status: 'in_trial',
+    trialMatchesPlayed: 3,
+    trialMatchesTotal: 3,
+    scoutReports: [
+      {
+        id: 'sr2',
+        playerId: 'talent_2',
+        scoutId: '1',
+        scoutName: 'Ahmet Yılmaz',
+        date: '2026-02-13',
+        technical: { ballControl: 8, passing: 6.5, shooting: 9, dribbling: 8.5, firstTouch: 7.5 },
+        physical: { speed: 9, stamina: 7, strength: 6, agility: 8.5 },
+        mental: { positioning: 7, decisionMaking: 6.5, gameReading: 6, workRate: 7, teamwork: 7 },
+        overallScore: 7.5,
+        potential: 9,
+        recommendation: 'sign_now',
+        strengths: ['Olağanüstü hız', 'Mükemmel şut gücü', 'Genç ve gelişime açık'],
+        weaknesses: ['Oyun okuma gelişmeli', 'Pas tercihleri iyileştirilmeli'],
+        detailedNotes: 'Çok yetenekli genç forvet. Hız ve şut gücü olağanüstü. Takım oyunu eğitimi ile yıldız olur.'
+      }
+    ],
+    averageScore: 7.5,
+    potentialRating: 9
+  },
+  {
+    id: 'talent_3',
+    name: 'Kerem Aktaş',
+    age: 24,
+    position: 'DEF',
+    contactNumber: '0534 999 00 11',
+    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=KeremAktas',
+    discoveredBy: '7',
+    discoveredDate: '2026-02-08',
+    source: 'referral',
+    status: 'scouting',
+    trialMatchesPlayed: 0,
+    trialMatchesTotal: 3,
+    scoutReports: [],
+    averageScore: undefined,
+    potentialRating: undefined
+  },
+  {
+    id: 'talent_4',
+    name: 'Cem Yıldız',
+    age: 26,
+    position: 'GK',
+    contactNumber: '0535 000 11 22',
+    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=CemYildiz',
+    discoveredBy: '1',
+    discoveredDate: '2026-02-09',
+    source: 'open_trial',
+    status: 'approved',
+    trialMatchesPlayed: 3,
+    trialMatchesTotal: 3,
+    scoutReports: [
+      {
+        id: 'sr3',
+        playerId: 'talent_4',
+        scoutId: '7',
+        scoutName: 'Mehmet Demir',
+        date: '2026-02-11',
+        technical: { ballControl: 7, passing: 7, shooting: 5, dribbling: 6, firstTouch: 7 },
+        physical: { speed: 6, stamina: 8, strength: 8, agility: 7 },
+        mental: { positioning: 9, decisionMaking: 8, gameReading: 9, workRate: 8, teamwork: 8 },
+        overallScore: 7.6,
+        potential: 7,
+        recommendation: 'sign_now',
+        strengths: ['Mükemmel refleks', 'Oyunu iyi yönetiyor', 'Tecrübeli'],
+        weaknesses: ['Ayak oyunu gelişmeli'],
+        detailedNotes: 'Kaleci kadromuzu güçlendirecek tecrübeli bir oyuncu.'
+      }
+    ],
+    averageScore: 7.6,
+    potentialRating: 7,
+    finalDecision: 'sign',
+    finalDecisionBy: '1',
+    finalDecisionDate: '2026-02-13',
+    finalDecisionNotes: 'Kaleci pozisyonunda ihtiyacımız vardı. İmzalandı.'
+  }
+];
+
