@@ -760,15 +760,6 @@ function App() {
     console.log(`✅ Karar: ${decisionText} - Notlar: ${notes}`);
   };
 
-  const handleStartTrial = (playerId: string) => {
-    setTalentPool(prev => prev.map(player => 
-      player.id === playerId
-        ? { ...player, status: 'in_trial' }
-        : player
-    ));
-    console.log('✅ Deneme süreci başlatıldı');
-  };
-
   // ===========================================
 
   // MVP Oylama

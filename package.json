@@ -7,6 +7,8 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
+    "genesis": "ts-node libero-universal.ts",
+    "libero:genesis": "ts-node libero-universal.ts",
     "neuro:start": "ts-node server/neuro-core-server.ts",
     "neuro:dev": "nodemon --exec ts-node server/neuro-core-server.ts",
     "test": "playwright test",
@@ -67,6 +69,7 @@
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.11.1",
+    "playwright": "^1.40.0",
     "@faker-js/faker": "^10.3.0",
     "@playwright/test": "^1.58.2",
     "@types/node": "^22.19.11",
