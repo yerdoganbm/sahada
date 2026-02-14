@@ -6,7 +6,7 @@ export enum Tab {
   Profile = 'Profile'
 }
 
-export type ScreenName = 'welcome' | 'login' | 'joinTeam' | 'teamSetup' | 'createProfile' | 'dashboard' | 'matches' | 'team' | 'profile' | 'editProfile' | 'matchDetails' | 'matchCreate' | 'payments' | 'admin' | 'members' | 'venues' | 'venueDetails' | 'venueAdd' | 'lineupManager' | 'squadShare' | 'settings' | 'leaderboard' | 'financialReports' | 'subscription' | 'polls' | 'booking' | 'tournament' | 'whatsappCenter' | 'attendance' | 'reserveSystem' | 'messageLogs' | 'notifications' | 'venueOwnerDashboard' | 'reservationManagement' | 'venueCalendar' | 'venueFinancialReports' | 'venueSettings' | 'customerManagement';
+export type ScreenName = 'welcome' | 'login' | 'joinTeam' | 'teamSetup' | 'createProfile' | 'dashboard' | 'matches' | 'team' | 'profile' | 'editProfile' | 'matchDetails' | 'matchCreate' | 'payments' | 'admin' | 'members' | 'venues' | 'venueDetails' | 'venueAdd' | 'lineupManager' | 'squadShare' | 'settings' | 'leaderboard' | 'financialReports' | 'debtList' | 'subscription' | 'polls' | 'booking' | 'tournament' | 'whatsappCenter' | 'attendance' | 'reserveSystem' | 'messageLogs' | 'notifications' | 'venueOwnerDashboard' | 'reservationManagement' | 'reservationDetails' | 'venueCalendar' | 'venueFinancialReports' | 'venueSettings' | 'customerManagement';
 
 export type SubscriptionTier = 'free' | 'premium' | 'partner';
 
@@ -20,6 +20,8 @@ export interface TeamProfile {
   foundedYear: string;
   logo: string;
   inviteCode: string; // New field for joining
+  founderName?: string; // Kurucu adı
+  founderEmail?: string; // Kurucu e-postası
 }
 
 export interface JoinRequest {
@@ -86,6 +88,11 @@ export interface Match {
     playerId: string;
     status: RsvpStatus;
   }[];
+  mvpVotes?: { // MVP voting
+    playerId: string;
+    voterId: string;
+  }[];
+  mvpWinner?: string; // Final MVP winner
 }
 
 export interface Payment {

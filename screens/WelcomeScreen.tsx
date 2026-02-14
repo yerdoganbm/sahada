@@ -93,14 +93,14 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onNavigate }) => {
            
            <div className="grid grid-cols-2 gap-3">
               <button 
-                onClick={() => onNavigate('teamSetup')}
+                onClick={() => onNavigate('login')}
                 className="bg-secondary/50 hover:bg-secondary/80 border border-white/5 text-white py-3 rounded-xl font-bold text-xs transition-all active:scale-[0.98] flex items-center justify-center gap-2"
               >
                  <Icon name="add_circle" size={16} className="text-slate-400" />
                  Takım Kur
               </button>
               <button 
-                onClick={() => onNavigate('joinTeam')}
+                onClick={() => onNavigate('login')}
                 className="bg-secondary/50 hover:bg-secondary/80 border border-white/5 text-white py-3 rounded-xl font-bold text-xs transition-all active:scale-[0.98] flex items-center justify-center gap-2"
               >
                  <Icon name="qr_code" size={16} className="text-slate-400" />

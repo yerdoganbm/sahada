@@ -1,17 +1,21 @@
 import React, { useState } from 'react';
 import { Icon } from '../components/Icon';
+import { Player } from '../types';
 
 interface SettingsProps {
   onBack: () => void;
+  currentUser: Player;
+  onUpdateSettings?: (updates: Partial<Player>) => void;
+  onLogout?: () => void;
 }
 
-export const Settings: React.FC<SettingsProps> = ({ onBack }) => {
+export const Settings: React.FC<SettingsProps> = ({ onBack, currentUser, onUpdateSettings, onLogout }) => {
   const [formData, setFormData] = useState({
-    name: 'Ahmet Yılmaz',
-    email: 'ahmet.yilmaz@example.com',
-    phone: '0532 123 45 67',
-    position: 'MID',
-    shirtNumber: '10',
+    name: currentUser.name,
+    email: currentUser.email || '',
+    phone: currentUser.phone || '',
+    position: currentUser.position || 'MID',
+    shirtNumber: currentUser.shirtNumber?.toString() || '',
     notifications: {
       matches: true,
       squad: true,
@@ -20,7 +24,15 @@ export const Settings: React.FC<SettingsProps> = ({ onBack }) => {
   });
 
   const handleSave = () => {
-    // Simulate save
+    if (onUpdateSettings) {
+      onUpdateSettings({
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+        position: formData.position as any,
+        shirtNumber: formData.shirtNumber ? parseInt(formData.shirtNumber) : undefined
+      });
+    }
     alert('Ayarlar başarıyla kaydedildi.');
     onBack();
   };
@@ -169,6 +181,16 @@ export const Settings: React.FC<SettingsProps> = ({ onBack }) => {
                     <span className="text-sm font-medium text-slate-300 group-hover:text-white">Şifre Değiştir</span>
                  </div>
                  <Icon name="chevron_right" className="text-slate-600" size={20} />
+              </button>
+              <div className="h-[1px] bg-white/5 mx-4"></div>
+              <button 
+                 onClick={onLogout}
+                 className="w-full flex items-center justify-between p-4 hover:bg-yellow-500/10 transition-colors text-left group"
+              >
+                 <div className="flex items-center gap-3">
+                    <Icon name="logout" className="text-yellow-500" />
+                    <span className="text-sm font-medium text-yellow-500">Çıkış Yap</span>
+                 </div>
               </button>
               <div className="h-[1px] bg-white/5 mx-4"></div>
               <button className="w-full flex items-center justify-between p-4 hover:bg-red-500/10 transition-colors text-left group">

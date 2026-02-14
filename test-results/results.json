@@ -1,0 +1,344 @@
+{
+  "config": {
+    "configFile": "C:\\Users\\YUNUS\\Desktop\\sahada\\sahada\\playwright.config.ts",
+    "rootDir": "C:/Users/YUNUS/Desktop/sahada/sahada/tests",
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "C:/Users/YUNUS/Desktop/sahada/sahada/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "Desktop Chrome",
+        "name": "Desktop Chrome",
+        "testDir": "C:/Users/YUNUS/Desktop/sahada/sahada/tests",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "html",
+        {
+          "outputFolder": "playwright-report"
+        }
+      ],
+      [
+        "list",
+        null
+      ],
+      [
+        "json",
+        {
+          "outputFile": "test-results/results.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "runAgents": "none",
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.58.2",
+    "workers": 8,
+    "webServer": {
+      "command": "npm run dev",
+      "url": "http://localhost:3004",
+      "reuseExistingServer": true,
+      "timeout": 120000
+    }
+  },
+  "suites": [
+    {
+      "title": "full-coverage.spec.ts",
+      "file": "full-coverage.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "🌐 PUBLIC SCREENS (No Auth)",
+          "file": "full-coverage.spec.ts",
+          "line": 133,
+          "column": 6,
+          "specs": [
+            {
+              "title": "Welcome Screen - İlk açılış",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Desktop Chrome",
+                  "projectName": "Desktop Chrome",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 2667,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-02-14T19:39:35.174Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "31cbed2c12d968a73b6d-ea2c05896f4c0615b051",
+              "file": "full-coverage.spec.ts",
+              "line": 135,
+              "column": 3
+            },
+            {
+              "title": "Login Screen - Giriş ekranı render",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Desktop Chrome",
+                  "projectName": "Desktop Chrome",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 1607,
+                      "error": {
+                        "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: locator('text=Giriş Yap')\nExpected: visible\nError: strict mode violation: locator('text=Giriş Yap') resolved to 2 elements:\n    1) <h1 class=\"text-3xl font-bold text-white tracking-tight\">Giriş Yap</h1> aka getByRole('heading', { name: 'Giriş Yap' })\n    2) <p class=\"text-[10px] text-center text-slate-600 max-w-xs mx-auto leading-relaxed\">…</p> aka getByText('Giriş yaparak Sahada')\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('text=Giriş Yap')\u001b[22m\n",
+                        "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: locator('text=Giriş Yap')\nExpected: visible\nError: strict mode violation: locator('text=Giriş Yap') resolved to 2 elements:\n    1) <h1 class=\"text-3xl font-bold text-white tracking-tight\">Giriş Yap</h1> aka getByRole('heading', { name: 'Giriş Yap' })\n    2) <p class=\"text-[10px] text-center text-slate-600 max-w-xs mx-auto leading-relaxed\">…</p> aka getByText('Giriş yaparak Sahada')\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('text=Giriş Yap')\u001b[22m\n\n    at C:\\Users\\YUNUS\\Desktop\\sahada\\sahada\\tests\\full-coverage.spec.ts:157:50",
+                        "location": {
+                          "file": "C:\\Users\\YUNUS\\Desktop\\sahada\\sahada\\tests\\full-coverage.spec.ts",
+                          "column": 50,
+                          "line": 157
+                        },
+                        "snippet": "  155 |     await page.click('text=Hemen Başla');\n  156 |     \n> 157 |     await expect(page.locator('text=Giriş Yap')).toBeVisible();\n      |                                                  ^\n  158 |     await expect(page.locator('input[type=\"tel\"]')).toBeVisible();\n  159 |     await expect(page.locator('text=Takımını Sıfırdan Kur')).toBeVisible();\n  160 |   });"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "C:\\Users\\YUNUS\\Desktop\\sahada\\sahada\\tests\\full-coverage.spec.ts",
+                            "column": 50,
+                            "line": 157
+                          },
+                          "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: locator('text=Giriş Yap')\nExpected: visible\nError: strict mode violation: locator('text=Giriş Yap') resolved to 2 elements:\n    1) <h1 class=\"text-3xl font-bold text-white tracking-tight\">Giriş Yap</h1> aka getByRole('heading', { name: 'Giriş Yap' })\n    2) <p class=\"text-[10px] text-center text-slate-600 max-w-xs mx-auto leading-relaxed\">…</p> aka getByText('Giriş yaparak Sahada')\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('text=Giriş Yap')\u001b[22m\n\n\n  155 |     await page.click('text=Hemen Başla');\n  156 |     \n> 157 |     await expect(page.locator('text=Giriş Yap')).toBeVisible();\n      |                                                  ^\n  158 |     await expect(page.locator('input[type=\"tel\"]')).toBeVisible();\n  159 |     await expect(page.locator('text=Takımını Sıfırdan Kur')).toBeVisible();\n  160 |   });\n    at C:\\Users\\YUNUS\\Desktop\\sahada\\sahada\\tests\\full-coverage.spec.ts:157:50"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-02-14T19:39:38.071Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "C:\\Users\\YUNUS\\Desktop\\sahada\\sahada\\test-results\\full-coverage-🌐-PUBLIC-SC-1c46c-creen---Giriş-ekranı-render-Desktop-Chrome\\test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "C:\\Users\\YUNUS\\Desktop\\sahada\\sahada\\test-results\\full-coverage-🌐-PUBLIC-SC-1c46c-creen---Giriş-ekranı-render-Desktop-Chrome\\video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "C:\\Users\\YUNUS\\Desktop\\sahada\\sahada\\test-results\\full-coverage-🌐-PUBLIC-SC-1c46c-creen---Giriş-ekranı-render-Desktop-Chrome\\error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "C:\\Users\\YUNUS\\Desktop\\sahada\\sahada\\tests\\full-coverage.spec.ts",
+                        "column": 50,
+                        "line": 157
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "31cbed2c12d968a73b6d-fb150dd065414b044bbc",
+              "file": "full-coverage.spec.ts",
+              "line": 153,
+              "column": 3
+            },
+            {
+              "title": "Login Screen - Boş giriş denemesi",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Desktop Chrome",
+                  "projectName": "Desktop Chrome",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 2036,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-02-14T19:39:41.691Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "31cbed2c12d968a73b6d-1e9f5c29429baa614e24",
+              "file": "full-coverage.spec.ts",
+              "line": 162,
+              "column": 3
+            },
+            {
+              "title": "Login Screen - Takım kurma ön kontrol",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Desktop Chrome",
+                  "projectName": "Desktop Chrome",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1838,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-02-14T19:39:43.965Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "31cbed2c12d968a73b6d-58e8fa3851edf66b78e6",
+              "file": "full-coverage.spec.ts",
+              "line": 176,
+              "column": 3
+            },
+            {
+              "title": "TeamSetup - 3 Adımlı Kurulum",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Desktop Chrome",
+                  "projectName": "Desktop Chrome",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 4680,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-02-14T19:39:45.827Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "31cbed2c12d968a73b6d-5b43cbb989c78993883f",
+              "file": "full-coverage.spec.ts",
+              "line": 189,
+              "column": 3
+            },
+            {
+              "title": "CreateProfile - Profil oluşturma akışı",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Desktop Chrome",
+                  "projectName": "Desktop Chrome",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 4853,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-02-14T19:39:50.527Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "31cbed2c12d968a73b6d-c7b4d6069296a95fb498",
+              "file": "full-coverage.spec.ts",
+              "line": 219,
+              "column": 3
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-02-14T19:39:33.191Z",
+    "duration": 22398.877,
+    "expected": 5,
+    "skipped": 0,
+    "unexpected": 1,
+    "flaky": 0
+  }
+}

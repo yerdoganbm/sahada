@@ -40,6 +40,21 @@ export const VenueOwnerDashboard: React.FC<VenueOwnerDashboardProps> = ({
     weekFromNow.setDate(weekFromNow.getDate() + 7);
     return resDate >= new Date() && resDate <= weekFromNow;
   });
+  
+  // Doluluk oranı hesaplama (Ayda 30 gün * 10 slot = 300 potansiyel rezervasyon)
+  const thisMonthStart = new Date();
+  thisMonthStart.setDate(1);
+  const thisMonthEnd = new Date();
+  thisMonthEnd.setMonth(thisMonthEnd.getMonth() + 1);
+  thisMonthEnd.setDate(0);
+  
+  const thisMonthReservations = myReservations.filter(r => {
+    const resDate = new Date(r.date);
+    return resDate >= thisMonthStart && resDate <= thisMonthEnd && r.status === 'confirmed';
+  });
+  
+  const potentialSlots = venueIds.length * 30 * 10; // Saha sayısı * 30 gün * 10 slot
+  const occupancyRate = potentialSlots > 0 ? Math.round((thisMonthReservations.length / potentialSlots) * 100) : 0;
 
   return (
     <div className="pb-8 bg-secondary min-h-screen">
@@ -192,7 +207,7 @@ export const VenueOwnerDashboard: React.FC<VenueOwnerDashboardProps> = ({
           <div className="grid grid-cols-2 gap-4">
             <StatItem
               label="Doluluk Oranı"
-              value={`${currentUser.venueOwnerInfo?.totalReservations ? Math.round((currentUser.venueOwnerInfo.totalReservations / 300) * 100) : 0}%`}
+              value={`${occupancyRate}%`}
               icon="percent"
               color="text-primary"
             />

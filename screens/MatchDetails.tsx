@@ -11,7 +11,10 @@ interface MatchDetailsProps {
   currentUser: Player;
   rsvpStatus: RsvpStatus;
   onRsvpChange: (status: RsvpStatus) => void;
-  onUpdateScore?: (matchId: string, score: string, newStatus?: 'completed' | 'cancelled') => void; // FIX #5
+  onUpdateScore?: (matchId: string, score: string, newStatus?: 'completed' | 'cancelled') => void;
+  onMVPVote?: (matchId: string, playerId: string) => void;
+  onEditMatch?: (matchId: string, updates: Partial<Match>) => void;
+  onCancelMatch?: (matchId: string, reason: string) => void;
   allPlayers?: Player[];
   allMatches?: Match[];
 }
@@ -24,7 +27,8 @@ export const MatchDetails: React.FC<MatchDetailsProps> = ({
   currentUser, 
   rsvpStatus, 
   onRsvpChange,
-  onUpdateScore, // FIX #5
+  onUpdateScore,
+  onMVPVote,
   allPlayers = MOCK_PLAYERS,
   allMatches = MOCK_MATCHES
 }) => {
@@ -271,6 +275,19 @@ export const MatchDetails: React.FC<MatchDetailsProps> = ({
                 <div className="bg-primary/5 border border-primary/10 rounded-2xl p-4 text-center">
                     <p className="text-xs text-slate-400 font-bold uppercase mb-2">Sonuç</p>
                     <h2 className="text-3xl font-black text-primary font-mono">{match.score}</h2>
+                    
+                    {/* MVP Winner Display */}
+                    {match.mvpWinner && (
+                      <div className="mt-4 pt-4 border-t border-white/10">
+                        <p className="text-xs text-yellow-400 font-bold uppercase mb-2">🏆 Maçın Adamı</p>
+                        <p className="text-white font-bold">{allPlayers.find(p => p.id === match.mvpWinner)?.name || 'Bilinmiyor'}</p>
+                        {match.mvpVotes && (
+                          <p className="text-xs text-slate-400 mt-1">
+                            {match.mvpVotes.filter(v => v.playerId === match.mvpWinner).length} oy
+                          </p>
+                        )}
+                      </div>
+                    )}
                 </div>
             )}
 
@@ -339,7 +356,13 @@ export const MatchDetails: React.FC<MatchDetailsProps> = ({
                   <div className="p-4 bg-surface border-t border-white/10 pb-safe-bottom">
                       <button 
                         disabled={!mvpVote}
-                        onClick={() => { alert('Oyunuz kaydedildi!'); setShowMVPModal(false); }}
+                        onClick={() => { 
+                          if (mvpVote && onMVPVote) {
+                            onMVPVote(matchId, mvpVote);
+                            setShowMVPModal(false);
+                            setMvpVote(null);
+                          }
+                        }}
                         className="w-full bg-yellow-500 text-black py-4 rounded-2xl font-bold text-lg disabled:opacity-50 disabled:cursor-not-allowed shadow-glow"
                       >
                           Oy Ver

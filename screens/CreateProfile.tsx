@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Icon } from '../components/Icon';
 
 interface CreateProfileProps {
-  onComplete: () => void;
+  onComplete: (profileData: { name: string; position: string; shirtNumber?: number }) => void;
 }
 
 export const CreateProfile: React.FC<CreateProfileProps> = ({ onComplete }) => {
@@ -126,7 +126,17 @@ export const CreateProfile: React.FC<CreateProfileProps> = ({ onComplete }) => {
 
         {/* Submit Button */}
         <button 
-          onClick={onComplete}
+          onClick={() => {
+            if (!formData.nickname.trim()) {
+              alert('Lütfen takma ad girişi yapın!');
+              return;
+            }
+            onComplete({
+              name: formData.nickname,
+              position: formData.position,
+              shirtNumber: undefined
+            });
+          }}
           className="w-full bg-primary hover:bg-green-400 text-secondary py-4 rounded-2xl font-bold text-lg shadow-glow transition-all active:scale-[0.98] mt-4"
         >
            Kaydı Tamamla

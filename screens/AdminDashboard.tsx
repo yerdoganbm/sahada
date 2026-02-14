@@ -77,13 +77,21 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           <Icon name="admin_panel_settings" className="text-primary" size={20} />
           <span className="font-bold text-white text-lg">Yönetim Paneli</span>
         </div>
-        <button 
-          onClick={() => onNavigate('matchCreate')}
-          className="bg-primary text-secondary text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1 active:scale-95 transition-transform"
-        >
-          <Icon name="bolt" size={14} />
-          Hızlı Maç
-        </button>
+        <div className="flex items-center gap-2">
+          <button 
+            onClick={() => onNavigate('settings')}
+            className="w-10 h-10 rounded-full flex items-center justify-center bg-surface border border-white/5 active:scale-95 transition-transform"
+          >
+            <Icon name="settings" className="text-slate-400" size={20} />
+          </button>
+          <button 
+            onClick={() => onNavigate('matchCreate')}
+            className="bg-primary text-secondary text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1 active:scale-95 transition-transform"
+          >
+            <Icon name="bolt" size={14} />
+            Hızlı Maç
+          </button>
+        </div>
       </div>
 
       <div className="p-4 space-y-8">
@@ -126,6 +134,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 title="Finansal Raporlar" 
                 subtitle="Gelir & Gider" 
                 onClick={() => onNavigate('financialReports')} 
+              />
+              <AdminActionBtn 
+                icon="payments" 
+                title="Borçlu Listesi" 
+                subtitle="Tahsilat Takibi" 
+                onClick={() => onNavigate('debtList')} 
               />
               <AdminActionBtn 
                 icon="groups" 

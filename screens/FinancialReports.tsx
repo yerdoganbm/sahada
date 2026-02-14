@@ -61,17 +61,19 @@ export const FinancialReports: React.FC<FinancialReportsProps> = ({ onBack, tran
 
   // Filter Logic
   const filteredTransactions = useMemo(() => {
-    // Mock "Current Date" as mid-October 2023 for demo consistency with mock data, 
-    // BUT allow newer dates for newly added transactions.
-    const now = new Date(); // Use real current date logic or fallback to mock anchor if needed
+    const now = new Date();
     
     return transactions.filter(t => {
-      // Just showing all for simplicity in demo if date parsing is complex,
-      // but keeping basic structure.
       if (filter === 'all') return true;
       
       const tDate = parseDate(t.date);
-      // Simplify filtering for demo
+      const diffMs = now.getTime() - tDate.getTime();
+      const diffDays = diffMs / (1000 * 60 * 60 * 24);
+      
+      if (filter === 'month') return diffDays <= 30;
+      if (filter === '3months') return diffDays <= 90;
+      if (filter === 'year') return diffDays <= 365;
+      
       return true; 
     });
   }, [filter, transactions]);

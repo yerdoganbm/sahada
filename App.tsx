@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
+import { ToastProvider } from './components/Toast';
 import { ScreenName, Venue, Player, Payment, Transaction, SubscriptionTier, RsvpStatus, Match, TransferRequest, Poll, TeamProfile, JoinRequest, Reservation } from './types';
 import { Dashboard } from './screens/Dashboard';
 import { TeamList } from './screens/TeamList';
@@ -23,6 +24,7 @@ import { VenueAdd } from './screens/VenueAdd';
 import { CreateProfile } from './screens/CreateProfile';
 import { Leaderboard } from './screens/Leaderboard';
 import { FinancialReports } from './screens/FinancialReports';
+import { DebtList } from './screens/DebtList';
 import { MatchCreate } from './screens/MatchCreate';
 import { SubscriptionScreen } from './screens/SubscriptionScreen';
 import { Polls } from './screens/Polls';
@@ -39,6 +41,7 @@ import { EditProfileScreen } from './screens/EditProfileScreen';
 // VENUE OWNER SCREENS
 import { VenueOwnerDashboard } from './screens/VenueOwnerDashboard';
 import { ReservationManagement } from './screens/ReservationManagement';
+import { ReservationDetails } from './screens/ReservationDetails';
 import { VenueCalendar } from './screens/VenueCalendar';
 import { VenueFinancialReports } from './screens/VenueFinancialReports';
 import { CustomerManagement } from './screens/CustomerManagement';
@@ -51,6 +54,21 @@ function App() {
   const [currentScreen, setCurrentScreen] = useState<ScreenName>('welcome');
   const [screenHistory, setScreenHistory] = useState<ScreenName[]>([]);
   
+  // Browser back button desteği
+  useEffect(() => {
+    const handlePopState = (event: PopStateEvent) => {
+      event.preventDefault();
+      if (screenHistory.length > 0) {
+        const previousScreen = screenHistory[screenHistory.length - 1];
+        setScreenHistory(prev => prev.slice(0, -1));
+        setCurrentScreen(previousScreen);
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [screenHistory]);
+
   // Mock Data States - TÜM VERİLER BURADA
   const [matches, setMatches] = useState<Match[]>(MOCK_MATCHES);
   const [venues, setVenues] = useState<Venue[]>(MOCK_VENUES);
@@ -87,6 +105,7 @@ function App() {
   const [teamProfile, setTeamProfile] = useState<TeamProfile | null>(null);
   const [matchDetailsId, setMatchDetailsId] = useState<string | null>(null);
   const [venueDetailsId, setVenueDetailsId] = useState<string | null>(null);
+  const [reservationDetailsId, setReservationDetailsId] = useState<string | null>(null);
 
   // ===========================================
   // LOGIN HANDLER - RBAC LOGIC
@@ -124,17 +143,19 @@ function App() {
     } else if (isNewTeam) {
       // Yeni takım kuruluyor - admin olarak giriş
       const newAdmin: Player = {
-        id: 'new_admin',
+        id: userId, // Unique ID with timestamp
         name: 'Yeni Yönetici',
         position: 'MID',
         rating: 7.0,
         reliability: 100,
-        avatar: 'https://i.pravatar.cc/150?u=new',
+        avatar: 'https://i.pravatar.cc/150?u=' + userId,
         role: 'admin',
         isCaptain: true,
-        tier: 'free'
+        tier: 'free',
+        phone: userId.replace('new_admin_', '') // Telefon numarasını kaydet
       };
       setCurrentUser(newAdmin);
+      console.log('✅ Yeni takım kurucusu oluşturuldu:', newAdmin);
       setCurrentScreen('teamSetup');
     } else {
       // Bilinmeyen kullanıcı - profil oluşturma ekranına yönlendir
@@ -387,34 +408,73 @@ function App() {
   };
 
   // 12. PROFİL OLUŞTURMA TAMAMLAMA
-  const handleProfileComplete = () => {
-    console.log('🎉 Yeni profil oluşturuluyor...');
+  const handleProfileComplete = (profileData?: { name: string; position: string; shirtNumber?: number }) => {
+    console.log('🎉 Profil oluşturuluyor...', profileData);
     
-    // Yeni kullanıcı oluştur
-    if (!currentUser) {
+    // Eğer currentUser varsa güncelle, yoksa yeni oluştur
+    if (currentUser) {
+      const updatedUser: Player = {
+        ...currentUser,
+        name: profileData?.name || currentUser.name,
+        position: (profileData?.position as any) || currentUser.position,
+        shirtNumber: profileData?.shirtNumber || currentUser.shirtNumber
+      };
+      setCurrentUser(updatedUser);
+      setPlayers(prev => {
+        const existing = prev.find(p => p.id === currentUser.id);
+        if (existing) {
+          return prev.map(p => p.id === currentUser.id ? updatedUser : p);
+        }
+        return [...prev, updatedUser];
+      });
+    } else {
+      // Yeni kullanıcı oluştur
       const newUser: Player = {
         id: `player_${Date.now()}`,
-        name: 'Yeni Oyuncu',
-        position: 'MID',
+        name: profileData?.name || 'Yeni Oyuncu',
+        position: (profileData?.position as any) || 'MID',
         rating: 7.0,
         reliability: 80,
         avatar: `https://i.pravatar.cc/150?u=${Date.now()}`,
         role: 'member',
-        tier: 'free'
+        tier: 'free',
+        shirtNumber: profileData?.shirtNumber
       };
       setCurrentUser(newUser);
       setPlayers(prev => [...prev, newUser]);
     }
     
-    console.log('✅ Profil oluşturuldu!');
+    console.log('✅ Profil oluşturuldu! Dashboard\'a yönlendiriliyor...');
     navigateTo('dashboard');
   };
 
-  // 13. TAKIM KURULUM TAMAMLAMA (FIX #1: Dashboard'da göster)
+  // 13. TAKIM KURULUM TAMAMLAMA (Dashboard'a yönlendir)
   const handleTeamSetupComplete = (team: TeamProfile) => {
     console.log('⚽ Takım profili oluşturuluyor:', team);
     setTeamProfile(team);
-    console.log('✅ Takım başarıyla kuruldu!', team);
+    
+    // Kullanıcı bilgilerini güncelle
+    if (currentUser) {
+      const updatedUser: Player = {
+        ...currentUser,
+        name: team.founderName || currentUser.name, // Takım kurucusunun adını kullan
+        email: team.founderEmail,
+        phone: currentUser.phone // Telefon numarası zaten kayıtlı
+      };
+      setCurrentUser(updatedUser);
+      
+      // Players listesine ekle
+      setPlayers(prev => {
+        const exists = prev.find(p => p.id === updatedUser.id);
+        if (exists) {
+          return prev.map(p => p.id === updatedUser.id ? updatedUser : p);
+        }
+        return [...prev, updatedUser];
+      });
+      
+      console.log('✅ Takım ve kurucu profili başarıyla oluşturuldu!', { team, user: updatedUser });
+    }
+    
     navigateTo('dashboard');
   };
 
@@ -491,6 +551,39 @@ function App() {
     console.log('✅ Maç sonucu güncellendi!');
   };
 
+  // MAÇ DÜZENLEME
+  const handleEditMatch = (matchId: string, updates: Partial<Match>) => {
+    console.log(`✏️ Maç düzenleniyor: ${matchId}`, updates);
+    
+    setMatches(prev => prev.map(m => 
+      m.id === matchId 
+        ? { ...m, ...updates } 
+        : m
+    ));
+    
+    console.log('✅ Maç başarıyla güncellendi!');
+  };
+
+  // MAÇ İPTAL ETME
+  const handleCancelMatch = (matchId: string, reason: string) => {
+    console.log(`❌ Maç iptal ediliyor: ${matchId}, Neden: ${reason}`);
+    
+    const confirmCancel = window.confirm(
+      `Bu maçı iptal etmek istediğinizden emin misiniz?\n\nNeden: ${reason}`
+    );
+    
+    if (confirmCancel) {
+      setMatches(prev => prev.map(m => 
+        m.id === matchId 
+          ? { ...m, status: 'cancelled' as const } 
+          : m
+      ));
+      
+      alert('✅ Maç iptal edildi! Takım üyelerine bildirim gönderildi.');
+      console.log('✅ Maç iptal edildi!');
+    }
+  };
+
   // 19. FIX #7: AIDAT ÖDEMESİ / DEKONT YÜKLEME (Player Action)
   const handleUploadPaymentProof = (paymentId: string, proofUrl: string) => {
     console.log(`📤 Dekont yükleniyor: ${paymentId}`);
@@ -539,6 +632,71 @@ function App() {
         : r
     ));
     alert('Rezervasyon reddedildi. Müşteriye bildirim gönderildi.');
+  };
+
+  // MVP Oylama
+  const handleMVPVote = (matchId: string, playerId: string) => {
+    if (!currentUser) return;
+    
+    console.log('🏆 MVP oylaması:', { matchId, playerId, voterId: currentUser.id });
+    
+    setMatches(prev => prev.map(m => {
+      if (m.id === matchId) {
+        const currentVotes = m.mvpVotes || [];
+        // Aynı kullanıcı tekrar oy kullanamaz
+        const hasVoted = currentVotes.some(v => v.voterId === currentUser.id);
+        
+        if (hasVoted) {
+          alert('Zaten oy kullandınız!');
+          return m;
+        }
+        
+        const newVotes = [...currentVotes, { playerId, voterId: currentUser.id }];
+        
+        // Oy sayısını hesapla ve MVP kazananı belirle
+        const voteCounts: Record<string, number> = {};
+        newVotes.forEach(v => {
+          voteCounts[v.playerId] = (voteCounts[v.playerId] || 0) + 1;
+        });
+        
+        const winner = Object.entries(voteCounts).sort((a, b) => b[1] - a[1])[0]?.[0];
+        
+        console.log('📊 Oy durumu:', voteCounts, 'Lider:', winner);
+        
+        return { 
+          ...m, 
+          mvpVotes: newVotes,
+          mvpWinner: winner 
+        };
+      }
+      return m;
+    }));
+    
+    alert('Oyunuz kaydedildi! ✅');
+  };
+
+  // Settings Update Handler
+  const handleUpdateSettings = (updates: Partial<Player>) => {
+    if (!currentUser) return;
+    
+    console.log('⚙️ Ayarlar güncelleniyor:', updates);
+    
+    const updatedUser = { ...currentUser, ...updates };
+    setCurrentUser(updatedUser);
+    setPlayers(prev => prev.map(p => p.id === currentUser.id ? updatedUser : p));
+  };
+
+  // Logout Handler
+  const handleLogout = () => {
+    console.log('👋 Çıkış yapılıyor...');
+    const confirmLogout = window.confirm('Çıkış yapmak istediğinize emin misiniz?');
+    if (confirmLogout) {
+      setCurrentUser(null);
+      setCurrentScreen('welcome');
+      setScreenHistory([]);
+      setTeamProfile(null);
+      console.log('✅ Çıkış başarılı!');
+    }
   };
 
   // ===========================================
@@ -640,6 +798,9 @@ function App() {
             rsvpStatus={rsvpStatus}
             onRsvpChange={(status) => handleRsvpChange(matchDetailsId, status)}
             onUpdateScore={handleUpdateMatchScore}
+            onMVPVote={handleMVPVote}
+            onEditMatch={handleEditMatch}
+            onCancelMatch={handleCancelMatch}
             allPlayers={players}
             allMatches={matches}
           />
@@ -806,6 +967,8 @@ function App() {
           <Settings 
             onBack={goBack}
             currentUser={currentUser}
+            onUpdateSettings={handleUpdateSettings}
+            onLogout={handleLogout}
           />
         );
 
@@ -877,19 +1040,6 @@ function App() {
           />
         );
 
-      case 'whatsappCenter':
-        if (!currentUser) {
-          navigateTo('login');
-          return null;
-        }
-        return (
-          <WhatsAppIntegration 
-            onBack={goBack}
-            onNavigate={navigateTo}
-            currentUser={currentUser}
-          />
-        );
-
       case 'attendance':
         if (!currentUser) {
           navigateTo('login');
@@ -900,6 +1050,23 @@ function App() {
             onBack={goBack}
             matches={matches}
             players={players}
+            currentUser={currentUser}
+          />
+        );
+
+      case 'whatsappCenter':
+        if (!currentUser) {
+          navigateTo('login');
+          return null;
+        }
+        if (currentUser.role !== 'admin' && currentUser.tier !== 'partner') {
+          alert('WhatsApp merkezi sadece yöneticiler için erişilebilir.');
+          navigateTo('dashboard');
+          return null;
+        }
+        return (
+          <WhatsAppIntegration 
+            onBack={goBack}
             currentUser={currentUser}
           />
         );
@@ -990,6 +1157,24 @@ function App() {
           />
         );
 
+      case 'debtList':
+        if (!currentUser) {
+          navigateTo('login');
+          return null;
+        }
+        if (currentUser.role !== 'admin') {
+          alert('Borç listesine sadece yöneticiler erişebilir.');
+          navigateTo('dashboard');
+          return null;
+        }
+        return (
+          <DebtList
+            onBack={goBack}
+            players={players}
+            payments={payments}
+          />
+        );
+
       case 'financialReports':
         if (!currentUser) {
           navigateTo('login');
@@ -1037,7 +1222,29 @@ function App() {
             onBack={goBack}
             onApproveReservation={handleApproveReservation}
             onRejectReservation={handleRejectReservation}
-            onViewDetails={(id) => alert(`Rezervasyon detayı: ${id}`)}
+            onViewDetails={(id) => {
+              setReservationDetailsId(id);
+              navigateTo('reservationDetails');
+            }}
+          />
+        );
+
+      case 'reservationDetails':
+        if (!currentUser || currentUser.role !== 'venue_owner' || !reservationDetailsId) {
+          navigateTo('venueOwnerDashboard');
+          return null;
+        }
+        const selectedReservation = reservations.find(r => r.id === reservationDetailsId);
+        if (!selectedReservation) {
+          navigateTo('reservationManagement');
+          return null;
+        }
+        return (
+          <ReservationDetails
+            reservation={selectedReservation}
+            onBack={goBack}
+            onApprove={handleApproveReservation}
+            onReject={handleRejectReservation}
           />
         );
 
@@ -1046,7 +1253,13 @@ function App() {
           navigateTo('login');
           return null;
         }
-        return <VenueCalendar onBack={goBack} />;
+        return (
+          <VenueCalendar 
+            onBack={goBack} 
+            reservations={reservations}
+            venueIds={currentUser.venueOwnerInfo?.venueIds || []}
+          />
+        );
 
       case 'venueFinancialReports':
         if (!currentUser || currentUser.role !== 'venue_owner') {
@@ -1060,7 +1273,13 @@ function App() {
           navigateTo('login');
           return null;
         }
-        return <CustomerManagement onBack={goBack} />;
+        return (
+          <CustomerManagement 
+            onBack={goBack}
+            reservations={reservations}
+            venueIds={currentUser.venueOwnerInfo?.venueIds || []}
+          />
+        );
 
       // ========== DEFAULT ==========
       default:
@@ -1088,9 +1307,11 @@ function App() {
   // COMPONENT RENDER
   // ===========================================
   return (
-    <div className="app-container">
-      {renderScreen()}
-    </div>
+    <ToastProvider>
+      <div className="app-container">
+        {renderScreen()}
+      </div>
+    </ToastProvider>
   );
 }
 

@@ -78,13 +78,21 @@ export const Dashboard: React.FC<DashboardProps> = ({
             </div>
           </div>
         </div>
-        <button 
-            onClick={() => onNavigate('notifications')}
-            className={`w-10 h-10 rounded-full border flex items-center justify-center transition-all relative ${hasNotification ? 'bg-slate-50 border-slate-100 text-slate-600' : 'bg-transparent border-transparent text-slate-300'}`}
-        >
-           <Icon name={hasNotification ? "notifications_active" : "notifications_off"} size={20} />
-           {hasNotification && <div className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border border-white"></div>}
-        </button>
+        <div className="flex items-center gap-2">
+          <button 
+              onClick={() => onNavigate('settings')}
+              className="w-10 h-10 rounded-full border border-slate-100 bg-slate-50 flex items-center justify-center transition-all hover:bg-slate-100"
+          >
+             <Icon name="settings" size={20} className="text-slate-600" />
+          </button>
+          <button 
+              onClick={() => onNavigate('notifications')}
+              className={`w-10 h-10 rounded-full border flex items-center justify-center transition-all relative ${hasNotification ? 'bg-slate-50 border-slate-100 text-slate-600' : 'bg-transparent border-transparent text-slate-300'}`}
+          >
+             <Icon name={hasNotification ? "notifications_active" : "notifications_off"} size={20} />
+             {hasNotification && <div className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border border-white"></div>}
+          </button>
+        </div>
       </div>
 
       <div className="px-6 space-y-6">

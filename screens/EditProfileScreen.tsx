@@ -51,12 +51,31 @@ export const EditProfileScreen: React.FC<EditProfileScreenProps> = ({ onBack, cu
           {/* Avatar Change */}
           <div className="flex flex-col items-center">
               <div className="relative group cursor-pointer">
-                  <div className="w-24 h-24 rounded-full overflow-hidden border-2 border-slate-600">
-                      <img src={currentUser.avatar} className="w-full h-full object-cover opacity-80" />
-                  </div>
-                  <div className="absolute inset-0 flex items-center justify-center">
-                      <Icon name="photo_camera" size={24} className="text-white drop-shadow-md" />
-                  </div>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        const reader = new FileReader();
+                        reader.onloadend = () => {
+                          const base64 = reader.result as string;
+                          onSave({ avatar: base64 });
+                        };
+                        reader.readAsDataURL(file);
+                      }
+                    }}
+                    className="hidden"
+                    id="avatar-upload"
+                  />
+                  <label htmlFor="avatar-upload" className="cursor-pointer">
+                    <div className="w-24 h-24 rounded-full overflow-hidden border-2 border-slate-600">
+                        <img src={currentUser.avatar} className="w-full h-full object-cover opacity-80" />
+                    </div>
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                        <Icon name="photo_camera" size={24} className="text-white drop-shadow-md" />
+                    </div>
+                  </label>
               </div>
               <p className="text-xs text-primary mt-2 font-bold">Fotoğrafı Değiştir</p>
           </div>

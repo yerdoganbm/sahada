@@ -38,12 +38,27 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
   };
 
   const handleCreateTeam = () => {
+    // ÖN KONTROL: Telefon numarası girilmiş mi?
+    if (!phone || phone.trim().length < 10) {
+      alert('❌ Takım kurmak için önce telefon numaranızı girin ve doğrulayın.');
+      return;
+    }
+
+    // ÖN KONTROL: Geçerli bir telefon numarası mı?
+    const cleanPhone = phone.replace(/\s/g, '');
+    if (!/^[0-9]{10}$/.test(cleanPhone)) {
+      alert('❌ Lütfen geçerli bir telefon numarası girin (10 haneli).');
+      return;
+    }
+
     setIsLoading(true);
     setTimeout(() => {
+        console.log('📞 Telefon doğrulandı:', phone);
+        console.log('🏆 Yeni takım kurma işlemi başlatılıyor...');
         // Log in as a new user who will be admin
-        onLogin('new_admin', true);
+        onLogin('new_admin_' + Date.now(), true);
         setIsLoading(false);
-    }, 800);
+    }, 1200);
   };
 
   return (
