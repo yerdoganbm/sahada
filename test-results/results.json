@@ -29,7 +29,7 @@
         "testMatch": [
           "**/*.@(spec|test).?(c|m)[jt]s?(x)"
         ],
-        "timeout": 30000
+        "timeout": 120000
       }
     ],
     "quiet": false,
@@ -71,25 +71,25 @@
   },
   "suites": [
     {
-      "title": "advanced-suite.spec.ts",
-      "file": "advanced-suite.spec.ts",
+      "title": "autonomous-agent.spec.ts",
+      "file": "autonomous-agent.spec.ts",
       "column": 0,
       "line": 0,
       "specs": [],
       "suites": [
         {
-          "title": "🐵 CHAOS MONKEY TESTING",
-          "file": "advanced-suite.spec.ts",
-          "line": 635,
+          "title": "🤖 AUTONOMOUS TEST AGENT",
+          "file": "autonomous-agent.spec.ts",
+          "line": 489,
           "column": 6,
           "specs": [
             {
-              "title": "Rastgele 20 eleman tıklama - State bütünlüğü",
-              "ok": false,
+              "title": "Admin Mode - Autonomous Exploration",
+              "ok": true,
               "tags": [],
               "tests": [
                 {
-                  "timeout": 30000,
+                  "timeout": 120000,
                   "annotations": [],
                   "expectedStatus": "passed",
                   "projectId": "Desktop Chrome",
@@ -98,155 +98,107 @@
                     {
                       "workerIndex": 0,
                       "parallelIndex": 0,
-                      "status": "failed",
-                      "duration": 10374,
-                      "error": {
-                        "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32mtrue\u001b[39m\nReceived: \u001b[31mfalse\u001b[39m",
-                        "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32mtrue\u001b[39m\nReceived: \u001b[31mfalse\u001b[39m\n    at C:\\Users\\YUNUS\\Desktop\\sahada\\sahada\\tests\\advanced-suite.spec.ts:696:32\n    at C:\\Users\\YUNUS\\Desktop\\sahada\\sahada\\tests\\advanced-suite.spec.ts:685:5",
-                        "location": {
-                          "file": "C:\\Users\\YUNUS\\Desktop\\sahada\\sahada\\tests\\advanced-suite.spec.ts",
-                          "column": 32,
-                          "line": 696
-                        },
-                        "snippet": "  694 |       \n  695 |       const dashboardVisible = await page.locator('text=/Dashboard|Hoşgeldin/i').isVisible();\n> 696 |       expect(dashboardVisible).toBe(true);\n      |                                ^\n  697 |     });\n  698 |   });\n  699 |"
-                      },
-                      "errors": [
-                        {
-                          "location": {
-                            "file": "C:\\Users\\YUNUS\\Desktop\\sahada\\sahada\\tests\\advanced-suite.spec.ts",
-                            "column": 32,
-                            "line": 696
-                          },
-                          "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32mtrue\u001b[39m\nReceived: \u001b[31mfalse\u001b[39m\n\n  694 |       \n  695 |       const dashboardVisible = await page.locator('text=/Dashboard|Hoşgeldin/i').isVisible();\n> 696 |       expect(dashboardVisible).toBe(true);\n      |                                ^\n  697 |     });\n  698 |   });\n  699 |\n    at C:\\Users\\YUNUS\\Desktop\\sahada\\sahada\\tests\\advanced-suite.spec.ts:696:32\n    at C:\\Users\\YUNUS\\Desktop\\sahada\\sahada\\tests\\advanced-suite.spec.ts:685:5"
-                        }
-                      ],
+                      "status": "passed",
+                      "duration": 6988,
+                      "errors": [],
                       "stdout": [
                         {
-                          "text": "🎯 Click 1: BUTTON - \"person_addÜyeler\"\n"
+                          "text": "\n👑 ADMIN MODE EXPLORATION\n"
                         },
                         {
-                          "text": "🎯 Click 2: BUTTON - \"Davet Et\"\n"
+                          "text": "\n🤖 Starting autonomous exploration...\n"
                         },
                         {
-                          "text": "🎯 Click 3: BUTTON - \"person_add_alt\"\n"
+                          "text": "\n📍 Exploring [Depth: 0, Step: 0]: http://localhost:3004/\n"
                         },
                         {
-                          "text": "🎯 Click 4: BUTTON - \"Davet Et\"\n"
+                          "text": "🔍 Found 8 interactive elements\n"
                         },
                         {
-                          "text": "🎯 Click 5: BUTTON - \"Kodu Kopyala\"\n"
+                          "text": "  🎯 Interacting: button - \"settings\"\n"
                         },
                         {
-                          "text": "🎯 Click 6: BUTTON - \"person_add_alt\"\n"
+                          "text": "    ✅ Clicked\n"
                         },
                         {
-                          "text": "🎯 Click 7: BUTTON - \"FWD\"\n"
+                          "text": "  🎯 Interacting: button - \"pollAnketler\"\n"
                         },
                         {
-                          "text": "🎯 Click 8: BUTTON - \"İstekler\"\n"
+                          "text": "    ✅ Clicked\n"
                         },
                         {
-                          "text": "🎯 Click 9: BUTTON - \"İstekler\"\n"
+                          "text": "  🎯 Interacting: button - \"check\"\n"
                         },
                         {
-                          "text": "🎯 Click 10: BUTTON - \"Davet Et\"\n"
+                          "text": "    ✅ Clicked\n"
                         },
                         {
-                          "text": "🎯 Click 11: BUTTON - \"Davet Et\"\n"
+                          "text": "\n📊 Exploration Complete!\n"
                         },
                         {
-                          "text": "🎯 Click 12: BUTTON - \"FWD\"\n"
+                          "text": "\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
                         },
                         {
-                          "text": "🎯 Click 13: BUTTON - \"FWD\"\n"
+                          "text": "  🤖 AUTONOMOUS CRAWLER SUMMARY\n"
                         },
                         {
-                          "text": "🎯 Click 14: BUTTON - \"person_add_alt\"\n"
+                          "text": "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
                         },
                         {
-                          "text": "🎯 Click 15: BUTTON - \"DEF\"\n"
+                          "text": "📍 URLs Visited: 1\n"
                         },
                         {
-                          "text": "🎯 Click 16: BUTTON - \"Davet Et\"\n"
+                          "text": "   - http://localhost:3004/\n"
                         },
                         {
-                          "text": "🎯 Click 17: BUTTON - \"İstekler\"\n"
+                          "text": "\n🎯 Elements Interacted: 3\n"
                         },
                         {
-                          "text": "🎯 Click 18: BUTTON - \"Ekle\"\n"
+                          "text": "\n❌ Errors Found: 0\n"
                         },
                         {
-                          "text": "🎯 Click 19: BUTTON - \"arrow_back\"\n"
+                          "text": "\n🚫 Dead Ends: 0\n"
                         },
                         {
-                          "text": "🎯 Click 20: BUTTON - \"Davet Et\"\n"
+                          "text": "\n📊 State Map:\n"
                         },
                         {
-                          "text": "\n✅ Chaos test completed: 20/20 successful clicks\n"
+                          "text": "   http://localhost:3004/: 8 interactions\n"
+                        },
+                        {
+                          "text": "\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+                        },
+                        {
+                          "text": "\n✅ Explored 1 unique URLs\n"
                         }
                       ],
                       "stderr": [
                         {
-                          "text": "(node:2536) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.\n(Use `node --trace-warnings ...` to show where the warning was created)\n"
+                          "text": "(node:2972) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.\n(Use `node --trace-warnings ...` to show where the warning was created)\n"
                         }
                       ],
                       "retry": 0,
                       "steps": [
                         {
-                          "title": "Login",
-                          "duration": 4074
+                          "title": "Login as Admin",
+                          "duration": 4960
                         },
                         {
-                          "title": "Random Click Chaos",
-                          "duration": 2791
-                        },
-                        {
-                          "title": "Verify App Still Works",
-                          "duration": 3134,
-                          "error": {
-                            "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32mtrue\u001b[39m\nReceived: \u001b[31mfalse\u001b[39m",
-                            "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32mtrue\u001b[39m\nReceived: \u001b[31mfalse\u001b[39m\n    at C:\\Users\\YUNUS\\Desktop\\sahada\\sahada\\tests\\advanced-suite.spec.ts:696:32\n    at C:\\Users\\YUNUS\\Desktop\\sahada\\sahada\\tests\\advanced-suite.spec.ts:685:5",
-                            "location": {
-                              "file": "C:\\Users\\YUNUS\\Desktop\\sahada\\sahada\\tests\\advanced-suite.spec.ts",
-                              "column": 32,
-                              "line": 696
-                            },
-                            "snippet": "  694 |       \n  695 |       const dashboardVisible = await page.locator('text=/Dashboard|Hoşgeldin/i').isVisible();\n> 696 |       expect(dashboardVisible).toBe(true);\n      |                                ^\n  697 |     });\n  698 |   });\n  699 |"
-                          }
+                          "title": "Autonomous Crawl",
+                          "duration": 1680
                         }
                       ],
-                      "startTime": "2026-02-14T19:51:07.723Z",
+                      "startTime": "2026-02-14T19:56:39.163Z",
                       "annotations": [],
-                      "attachments": [
-                        {
-                          "name": "screenshot",
-                          "contentType": "image/png",
-                          "path": "C:\\Users\\YUNUS\\Desktop\\sahada\\sahada\\test-results\\advanced-suite-🐵-CHAOS-MO-9e757-n-tıklama---State-bütünlüğü-Desktop-Chrome\\test-failed-1.png"
-                        },
-                        {
-                          "name": "video",
-                          "contentType": "video/webm",
-                          "path": "C:\\Users\\YUNUS\\Desktop\\sahada\\sahada\\test-results\\advanced-suite-🐵-CHAOS-MO-9e757-n-tıklama---State-bütünlüğü-Desktop-Chrome\\video.webm"
-                        },
-                        {
-                          "name": "error-context",
-                          "contentType": "text/markdown",
-                          "path": "C:\\Users\\YUNUS\\Desktop\\sahada\\sahada\\test-results\\advanced-suite-🐵-CHAOS-MO-9e757-n-tıklama---State-bütünlüğü-Desktop-Chrome\\error-context.md"
-                        }
-                      ],
-                      "errorLocation": {
-                        "file": "C:\\Users\\YUNUS\\Desktop\\sahada\\sahada\\tests\\advanced-suite.spec.ts",
-                        "column": 32,
-                        "line": 696
-                      }
+                      "attachments": []
                     }
                   ],
-                  "status": "unexpected"
+                  "status": "expected"
                 }
               ],
-              "id": "ecb240b71178b773f6d5-83b508ad84b8f338a7cc",
-              "file": "advanced-suite.spec.ts",
-              "line": 637,
+              "id": "74ffe5ed4dcb58285a4f-4885e057c7b3a1e646a2",
+              "file": "autonomous-agent.spec.ts",
+              "line": 491,
               "column": 3
             }
           ]
@@ -256,11 +208,11 @@
   ],
   "errors": [],
   "stats": {
-    "startTime": "2026-02-14T19:51:05.259Z",
-    "duration": 13273.255000000001,
-    "expected": 0,
+    "startTime": "2026-02-14T19:56:36.412Z",
+    "duration": 10155.612,
+    "expected": 1,
     "skipped": 0,
-    "unexpected": 1,
+    "unexpected": 0,
     "flaky": 0
   }
 }
