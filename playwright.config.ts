@@ -43,6 +43,9 @@ export default defineConfig({
     // Timeouts
     actionTimeout: 10000,
     navigationTimeout: 30000,
+    
+    // Visual Regression
+    ignoreHTTPSErrors: true,
   },
 
   // Test projeler (farklı cihazlar)

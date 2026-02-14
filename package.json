@@ -11,16 +11,24 @@
     "test:headed": "playwright test --headed",
     "test:ui": "playwright test --ui",
     "test:debug": "playwright test --debug",
-    "test:report": "playwright show-report"
+    "test:report": "playwright show-report",
+    "test:advanced": "playwright test tests/advanced-suite.spec.ts --headed",
+    "test:visual": "playwright test --grep \"VISUAL REGRESSION\" --headed",
+    "test:network": "playwright test --grep \"NETWORK SIMULATION\" --headed",
+    "test:a11y": "playwright test --grep \"ACCESSIBILITY\" --headed",
+    "test:chaos": "playwright test --grep \"CHAOS MONKEY\" --headed",
+    "test:update-snapshots": "playwright test --update-snapshots"
   },
   "dependencies": {
     "react": "^19.2.4",
     "react-dom": "^19.2.4"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.11.1",
     "@playwright/test": "^1.58.2",
     "@types/node": "^22.19.11",
     "@vitejs/plugin-react": "^5.0.0",
+    "pixelmatch": "^7.1.0",
     "typescript": "~5.8.2",
     "vite": "^6.2.0"
   }
