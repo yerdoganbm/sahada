@@ -1,5 +1,5 @@
 
-import { Match, Player, Payment, Venue, Transaction, Poll, TournamentTeam, BracketMatch } from './types';
+import { Match, Player, Payment, Venue, Transaction, Poll, TournamentTeam, BracketMatch, Reservation } from './types';
 
 export const MOCK_PLAYERS: Player[] = [
   { 
@@ -30,6 +30,31 @@ export const MOCK_PLAYERS: Player[] = [
   { id: '14', name: 'Orkun Kökçü', position: 'MID', rating: 8.0, reliability: 84, avatar: 'https://i.pravatar.cc/150?u=14', role: 'member', tier: 'free' },
   { id: '15', name: 'Yusuf Yazıcı', position: 'MID', rating: 7.7, reliability: 65, avatar: 'https://i.pravatar.cc/150?u=15', role: 'member', tier: 'free' },
   { id: '16', name: 'Enes Ünal', position: 'FWD', rating: 7.5, reliability: 70, avatar: 'https://i.pravatar.cc/150?u=16', role: 'member', tier: 'free' },
+  // SAHA SAHİBİ
+  { 
+    id: 'venue_owner_1', 
+    name: 'Kemal Arslan', 
+    position: 'MID', // Position zorunlu ama saha sahibi için önemsiz
+    rating: 9.5, 
+    reliability: 100, 
+    avatar: 'https://i.pravatar.cc/150?u=venue_owner_1', 
+    role: 'venue_owner', 
+    tier: 'premium',
+    venueOwnerInfo: {
+      venueIds: ['v1', 'v3'], // Olimpik Halı Saha ve Premium Arena
+      businessInfo: {
+        companyName: 'Arslan Spor Tesisleri Ltd. Şti.',
+        taxNumber: '1234567890',
+        iban: 'TR330006100519786457841326',
+        bankName: 'Ziraat Bankası',
+        accountHolder: 'Kemal Arslan'
+      },
+      commissionRate: 15, // %15 komisyon
+      totalRevenue: 125000, // Toplam gelir
+      totalReservations: 240, // Toplam rezervasyon
+      responseTime: 12 // 12 dakika ortalama yanıt
+    }
+  },
 ];
 
 export const MOCK_MATCHES: Match[] = [
@@ -85,16 +110,43 @@ export const MOCK_TRANSACTIONS: Transaction[] = [
 export const MOCK_VENUES: Venue[] = [
   {
     id: 'v1',
-    name: 'Şampiyon Halı Saha',
+    ownerId: 'venue_owner_1', // Kemal Arslan'ın sahası
+    name: 'Olimpik Halı Saha',
     district: 'Kadıköy',
     address: 'Fenerbahçe Mah. Kalamış Cad. No:88',
     image: 'https://images.unsplash.com/photo-1529900748604-07564a03e7a6?ixlib=rb-1.2.1&auto=format&fit=crop&w=1000&q=80',
     price: 1200,
     rating: 4.8,
+    reviewCount: 156,
     status: 'active',
     features: ['Otopark', 'Duş', 'Kafe', 'Krampon Kiralama'],
     phone: '0216 123 45 67',
+    email: 'olimpik@sahakirala.com',
     capacity: '7v7',
+    pricing: {
+      weekdayMorning: 800,
+      weekdayAfternoon: 1000,
+      weekdayPrime: 1200,
+      weekendMorning: 1000,
+      weekendAfternoon: 1200,
+      weekendPrime: 1500
+    },
+    workingHours: {
+      monday: { open: '08:00', close: '23:00', isClosed: false },
+      tuesday: { open: '08:00', close: '23:00', isClosed: false },
+      wednesday: { open: '08:00', close: '23:00', isClosed: false },
+      thursday: { open: '08:00', close: '23:00', isClosed: false },
+      friday: { open: '08:00', close: '23:00', isClosed: false },
+      saturday: { open: '08:00', close: '24:00', isClosed: false },
+      sunday: { open: '08:00', close: '24:00', isClosed: false }
+    },
+    stats: {
+      totalReservations: 240,
+      totalRevenue: 288000,
+      averageRating: 4.8,
+      occupancyRate: 78,
+      cancelRate: 5
+    },
     organizerNotes: {
       doorCode: '1907',
       contactPerson: 'Mehmet Can',
@@ -129,16 +181,43 @@ export const MOCK_VENUES: Venue[] = [
   },
   {
     id: 'v3',
-    name: 'Körfez Spor Tesisi',
+    ownerId: 'venue_owner_1', // Kemal Arslan'ın 2. sahası
+    name: 'Premium Arena',
     district: 'Üsküdar',
     address: 'Sahil Yolu Cad. No:12',
     image: 'https://images.unsplash.com/photo-1575361204480-aadea25e6e68?ixlib=rb-1.2.1&auto=format&fit=crop&w=1000&q=80',
-    price: 900,
-    rating: 4.2,
-    status: 'price_update',
-    features: ['Otopark'],
+    price: 1500,
+    rating: 4.9,
+    reviewCount: 89,
+    status: 'active',
+    features: ['Otopark', 'Duş', 'VIP Kafe', 'Kapalı Tribün', 'Isıtma'],
     phone: '0216 555 66 77',
-    capacity: '6v6',
+    email: 'premium@sahakirala.com',
+    capacity: '7v7',
+    pricing: {
+      weekdayMorning: 1000,
+      weekdayAfternoon: 1200,
+      weekdayPrime: 1500,
+      weekendMorning: 1200,
+      weekendAfternoon: 1500,
+      weekendPrime: 1800
+    },
+    workingHours: {
+      monday: { open: '08:00', close: '23:00', isClosed: false },
+      tuesday: { open: '08:00', close: '23:00', isClosed: false },
+      wednesday: { open: '08:00', close: '23:00', isClosed: false },
+      thursday: { open: '08:00', close: '23:00', isClosed: false },
+      friday: { open: '08:00', close: '23:00', isClosed: false },
+      saturday: { open: '08:00', close: '24:00', isClosed: false },
+      sunday: { open: '08:00', close: '24:00', isClosed: false }
+    },
+    stats: {
+      totalReservations: 180,
+      totalRevenue: 270000,
+      averageRating: 4.9,
+      occupancyRate: 85,
+      cancelRate: 3
+    }
   }
 ];
 
@@ -200,4 +279,102 @@ export const MOCK_BRACKET: BracketMatch[] = [
     team1: { id: 't1', name: 'Bizim Takım' }, 
     team2: { id: 't3', name: 'Mahalle Gençlik' },
   },
+];
+
+// REZERVASYONLAR (Mock Data)
+export const MOCK_RESERVATIONS: Reservation[] = [
+  {
+    id: 'res1',
+    venueId: 'v1',
+    venueName: 'Olimpik Halı Saha',
+    teamName: 'Kuzey Yıldızları',
+    date: '2026-02-15',
+    startTime: '20:00',
+    endTime: '21:30',
+    duration: 90,
+    price: 1200,
+    status: 'pending',
+    participants: 14,
+    contactPerson: 'Ahmet Yılmaz',
+    contactPhone: '0532 111 22 33',
+    notes: 'İlk maçımız, lütfen sahayı temiz hazırlayın',
+    createdAt: '2026-02-14T10:30:00',
+    paymentStatus: 'pending'
+  },
+  {
+    id: 'res2',
+    venueId: 'v1',
+    venueName: 'Olimpik Halı Saha',
+    teamName: 'Doğu Şampiyonları',
+    date: '2026-02-16',
+    startTime: '18:00',
+    endTime: '19:30',
+    duration: 90,
+    price: 1200,
+    status: 'confirmed',
+    participants: 12,
+    contactPerson: 'Mehmet Demir',
+    contactPhone: '0532 222 33 44',
+    createdAt: '2026-02-13T14:20:00',
+    confirmedAt: '2026-02-13T14:25:00',
+    paymentStatus: 'paid',
+    paymentMethod: 'bank_transfer'
+  },
+  {
+    id: 'res3',
+    venueId: 'v3',
+    venueName: 'Premium Arena',
+    teamName: 'Güney Fırtınası',
+    date: '2026-02-14',
+    startTime: '21:00',
+    endTime: '22:30',
+    duration: 90,
+    price: 1500,
+    status: 'completed',
+    participants: 16,
+    contactPerson: 'Can Öztürk',
+    contactPhone: '0532 333 44 55',
+    createdAt: '2026-02-10T09:15:00',
+    confirmedAt: '2026-02-10T09:20:00',
+    paymentStatus: 'paid',
+    paymentMethod: 'credit_card'
+  },
+  {
+    id: 'res4',
+    venueId: 'v1',
+    venueName: 'Olimpik Halı Saha',
+    teamName: 'Yazılımcılar FC',
+    date: '2026-02-17',
+    startTime: '19:00',
+    endTime: '20:30',
+    duration: 90,
+    price: 1200,
+    status: 'cancelled',
+    participants: 10,
+    contactPerson: 'Ali Veli',
+    contactPhone: '0532 444 55 66',
+    notes: 'Yağmur yağıyor iptal ettik',
+    createdAt: '2026-02-12T16:40:00',
+    confirmedAt: '2026-02-12T16:45:00',
+    cancelledAt: '2026-02-17T15:30:00',
+    cancelReason: 'Hava şartları uygun değil',
+    paymentStatus: 'refunded'
+  },
+  {
+    id: 'res5',
+    venueId: 'v1',
+    venueName: 'Olimpik Halı Saha',
+    teamName: 'Kuzey Yıldızları',
+    date: '2026-02-18',
+    startTime: '20:00',
+    endTime: '21:30',
+    duration: 90,
+    price: 1200,
+    status: 'pending',
+    participants: 14,
+    contactPerson: 'Ahmet Yılmaz',
+    contactPhone: '0532 111 22 33',
+    createdAt: '2026-02-14T11:00:00',
+    paymentStatus: 'pending'
+  }
 ];

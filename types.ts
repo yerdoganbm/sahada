@@ -6,7 +6,7 @@ export enum Tab {
   Profile = 'Profile'
 }
 
-export type ScreenName = 'welcome' | 'login' | 'joinTeam' | 'teamSetup' | 'createProfile' | 'dashboard' | 'matches' | 'team' | 'profile' | 'editProfile' | 'matchDetails' | 'matchCreate' | 'payments' | 'admin' | 'members' | 'venues' | 'venueDetails' | 'venueAdd' | 'lineupManager' | 'squadShare' | 'settings' | 'leaderboard' | 'financialReports' | 'subscription' | 'polls' | 'booking' | 'tournament' | 'whatsappCenter' | 'attendance' | 'reserveSystem' | 'messageLogs' | 'notifications';
+export type ScreenName = 'welcome' | 'login' | 'joinTeam' | 'teamSetup' | 'createProfile' | 'dashboard' | 'matches' | 'team' | 'profile' | 'editProfile' | 'matchDetails' | 'matchCreate' | 'payments' | 'admin' | 'members' | 'venues' | 'venueDetails' | 'venueAdd' | 'lineupManager' | 'squadShare' | 'settings' | 'leaderboard' | 'financialReports' | 'subscription' | 'polls' | 'booking' | 'tournament' | 'whatsappCenter' | 'attendance' | 'reserveSystem' | 'messageLogs' | 'notifications' | 'venueOwnerDashboard' | 'reservationManagement' | 'venueCalendar' | 'venueFinancialReports' | 'venueSettings' | 'customerManagement';
 
 export type SubscriptionTier = 'free' | 'premium' | 'partner';
 
@@ -40,7 +40,7 @@ export interface Player {
   reliability: number; // 0-100%
   avatar: string;
   isCaptain?: boolean;
-  role?: 'admin' | 'member' | 'guest';
+  role?: 'admin' | 'member' | 'guest' | 'venue_owner';
   tier?: SubscriptionTier;
   marketValue?: string; // e.g. "Free Agent" or "1.2k"
   attributes?: {
@@ -55,6 +55,21 @@ export interface Player {
   referredBy?: string; // ID of the member who referred this player
   trialStatus?: 'pending_approval' | 'in_trial' | 'rejected'; // Trial phase status
   contactNumber?: string; // Contact information for guest players
+  // VENUE OWNER FIELDS
+  venueOwnerInfo?: {
+    venueIds: string[]; // Sahip olduğu sahalar
+    businessInfo?: {
+      companyName?: string;
+      taxNumber?: string;
+      iban: string;
+      bankName: string;
+      accountHolder: string;
+    };
+    commissionRate: number; // %15, %20 gibi
+    totalRevenue: number;
+    totalReservations: number;
+    responseTime: number; // Ortalama yanıt süresi (dakika)
+  };
 }
 
 export interface Match {
@@ -94,16 +109,52 @@ export interface Transaction {
 
 export interface Venue {
   id: string;
+  ownerId?: string; // Saha sahibinin ID'si
   name: string;
   district: string;
   address: string;
   image: string;
+  images?: string[]; // Çoklu fotoğraf
+  description?: string;
   price: number;
   rating: number;
-  status: 'active' | 'archived' | 'price_update';
+  reviewCount?: number;
+  status: 'active' | 'archived' | 'price_update' | 'closed' | 'maintenance';
   features: string[];
   phone: string;
+  email?: string;
   capacity: string;
+  
+  // Fiyatlandırma (detaylı)
+  pricing?: {
+    weekdayMorning: number; // 08:00-12:00
+    weekdayAfternoon: number; // 12:00-18:00
+    weekdayPrime: number; // 18:00-22:00
+    weekendMorning: number;
+    weekendAfternoon: number;
+    weekendPrime: number;
+  };
+  
+  // Çalışma saatleri
+  workingHours?: {
+    monday: { open: string; close: string; isClosed: boolean };
+    tuesday: { open: string; close: string; isClosed: boolean };
+    wednesday: { open: string; close: string; isClosed: boolean };
+    thursday: { open: string; close: string; isClosed: boolean };
+    friday: { open: string; close: string; isClosed: boolean };
+    saturday: { open: string; close: string; isClosed: boolean };
+    sunday: { open: string; close: string; isClosed: boolean };
+  };
+  
+  // İstatistikler
+  stats?: {
+    totalReservations: number;
+    totalRevenue: number;
+    averageRating: number;
+    occupancyRate: number; // %78 gibi
+    cancelRate: number;
+  };
+  
   organizerNotes?: {
     doorCode?: string;
     contactPerson: string;
@@ -112,6 +163,89 @@ export interface Venue {
     customNotes: string;
   };
   priceHistory?: { date: string; price: number; reason: string }[];
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+// Rezervasyon durumu
+export type ReservationStatus = 'pending' | 'confirmed' | 'cancelled' | 'completed';
+
+// Rezervasyon
+export interface Reservation {
+  id: string;
+  venueId: string;
+  venueName: string;
+  teamId?: string;
+  teamName: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  duration: number; // dakika
+  price: number;
+  status: ReservationStatus;
+  participants: number;
+  contactPerson: string;
+  contactPhone: string;
+  notes?: string;
+  createdAt: string;
+  confirmedAt?: string;
+  cancelledAt?: string;
+  cancelReason?: string;
+  paymentStatus: 'pending' | 'paid' | 'refunded';
+  paymentMethod?: 'cash' | 'credit_card' | 'bank_transfer';
+}
+
+// Saha değerlendirmesi
+export interface VenueReview {
+  id: string;
+  venueId: string;
+  teamId: string;
+  teamName: string;
+  rating: number; // 1-5
+  comment: string;
+  date: string;
+  response?: {
+    text: string;
+    date: string;
+  };
+}
+
+// Saha istatistikleri
+export interface VenueStatistics {
+  venueId: string;
+  period: 'daily' | 'weekly' | 'monthly' | 'yearly';
+  date: string;
+  
+  reservations: {
+    total: number;
+    confirmed: number;
+    cancelled: number;
+    completed: number;
+  };
+  
+  revenue: {
+    gross: number;
+    commission: number;
+    net: number;
+  };
+  
+  occupancy: {
+    totalSlots: number;
+    bookedSlots: number;
+    rate: number; // yüzde
+  };
+  
+  peakHours: {
+    hour: number;
+    reservationCount: number;
+  }[];
+  
+  topTeams: {
+    teamId: string;
+    teamName: string;
+    reservationCount: number;
+    totalSpent: number;
+  }[];
 }
 
 export interface Poll {
