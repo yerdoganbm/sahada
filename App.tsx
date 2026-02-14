@@ -49,6 +49,8 @@ import { CustomerManagement } from './screens/CustomerManagement';
 import { ScoutDashboard } from './screens/ScoutDashboard';
 import { TalentPool } from './screens/TalentPool';
 import { ScoutReports } from './screens/ScoutReports';
+// 🧠 NEURO-CORE INTEGRATION
+import { useSynapseTracking, useActionTracker } from './hooks/useNeuroCore';
 
 function App() {
   // ===========================================
@@ -111,6 +113,14 @@ function App() {
   const [matchDetailsId, setMatchDetailsId] = useState<string | null>(null);
   const [venueDetailsId, setVenueDetailsId] = useState<string | null>(null);
   const [reservationDetailsId, setReservationDetailsId] = useState<string | null>(null);
+
+  // 🧠 NEURO-CORE: AUTOMATIC SYNAPSE TRACKING
+  // Her ekran değişikliğinde kullanıcı davranışı otomatik kaydedilir
+  useSynapseTracking(currentUser?.id, currentScreen);
+  
+  // 🧠 NEURO-CORE: ACTION TRACKER
+  // Önemli olayları manuel kaydetmek için
+  const trackAction = useActionTracker(currentUser?.id, currentScreen);
 
   // ===========================================
   // LOGIN HANDLER - RBAC LOGIC
@@ -259,6 +269,10 @@ function App() {
     setMatches(prev => [...prev, newMatch]);
     
     console.log('✅ Maç başarıyla oluşturuldu!');
+    
+    // 🧠 NEURO-CORE: Track match creation (High dopamine event!)
+    trackAction('match_created', { matchId: newMatch.id, venue: newMatch.venue });
+    
     // Dashboard'a yönlendir
     navigateTo('dashboard');
   };
