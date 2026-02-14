@@ -71,9 +71,10 @@ export const BookingScreen: React.FC<BookingScreenProps> = ({ venueId, venues, o
           date: activeDate.fullDate,
           time: timeSlots.find(s => s.id === selectedSlot)?.time.split(' - ')[0] || '21:00',
           location: venue.name,
+          venueId: venue.id, // FIX #3 & #10: Link venue
           status: 'upcoming',
-          pricePerPerson: Math.round(venue.price / 14), // Estimating split cost
-          opponent: 'Rakip Aranıyor' // Default state
+          pricePerPerson: Math.round(venue.price / 14),
+          opponent: 'Rakip Aranıyor'
       };
       onComplete(newMatch);
   };

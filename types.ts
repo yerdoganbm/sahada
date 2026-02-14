@@ -51,6 +51,10 @@ export interface Player {
     def: number;
     phy: number;
   };
+  // SCOUTING & TRIAL PROCESS FIELDS
+  referredBy?: string; // ID of the member who referred this player
+  trialStatus?: 'pending_approval' | 'in_trial' | 'rejected'; // Trial phase status
+  contactNumber?: string; // Contact information for guest players
 }
 
 export interface Match {
@@ -58,10 +62,15 @@ export interface Match {
   date: string;
   time: string;
   location: string;
+  venueId?: string; // FIX #3: Link to venue for filtering
   opponent?: string;
   status: 'upcoming' | 'completed' | 'cancelled';
   score?: string;
   pricePerPerson: number;
+  attendees?: { // FIX #6: Per-match RSVP tracking
+    playerId: string;
+    status: RsvpStatus;
+  }[];
 }
 
 export interface Payment {

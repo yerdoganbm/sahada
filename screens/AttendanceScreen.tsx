@@ -59,15 +59,45 @@ export const AttendanceScreen: React.FC<AttendanceScreenProps> = ({ onBack, onNa
       <div className="p-4">
          {step === 'create' ? (
              <div className="space-y-6 animate-slide-up">
-                 <div className="bg-surface rounded-2xl p-5 border border-white/5 space-y-4">
-                     <div>
-                         <label className="text-[10px] font-bold text-slate-500 uppercase mb-1 block">Maç Tarihi</label>
-                         <input type="date" value={matchDate} onChange={e => setMatchDate(e.target.value)} className="w-full bg-secondary border border-white/10 rounded-xl px-4 py-3 text-white text-sm" />
-                     </div>
-                     <div>
-                         <label className="text-[10px] font-bold text-slate-500 uppercase mb-1 block">Deadline (Son Yanıt)</label>
-                         <input type="datetime-local" value={deadline} onChange={e => setDeadline(e.target.value)} className="w-full bg-secondary border border-white/10 rounded-xl px-4 py-3 text-white text-sm" />
-                     </div>
+                <div className="bg-surface rounded-2xl p-5 border border-white/5 space-y-4">
+                    <div>
+                        <label className="text-[10px] font-bold text-slate-500 uppercase mb-1 block flex items-center gap-1">
+                          <Icon name="calendar_today" size={12} /> Maç Tarihi
+                        </label>
+                        <div className="relative">
+                          <input 
+                            type="date" 
+                            value={matchDate} 
+                            onChange={e => setMatchDate(e.target.value)} 
+                            className="w-full bg-secondary border border-white/10 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-primary cursor-pointer [color-scheme:dark]"
+                            style={{ colorScheme: 'dark' }}
+                          />
+                          {!matchDate && (
+                            <div className="absolute inset-0 flex items-center px-4 pointer-events-none">
+                              <span className="text-slate-600 text-sm">Tarih seçin...</span>
+                            </div>
+                          )}
+                        </div>
+                    </div>
+                    <div>
+                        <label className="text-[10px] font-bold text-slate-500 uppercase mb-1 block flex items-center gap-1">
+                          <Icon name="schedule" size={12} /> Deadline (Son Yanıt)
+                        </label>
+                        <div className="relative">
+                          <input 
+                            type="datetime-local" 
+                            value={deadline} 
+                            onChange={e => setDeadline(e.target.value)} 
+                            className="w-full bg-secondary border border-white/10 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-primary cursor-pointer [color-scheme:dark]"
+                            style={{ colorScheme: 'dark' }}
+                          />
+                          {!deadline && (
+                            <div className="absolute inset-0 flex items-center px-4 pointer-events-none">
+                              <span className="text-slate-600 text-sm">Tarih ve saat seçin...</span>
+                            </div>
+                          )}
+                        </div>
+                    </div>
                      <div>
                          <label className="text-[10px] font-bold text-slate-500 uppercase mb-1 block">Min. Oyuncu</label>
                          <div className="flex gap-2">

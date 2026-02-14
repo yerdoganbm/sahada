@@ -11,6 +11,7 @@ interface MatchDetailsProps {
   currentUser: Player;
   rsvpStatus: RsvpStatus;
   onRsvpChange: (status: RsvpStatus) => void;
+  onUpdateScore?: (matchId: string, score: string, newStatus?: 'completed' | 'cancelled') => void; // FIX #5
   allPlayers?: Player[];
   allMatches?: Match[];
 }
@@ -23,11 +24,14 @@ export const MatchDetails: React.FC<MatchDetailsProps> = ({
   currentUser, 
   rsvpStatus, 
   onRsvpChange,
+  onUpdateScore, // FIX #5
   allPlayers = MOCK_PLAYERS,
   allMatches = MOCK_MATCHES
 }) => {
   const [viewMode, setViewMode] = useState<ViewMode>('overview');
   const [showMVPModal, setShowMVPModal] = useState(false);
+  const [showScoreModal, setShowScoreModal] = useState(false); // FIX #5
+  const [scoreForm, setScoreForm] = useState({ homeScore: '', awayScore: '' }); // FIX #5
   const [mvpVote, setMvpVote] = useState<string | null>(null);
   
   // Chat State
@@ -60,6 +64,17 @@ export const MatchDetails: React.FC<MatchDetailsProps> = ({
       };
       setMessages([...messages, msg]);
       setNewMessage('');
+  };
+
+  // FIX #5: Handle Score Submission
+  const handleSubmitScore = () => {
+    if (!scoreForm.homeScore || !scoreForm.awayScore || !onUpdateScore) return;
+    
+    const score = `${scoreForm.homeScore}-${scoreForm.awayScore}`;
+    onUpdateScore(matchId, score, 'completed');
+    
+    setShowScoreModal(false);
+    alert('Maç sonucu kaydedildi!');
   };
 
   // Dynamic Roster Logic
@@ -240,6 +255,25 @@ export const MatchDetails: React.FC<MatchDetailsProps> = ({
                 </div>
             )}
 
+            {/* FIX #5: Score Entry Button (Admin/Captain Only) */}
+            {!isCompleted && (currentUser.role === 'admin' || currentUser.isCaptain) && onUpdateScore && (
+                <button 
+                    onClick={() => setShowScoreModal(true)}
+                    className="w-full py-3 rounded-xl bg-yellow-500/10 border border-yellow-500/20 text-yellow-500 font-bold text-sm flex items-center justify-center gap-2"
+                >
+                    <Icon name="sports_soccer" size={18} />
+                    Maç Sonucunu Gir
+                </button>
+            )}
+
+            {/* Completed Match Score Display */}
+            {isCompleted && match.score && (
+                <div className="bg-primary/5 border border-primary/10 rounded-2xl p-4 text-center">
+                    <p className="text-xs text-slate-400 font-bold uppercase mb-2">Sonuç</p>
+                    <h2 className="text-3xl font-black text-primary font-mono">{match.score}</h2>
+                </div>
+            )}
+
             {/* Roster Status */}
             <div className="bg-surface rounded-2xl p-4 border border-white/5">
                <div className="flex justify-between items-center mb-2">
@@ -314,6 +348,61 @@ export const MatchDetails: React.FC<MatchDetailsProps> = ({
                   </div>
               </div>
           </div>
+      )}
+
+      {/* FIX #5: Score Entry Modal */}
+      {showScoreModal && onUpdateScore && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in">
+          <div className="bg-surface w-full max-w-xs rounded-3xl border border-white/10 p-6 shadow-2xl animate-slide-up">
+            <div className="text-center mb-6">
+              <div className="w-12 h-12 rounded-full bg-yellow-500/20 flex items-center justify-center mx-auto mb-3 text-yellow-500">
+                <Icon name="sports_soccer" size={24} />
+              </div>
+              <h3 className="text-lg font-bold text-white">Maç Sonucu</h3>
+              <p className="text-xs text-slate-400">Skorları girin ve maçı tamamlayın.</p>
+            </div>
+
+            <div className="space-y-4 mb-6">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[10px] font-bold text-slate-500 uppercase ml-1 block mb-1">Ev Sahibi</label>
+                  <input 
+                    type="number" 
+                    placeholder="0"
+                    value={scoreForm.homeScore}
+                    onChange={e => setScoreForm({...scoreForm, homeScore: e.target.value})}
+                    className="w-full bg-secondary border border-white/10 rounded-xl px-3 py-3 text-center text-2xl font-mono font-bold text-white focus:outline-none focus:border-primary"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold text-slate-500 uppercase ml-1 block mb-1">Deplasman</label>
+                  <input 
+                    type="number" 
+                    placeholder="0"
+                    value={scoreForm.awayScore}
+                    onChange={e => setScoreForm({...scoreForm, awayScore: e.target.value})}
+                    className="w-full bg-secondary border border-white/10 rounded-xl px-3 py-3 text-center text-2xl font-mono font-bold text-white focus:outline-none focus:border-primary"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <button 
+                onClick={() => setShowScoreModal(false)}
+                className="flex-1 py-3 rounded-xl bg-surface border border-white/10 text-slate-400 font-bold text-xs"
+              >
+                İptal
+              </button>
+              <button 
+                onClick={handleSubmitScore}
+                className="flex-1 py-3 rounded-xl bg-primary text-secondary font-bold text-xs shadow-glow"
+              >
+                Kaydet
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

@@ -8,24 +8,20 @@ interface PaymentLedgerProps {
   onBack: () => void;
   onNavigate?: (screen: ScreenName) => void;
   payments: Payment[];
-  onPaymentComplete: (playerId: string, amount: number) => void;
   players?: Player[];
+  currentUser: Player;
+  onUpdatePayment?: (paymentId: string, newStatus: Payment['status']) => void;
+  onUploadProof?: (paymentId: string, proofUrl: string) => void; // FIX #7
 }
 
-export const PaymentLedger: React.FC<PaymentLedgerProps> = ({ onBack, onNavigate, payments, onPaymentComplete, players = MOCK_PLAYERS }) => {
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+export const PaymentLedger: React.FC<PaymentLedgerProps> = ({ onBack, onNavigate, payments, players = MOCK_PLAYERS, currentUser, onUpdatePayment, onUploadProof }) => {
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
 
-  useEffect(() => {
-    setCurrentUserId(localStorage.getItem('currentUserId'));
-  }, []);
-
-  const currentUser = players.find(p => p.id === currentUserId);
   const isAdmin = currentUser?.role === 'admin';
 
   // --- DATA PREPARATION ---
   const ledgerData = useMemo(() => {
-      const targetPlayers = isAdmin ? players.slice(0, 14) : players.filter(p => p.id === currentUserId);
+      const targetPlayers = isAdmin ? players.slice(0, 14) : players.filter(p => p.id === currentUser.id);
       return targetPlayers.map(player => {
           const payment = payments.find(p => p.playerId === player.id) || {
               id: `temp_${player.id}`,
@@ -35,21 +31,34 @@ export const PaymentLedger: React.FC<PaymentLedgerProps> = ({ onBack, onNavigate
           } as Payment;
           return { player, payment };
       });
-  }, [payments, isAdmin, currentUserId, players]);
+  }, [payments, isAdmin, currentUser.id, players]);
 
   const totalDebt = ledgerData.reduce((sum, item) => sum + item.payment.amount, 0);
   const totalPaid = ledgerData.filter(i => i.payment.status === 'paid').reduce((sum, item) => sum + item.payment.amount, 0);
   const pendingCount = ledgerData.filter(i => i.payment.status !== 'paid').length;
   const unpaidPlayers = ledgerData.filter(i => i.payment.status !== 'paid');
 
-  const handleToggleStatus = (playerId: string, currentStatus: string) => {
-      if (!isAdmin) return;
+  const handleToggleStatus = (paymentId: string, currentStatus: Payment['status']) => {
+      if (!isAdmin || !onUpdatePayment) return;
       const newStatus = currentStatus === 'paid' ? 'pending' : 'paid';
-      setLoadingAction(playerId);
+      setLoadingAction(paymentId);
       setTimeout(() => {
-          onPaymentComplete(playerId, 150);
+          onUpdatePayment(paymentId, newStatus as Payment['status']);
           setLoadingAction(null);
       }, 600);
+  };
+
+  // FIX #7: Handle Proof Upload (Player Action)
+  const handleUploadProof = (paymentId: string) => {
+    if (!onUploadProof) return;
+    
+    // Simulate file upload
+    setLoadingAction(`upload_${paymentId}`);
+    setTimeout(() => {
+      const fakeProofUrl = `https://example.com/receipt_${Date.now()}.jpg`;
+      onUploadProof(paymentId, fakeProofUrl);
+      setLoadingAction(null);
+    }, 1500);
   };
 
   const handleMemberNotify = () => {
@@ -151,8 +160,8 @@ export const PaymentLedger: React.FC<PaymentLedgerProps> = ({ onBack, onNavigate
                                     </button>
                                 )}
                                 <button 
-                                    onClick={() => handleToggleStatus(player.id, payment.status)}
-                                    disabled={loadingAction === player.id}
+                                    onClick={() => handleToggleStatus(payment.id, payment.status)}
+                                    disabled={loadingAction === payment.id}
                                     className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
                                         payment.status === 'paid' 
                                         ? 'bg-green-500/10 text-green-500 border border-green-500/20' 
@@ -190,7 +199,7 @@ export const PaymentLedger: React.FC<PaymentLedgerProps> = ({ onBack, onNavigate
                          </div>
                      </div>
                      <div className="relative z-10">
-                         <div className="flex gap-3">
+                         <div className="flex gap-3 mb-3">
                              <button onClick={copyIban} className="flex-1 bg-white text-black py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 active:scale-95 transition-transform">
                                  <Icon name="content_copy" /> IBAN Kopyala
                              </button>
@@ -198,6 +207,24 @@ export const PaymentLedger: React.FC<PaymentLedgerProps> = ({ onBack, onNavigate
                                  <Icon name="share" />
                              </button>
                          </div>
+                         
+                         {/* FIX #7: Upload Proof Button */}
+                         {ledgerData[0]?.payment.status !== 'paid' && onUploadProof && (
+                             <button 
+                                 onClick={() => handleUploadProof(ledgerData[0].payment.id)}
+                                 disabled={loadingAction === `upload_${ledgerData[0].payment.id}`}
+                                 className="w-full bg-blue-500/10 border border-blue-500/20 text-blue-500 py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 active:scale-95 transition-transform disabled:opacity-50"
+                             >
+                                 {loadingAction === `upload_${ledgerData[0].payment.id}` ? (
+                                     <Icon name="refresh" className="animate-spin" size={18} />
+                                 ) : (
+                                     <>
+                                         <Icon name="upload_file" size={18} />
+                                         Dekont Yükle
+                                     </>
+                                 )}
+                             </button>
+                         )}
                      </div>
                  </div>
               </>

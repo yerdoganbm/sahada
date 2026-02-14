@@ -11,6 +11,10 @@ interface AdminDashboardProps {
   matches?: Match[];
   payments?: Payment[];
   players?: Player[];
+  onStartTrial?: (playerId: string) => void;
+  onFinalDecision?: (playerId: string, decision: 'promote' | 'reject') => void;
+  onApproveRequest?: (req: JoinRequest) => void;
+  onRejectRequest?: (reqId: string) => void;
 }
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ 
@@ -20,16 +24,32 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     joinRequests = [],
     matches = [],
     payments = [],
-    players = []
+    players = [],
+    onStartTrial,
+    onFinalDecision,
+    onApproveRequest,
+    onRejectRequest
 }) => {
-  const [activeModal, setActiveModal] = useState<'none' | 'memberRequest' | 'cancelInfo' | 'squadChange'>('none');
-
   // Dynamic Stats Calculation (No Mocks)
   const stats = useMemo(() => {
      const upcomingMatches = matches.filter(m => m.status === 'upcoming').length;
      const pendingPayments = payments.filter(p => p.status === 'pending').reduce((sum, p) => sum + p.amount, 0);
-     const totalMembers = players.length;
-     return { upcomingMatches, pendingPayments, totalMembers };
+     const totalMembers = players.filter(p => p.role === 'member' || p.role === 'admin').length;
+     
+     // Scouting Stats
+     const pendingApprovalCandidates = players.filter(p => p.role === 'guest' && p.trialStatus === 'pending_approval').length;
+     const inTrialPlayers = players.filter(p => p.role === 'guest' && p.trialStatus === 'in_trial').length;
+     
+     // Debug logging
+     console.log('📊 AdminDashboard Stats:', {
+       totalPlayers: players.length,
+       guestPlayers: players.filter(p => p.role === 'guest').length,
+       pendingApprovalCandidates,
+       inTrialPlayers
+     });
+     console.log('🔍 Guest Players:', players.filter(p => p.role === 'guest'));
+     
+     return { upcomingMatches, pendingPayments, totalMembers, pendingApprovalCandidates, inTrialPlayers };
   }, [matches, payments, players]);
 
   if (currentUser.role !== 'admin' && currentUser.tier !== 'partner') {
@@ -46,11 +66,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           </div>
       );
   }
-
-  const handleWhatsAppAction = (action: string) => {
-    alert(`${action} için WhatsApp açılıyor...`);
-    setActiveModal('none');
-  };
 
   return (
     <div className="pb-32 bg-secondary min-h-screen">
@@ -107,28 +122,28 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
            <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3">Hızlı Aksiyonlar</h3>
            <div className="grid grid-cols-2 gap-3">
               <AdminActionBtn 
+                icon="account_balance_wallet" 
+                title="Finansal Raporlar" 
+                subtitle="Gelir & Gider" 
+                onClick={() => onNavigate('financialReports')} 
+              />
+              <AdminActionBtn 
+                icon="groups" 
+                title="Üye Yönetimi" 
+                subtitle="Katılım & Roller" 
+                onClick={() => onNavigate('members')} 
+              />
+              <AdminActionBtn 
                 icon="calendar_month" 
-                title="Detaylı Planla" 
-                subtitle="Sihirbaz ile maç kur" 
+                title="Maç Planla" 
+                subtitle="Sihirbaz ile kur" 
                 onClick={() => onNavigate('matchCreate')} 
               />
               <AdminActionBtn 
-                icon="fact_check" 
-                title="Yoklama Başlat" 
-                subtitle="WhatsApp anketi" 
-                onClick={() => onNavigate('attendance')} 
-              />
-              <AdminActionBtn 
                 icon="shuffle" 
-                title="Kadro & Oylama" 
-                subtitle="A/B/C Seçimi" 
+                title="Kadro Oluştur" 
+                subtitle="A/B/C Taslaklar" 
                 onClick={() => onNavigate('lineupManager')} 
-              />
-              <AdminActionBtn 
-                icon="person_add" 
-                title="Yedek Sistemi" 
-                subtitle="Otomatik çağır" 
-                onClick={() => onNavigate('reserveSystem')} 
               />
            </div>
         </div>
@@ -143,14 +158,34 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
            <div className="space-y-3">
               {joinRequests.length > 0 ? (
                 joinRequests.map(req => (
-                  <PendingRow 
-                    key={req.id}
-                    icon="person_add" 
-                    title={`${req.name} (${req.position === 'GK' ? 'Kaleci' : req.position})`} 
-                    desc="Gruba katılmak istiyor" 
-                    time={req.timestamp}
-                    onClick={() => setActiveModal('memberRequest')}
-                  />
+                  <div key={req.id} className="bg-secondary rounded-xl p-3 border border-white/5">
+                    <div className="flex items-center gap-3 mb-3">
+                      <img src={req.avatar} className="w-10 h-10 rounded-full border border-blue-500/30" />
+                      <div className="flex-1">
+                        <h4 className="text-sm font-bold text-white">{req.name}</h4>
+                        <p className="text-[10px] text-slate-400">
+                          {req.position === 'GK' ? 'Kaleci' : req.position} • {req.phone}
+                        </p>
+                      </div>
+                      <span className="text-[9px] font-bold px-2 py-1 rounded bg-blue-500/20 text-blue-500 border border-blue-500/30">
+                        KATILIM
+                      </span>
+                    </div>
+                    <div className="flex gap-2">
+                      <button 
+                        onClick={() => onRejectRequest && onRejectRequest(req.id)}
+                        className="flex-1 py-2 rounded-lg bg-red-500/10 text-red-500 text-xs font-bold border border-red-500/20"
+                      >
+                        Reddet
+                      </button>
+                      <button 
+                        onClick={() => onApproveRequest && onApproveRequest(req)}
+                        className="flex-1 py-2 rounded-lg bg-green-500 text-white text-xs font-bold"
+                      >
+                        Onayla
+                      </button>
+                    </div>
+                  </div>
                 ))
               ) : (
                 <div className="text-center py-4 opacity-50">
@@ -160,35 +195,94 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               )}
            </div>
         </div>
-      </div>
 
-      {/* Action Modals with WhatsApp Integration */}
-      {activeModal !== 'none' && (
-         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in">
-            <div className="bg-surface w-full max-w-sm rounded-2xl border border-white/10 p-5 shadow-2xl animate-slide-up">
-               {activeModal === 'memberRequest' && (
-                  <>
-                     <div className="text-center mb-4">
-                        <div className="w-16 h-16 rounded-full bg-slate-800 mx-auto mb-3 border-2 border-primary">
-                           <img src="https://i.pravatar.cc/150?u=99" className="w-full h-full rounded-full" />
-                        </div>
-                        <h3 className="text-lg font-bold text-white">Şehit A.</h3>
-                        <p className="text-xs text-slate-400">Kaleci • Referans: Ahmet Y.</p>
-                     </div>
-                     <div className="flex gap-3 mb-3">
-                        <button onClick={() => setActiveModal('none')} className="flex-1 py-3 rounded-xl bg-red-500/10 text-red-500 font-bold text-xs">Reddet</button>
-                        <button onClick={() => setActiveModal('none')} className="flex-1 py-3 rounded-xl bg-primary text-secondary font-bold text-xs">Onayla</button>
-                     </div>
-                     <button onClick={() => handleWhatsAppAction('DM')} className="w-full py-3 rounded-xl bg-[#25D366]/10 text-[#25D366] font-bold text-xs flex items-center justify-center gap-2 border border-[#25D366]/20">
-                        <Icon name="chat" size={16} /> WhatsApp'tan Yaz
-                     </button>
-                  </>
-               )}
-               
-               {/* Other Modals can be added back if needed based on dynamic data */}
-            </div>
-         </div>
-      )}
+        {/* ADAY HAVUZU (SCOUTING & TRIAL) - YENİ BÖLÜM */}
+        {(stats.pendingApprovalCandidates > 0 || stats.inTrialPlayers > 0) && (
+          <div className="bg-surface rounded-2xl p-4 border border-primary/20 relative z-10">
+           <div className="flex justify-between items-center mb-4">
+              <h3 className="text-sm font-bold text-primary flex items-center gap-2">
+                <Icon name="person_search" size={18} />
+                Aday Havuzu
+              </h3>
+              <span className="bg-primary/20 text-primary text-[10px] font-bold px-2 py-0.5 rounded">
+                {stats.pendingApprovalCandidates + stats.inTrialPlayers} Aday
+              </span>
+           </div>
+           
+           <div className="space-y-3">
+              {/* Pending Approval Candidates */}
+              {players.filter(p => p.role === 'guest' && p.trialStatus === 'pending_approval').map(candidate => {
+                const referrer = players.find(p => p.id === candidate.referredBy);
+                return (
+                  <div key={candidate.id} className="bg-secondary rounded-xl p-3 border border-white/5">
+                    <div className="flex items-center gap-3 mb-2">
+                      <img src={candidate.avatar} className="w-10 h-10 rounded-full border border-yellow-500/30" />
+                      <div className="flex-1">
+                        <h4 className="text-sm font-bold text-white">{candidate.name}</h4>
+                        <p className="text-[10px] text-slate-400">
+                          {candidate.position} • Öneren: {referrer?.name || 'Bilinmiyor'}
+                        </p>
+                      </div>
+                      <span className="text-[9px] font-bold px-2 py-1 rounded bg-yellow-500/20 text-yellow-500 border border-yellow-500/30">
+                        ONAY BEKLİYOR
+                      </span>
+                    </div>
+                    <div className="flex gap-2">
+                      <button 
+                        onClick={() => onFinalDecision && onFinalDecision(candidate.id, 'reject')}
+                        className="flex-1 py-2 rounded-lg bg-red-500/10 text-red-500 text-xs font-bold border border-red-500/20"
+                      >
+                        Reddet
+                      </button>
+                      <button 
+                        onClick={() => onStartTrial && onStartTrial(candidate.id)}
+                        className="flex-1 py-2 rounded-lg bg-primary text-secondary text-xs font-bold"
+                      >
+                        Deneme Başlat
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+
+              {/* In Trial Players */}
+              {players.filter(p => p.role === 'guest' && p.trialStatus === 'in_trial').map(trialPlayer => {
+                const referrer = players.find(p => p.id === trialPlayer.referredBy);
+                return (
+                  <div key={trialPlayer.id} className="bg-secondary rounded-xl p-3 border border-primary/20">
+                    <div className="flex items-center gap-3 mb-2">
+                      <img src={trialPlayer.avatar} className="w-10 h-10 rounded-full border border-primary/50" />
+                      <div className="flex-1">
+                        <h4 className="text-sm font-bold text-white">{trialPlayer.name}</h4>
+                        <p className="text-[10px] text-slate-400">
+                          {trialPlayer.position} • Öneren: {referrer?.name || 'Bilinmiyor'}
+                        </p>
+                      </div>
+                      <span className="text-[9px] font-bold px-2 py-1 rounded bg-primary/20 text-primary border border-primary/30">
+                        DENEME
+                      </span>
+                    </div>
+                    <div className="flex gap-2">
+                      <button 
+                        onClick={() => onFinalDecision && onFinalDecision(trialPlayer.id, 'reject')}
+                        className="flex-1 py-2 rounded-lg bg-red-500/10 text-red-500 text-xs font-bold border border-red-500/20"
+                      >
+                        Eleme
+                      </button>
+                      <button 
+                        onClick={() => onFinalDecision && onFinalDecision(trialPlayer.id, 'promote')}
+                        className="flex-1 py-2 rounded-lg bg-green-500 text-white text-xs font-bold"
+                      >
+                        Asil Üye Yap
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+           </div>
+        </div>
+        )}
+      </div>
     </div>
   );
 };

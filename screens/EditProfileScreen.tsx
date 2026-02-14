@@ -6,9 +6,10 @@ import { Player } from '../types';
 interface EditProfileScreenProps {
   onBack: () => void;
   currentUser: Player;
+  onSave: (updatedUser: Player) => void;
 }
 
-export const EditProfileScreen: React.FC<EditProfileScreenProps> = ({ onBack, currentUser }) => {
+export const EditProfileScreen: React.FC<EditProfileScreenProps> = ({ onBack, currentUser, onSave }) => {
   const [formData, setFormData] = useState({
     name: currentUser.name,
     position: currentUser.position,
@@ -18,8 +19,17 @@ export const EditProfileScreen: React.FC<EditProfileScreenProps> = ({ onBack, cu
   });
 
   const handleSave = () => {
-      // Simulate API update
-      alert('Profil güncellendi!');
+      // Güncellenmiş kullanıcı objesi oluştur
+      const updatedUser: Player = {
+        ...currentUser,
+        name: formData.name,
+        position: formData.position,
+      };
+      
+      // Parent component'e gönder
+      onSave(updatedUser);
+      
+      // Geri dön
       onBack();
   };
 

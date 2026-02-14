@@ -13,6 +13,7 @@ interface FinancialReportsProps {
 export const FinancialReports: React.FC<FinancialReportsProps> = ({ onBack, transactions, onAddTransaction, currentUser }) => {
   const [filter, setFilter] = useState<'month' | '3months' | 'year' | 'all'>('all');
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [modalType, setModalType] = useState<'income' | 'expense'>('expense'); // FIX #2: Toggle between income/expense
   const [newPayment, setNewPayment] = useState({ title: '', amount: '', date: '' });
 
   // AUTH CHECK
@@ -81,11 +82,11 @@ export const FinancialReports: React.FC<FinancialReportsProps> = ({ onBack, tran
     const newItem: Transaction = {
       id: `new_${Date.now()}`,
       title: newPayment.title,
-      category: 'gider',
+      category: modalType === 'income' ? 'gelir' : 'gider', // FIX #2: Dynamic category
       date: newPayment.date || new Date().toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', year: 'numeric' }),
-      amount: -Math.abs(Number(newPayment.amount)),
+      amount: modalType === 'income' ? Math.abs(Number(newPayment.amount)) : -Math.abs(Number(newPayment.amount)),
       status: 'pending',
-      description: 'Manuel eklenen gider'
+      description: modalType === 'income' ? 'Manuel eklenen gelir' : 'Manuel eklenen gider'
     };
 
     onAddTransaction(newItem);
@@ -108,6 +109,34 @@ export const FinancialReports: React.FC<FinancialReportsProps> = ({ onBack, tran
       </div>
 
       <div className="p-4 space-y-4">
+        
+        {/* FIX #2: Income/Expense Quick Action Buttons */}
+        <div className="grid grid-cols-2 gap-3 mb-2">
+          <button 
+            onClick={() => { setModalType('income'); setShowPaymentModal(true); }}
+            className="bg-green-500/10 border border-green-500/20 rounded-xl p-3 flex items-center gap-3 active:scale-95 transition-transform"
+          >
+            <div className="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center">
+              <Icon name="arrow_downward" size={20} className="text-green-500" />
+            </div>
+            <div className="text-left">
+              <h4 className="text-xs font-bold text-white">Gelir Ekle</h4>
+              <p className="text-[9px] text-slate-400">Aidat, Bağış...</p>
+            </div>
+          </button>
+          <button 
+            onClick={() => { setModalType('expense'); setShowPaymentModal(true); }}
+            className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 flex items-center gap-3 active:scale-95 transition-transform"
+          >
+            <div className="w-10 h-10 rounded-full bg-red-500/20 flex items-center justify-center">
+              <Icon name="stadium" size={20} className="text-red-500" />
+            </div>
+            <div className="text-left">
+              <h4 className="text-xs font-bold text-white">Gider Ekle</h4>
+              <p className="text-[9px] text-slate-400">Saha, Ekipman...</p>
+            </div>
+          </button>
+        </div>
         
         {/* Top Cards Section (Compact Version) */}
         <div className="grid grid-cols-2 gap-3">
@@ -247,18 +276,18 @@ export const FinancialReports: React.FC<FinancialReportsProps> = ({ onBack, tran
           <div className="bg-surface w-full max-w-xs rounded-3xl border border-white/10 p-5 shadow-2xl animate-slide-up">
             <div className="text-center mb-6">
               <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center mx-auto mb-3 text-primary">
-                <Icon name="event_note" size={24} />
+                <Icon name={modalType === 'income' ? 'arrow_downward' : 'event_note'} size={24} />
               </div>
-              <h3 className="text-lg font-bold text-white">Ödeme Planla</h3>
-              <p className="text-xs text-slate-400">Gelecek bir gideri takvime ekle.</p>
+              <h3 className="text-lg font-bold text-white">{modalType === 'income' ? 'Gelir Ekle' : 'Gider Planla'}</h3>
+              <p className="text-xs text-slate-400">{modalType === 'income' ? 'Kasaya gelir ekleyin.' : 'Gelecek bir gideri takvime ekle.'}</p>
             </div>
 
             <div className="space-y-3 mb-6">
               <div>
-                <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">Ödeme Başlığı</label>
+                <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">{modalType === 'income' ? 'Gelir Kaynağı' : 'Ödeme Başlığı'}</label>
                 <input 
                   type="text" 
-                  placeholder="Örn: Halı Saha Kapora"
+                  placeholder={modalType === 'income' ? 'Örn: Üye Aidatı' : 'Örn: Halı Saha Kapora'}
                   value={newPayment.title}
                   onChange={e => setNewPayment({...newPayment, title: e.target.value})}
                   className="w-full bg-secondary border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-primary"
@@ -276,13 +305,20 @@ export const FinancialReports: React.FC<FinancialReportsProps> = ({ onBack, tran
               </div>
               <div>
                 <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">Tarih</label>
-                <input 
-                  type="text" 
-                  placeholder="15 Eki 2023"
-                  value={newPayment.date}
-                  onChange={e => setNewPayment({...newPayment, date: e.target.value})}
-                  className="w-full bg-secondary border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-primary"
-                />
+                <div className="relative">
+                  <input 
+                    type="date" 
+                    value={newPayment.date}
+                    onChange={e => setNewPayment({...newPayment, date: e.target.value})}
+                    className="w-full bg-secondary border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-primary cursor-pointer [color-scheme:dark]"
+                    style={{ colorScheme: 'dark' }}
+                  />
+                  {!newPayment.date && (
+                    <div className="absolute inset-0 flex items-center px-3 pointer-events-none">
+                      <span className="text-slate-600 text-sm">Tarih seçin...</span>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 

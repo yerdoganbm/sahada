@@ -5,12 +5,13 @@ import { Icon } from '../components/Icon';
 import { ScreenName, Player } from '../types';
 
 interface ProfileScreenProps {
+  onBack: () => void;
   onNavigate: (screen: ScreenName) => void;
   onLogout?: () => void;
   currentUser: Player;
 }
 
-export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onNavigate, onLogout, currentUser }) => {
+export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onBack, onNavigate, onLogout, currentUser }) => {
   const isPremium = currentUser.tier === 'premium' || currentUser.tier === 'partner';
   const isPartner = currentUser.tier === 'partner';
   const isAdmin = currentUser.role === 'admin';
@@ -18,7 +19,8 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onNavigate, onLogo
   return (
     <div className="pb-24">
       <Header 
-        title="Profilim" 
+        title="Profilim"
+        onBack={onBack}
         rightAction={
             <button onClick={() => onNavigate('settings')} className="p-2 text-slate-400 hover:text-white">
                 <Icon name="settings" />

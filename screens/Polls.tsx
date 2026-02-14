@@ -12,6 +12,7 @@ interface PollsProps {
   transferRequests?: TransferRequest[];
   onStartTransferVote?: (transferId: string) => void;
   onFinalizeTransfer?: (transferId: string, approved: boolean) => void;
+  onVote?: (pollId: string, optionId: string) => void;
 }
 
 export const Polls: React.FC<PollsProps> = ({ 
@@ -21,12 +22,20 @@ export const Polls: React.FC<PollsProps> = ({
     currentUser, 
     transferRequests = [], 
     onStartTransferVote,
-    onFinalizeTransfer 
+    onFinalizeTransfer,
+    onVote
 }) => {
   // Permission Check: Admin OR Captain can manage polls
   const canManage = currentUser?.role === 'admin' || currentUser?.isCaptain;
 
   const handleVote = (pollId: string, optionId: string) => {
+    // Önce parent'taki handler'ı çağır (App.tsx)
+    if (onVote) {
+      onVote(pollId, optionId);
+      return;
+    }
+    
+    // Fallback: setPolls varsa kullan
     if (!setPolls) return;
     setPolls(prev => prev.map(poll => {
       if (poll.id !== pollId) return poll;

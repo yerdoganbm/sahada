@@ -25,4 +25,980 @@ import { Leaderboard } from './screens/Leaderboard';
 import { FinancialReports } from './screens/FinancialReports';
 import { MatchCreate } from './screens/MatchCreate';
 import { SubscriptionScreen } from './screens/SubscriptionScreen';
-import {
+import { Polls } from './screens/Polls';
+import { BookingScreen } from './screens/BookingScreen';
+import { TournamentScreen } from './screens/TournamentScreen';
+import { WhatsAppIntegration } from './screens/WhatsAppIntegration';
+import { AttendanceScreen } from './screens/AttendanceScreen';
+import { ReserveSystem } from './screens/ReserveSystem';
+import { MessageLogs } from './screens/MessageLogs';
+import { NotificationsScreen } from './screens/NotificationsScreen';
+import { WelcomeScreen } from './screens/WelcomeScreen';
+import { TeamSetup } from './screens/TeamSetup';
+import { EditProfileScreen } from './screens/EditProfileScreen';
+
+function App() {
+  // ===========================================
+  // STATE MANAGEMENT - TEK DOĞRULUK KAYNAĞI
+  // ===========================================
+  const [currentUser, setCurrentUser] = useState<Player | null>(null);
+  const [currentScreen, setCurrentScreen] = useState<ScreenName>('welcome');
+  const [screenHistory, setScreenHistory] = useState<ScreenName[]>([]);
+  
+  // Mock Data States - TÜM VERİLER BURADA
+  const [matches, setMatches] = useState<Match[]>(MOCK_MATCHES);
+  const [venues, setVenues] = useState<Venue[]>(MOCK_VENUES);
+  const [players, setPlayers] = useState<Player[]>(MOCK_PLAYERS);
+  const [payments, setPayments] = useState<Payment[]>(MOCK_PAYMENTS);
+  const [transactions, setTransactions] = useState<Transaction[]>(MOCK_TRANSACTIONS);
+  const [polls, setPolls] = useState<Poll[]>(MOCK_POLLS);
+  
+  // Additional States
+  const [rsvpStatus, setRsvpStatus] = useState<RsvpStatus>('pending');
+  const [transferRequests, setTransferRequests] = useState<TransferRequest[]>([]);
+  const [joinRequests, setJoinRequests] = useState<JoinRequest[]>([
+    // Mock join requests
+    {
+      id: 'jr1',
+      name: 'Ali Veli',
+      position: 'MID',
+      phone: '0532 111 22 33',
+      avatar: 'https://i.pravatar.cc/150?u=jr1',
+      timestamp: '2 saat önce',
+      status: 'pending'
+    },
+    {
+      id: 'jr2',
+      name: 'Veli Yıldız',
+      position: 'FWD',
+      phone: '0532 444 55 66',
+      avatar: 'https://i.pravatar.cc/150?u=jr2',
+      timestamp: '5 saat önce',
+      status: 'pending'
+    }
+  ]);
+  const [teamProfile, setTeamProfile] = useState<TeamProfile | null>(null);
+  const [matchDetailsId, setMatchDetailsId] = useState<string | null>(null);
+  const [venueDetailsId, setVenueDetailsId] = useState<string | null>(null);
+
+  // ===========================================
+  // LOGIN HANDLER - RBAC LOGIC
+  // ===========================================
+  const handleLogin = (userId: string, isNewTeam?: boolean) => {
+    // Check if user exists in MOCK_PLAYERS
+    const user = MOCK_PLAYERS.find(p => p.id === userId);
+    
+    if (user) {
+      // User found - Log in with their role
+      setCurrentUser(user);
+      
+      // Sabit Test Senaryoları:
+      if (userId === '1') {
+        // Admin (Ahmet Yılmaz)
+        console.log('✅ Yönetici olarak giriş yapıldı:', user.name);
+        setCurrentScreen('dashboard');
+      } else if (userId === '7') {
+        // Kaptan (Burak Yılmaz)
+        console.log('✅ Kaptan olarak giriş yapıldı:', user.name);
+        setCurrentScreen('dashboard');
+      } else if (userId === '2') {
+        // Üye (Mehmet Demir)
+        console.log('✅ Üye olarak giriş yapıldı:', user.name);
+        setCurrentScreen('dashboard');
+      } else {
+        // Diğer mevcut kullanıcılar
+        console.log('✅ Giriş yapıldı:', user.name);
+        setCurrentScreen('dashboard');
+      }
+    } else if (isNewTeam) {
+      // Yeni takım kuruluyor - admin olarak giriş
+      const newAdmin: Player = {
+        id: 'new_admin',
+        name: 'Yeni Yönetici',
+        position: 'MID',
+        rating: 7.0,
+        reliability: 100,
+        avatar: 'https://i.pravatar.cc/150?u=new',
+        role: 'admin',
+        isCaptain: true,
+        tier: 'free'
+      };
+      setCurrentUser(newAdmin);
+      setCurrentScreen('teamSetup');
+    } else {
+      // Bilinmeyen kullanıcı - profil oluşturma ekranına yönlendir
+      console.log('❌ Kullanıcı bulunamadı, profil oluşturma ekranına yönlendiriliyor...');
+      setCurrentScreen('createProfile');
+    }
+  };
+
+  // ===========================================
+  // NAVIGATION HANDLER
+  // ===========================================
+  const navigateTo = (screen: ScreenName, params?: any) => {
+    // Role-Based Access Control (RBAC)
+    const protectedAdminScreens: ScreenName[] = ['admin', 'matchCreate', 'financialReports'];
+    const protectedMemberScreens: ScreenName[] = ['dashboard'];
+    
+    // Yönetici ekranlarına erişim kontrolü
+    if (protectedAdminScreens.includes(screen)) {
+      if (!currentUser) {
+        console.warn('⚠️ Giriş yapmanız gerekiyor!');
+        alert('Bu özelliğe erişmek için giriş yapmanız gerekiyor.');
+        setCurrentScreen('login');
+        return;
+      }
+      
+      if (currentUser.role !== 'admin' && currentUser.tier !== 'partner') {
+        console.warn('⚠️ Yetkiniz yok! Sadece yöneticiler erişebilir.');
+        alert('Bu özelliğe sadece yöneticiler erişebilir.');
+        setCurrentScreen('dashboard');
+        return;
+      }
+    }
+    
+    // Üye ekranlarına erişim kontrolü (giriş yapmış kullanıcılar)
+    if (protectedMemberScreens.includes(screen) && !currentUser) {
+      console.warn('⚠️ Giriş yapmanız gerekiyor!');
+      setCurrentScreen('login');
+      return;
+    }
+    
+    // Parametre bazlı navigasyonlar
+    if (params?.matchId) {
+      setMatchDetailsId(params.matchId);
+    }
+    if (params?.venueId) {
+      setVenueDetailsId(params.venueId);
+    }
+    
+    // Geçmişe ekle (geri dön için)
+    setScreenHistory(prev => [...prev, currentScreen]);
+    setCurrentScreen(screen);
+  };
+
+  // ===========================================
+  // GO BACK HANDLER
+  // ===========================================
+  const goBack = () => {
+    if (screenHistory.length > 0) {
+      const previousScreen = screenHistory[screenHistory.length - 1];
+      setScreenHistory(prev => prev.slice(0, -1));
+      setCurrentScreen(previousScreen);
+    } else {
+      // Varsayılan geri dönüş
+      if (currentUser) {
+        setCurrentScreen('dashboard');
+      } else {
+        setCurrentScreen('welcome');
+      }
+    }
+  };
+
+  // ===========================================
+  // DATA MUTATION HANDLERS - İNTERAKTİF İŞLEMLER
+  // ===========================================
+
+  // 1. PROFİL GÜNCELLEME
+  const handleUpdateProfile = (updatedUser: Player) => {
+    console.log('📝 Profil güncelleniyor:', updatedUser);
+    
+    // currentUser'ı güncelle
+    setCurrentUser(updatedUser);
+    
+    // players listesindeki kullanıcıyı güncelle
+    setPlayers(prev => prev.map(p => 
+      p.id === updatedUser.id ? updatedUser : p
+    ));
+    
+    console.log('✅ Profil başarıyla güncellendi!');
+  };
+
+  // 2. MAÇ OLUŞTURMA
+  const handleCreateMatch = (newMatch: Match) => {
+    console.log('⚽ Yeni maç oluşturuluyor:', newMatch);
+    
+    // Matches listesine ekle
+    setMatches(prev => [...prev, newMatch]);
+    
+    console.log('✅ Maç başarıyla oluşturuldu!');
+    // Dashboard'a yönlendir
+    navigateTo('dashboard');
+  };
+
+  // 3. RSVP GÜNCELLEME (FIX #6: Per-Match RSVP)
+  const handleRsvpChange = (matchId: string, status: RsvpStatus) => {
+    console.log(`📋 RSVP güncelleniyor: Maç ${matchId}, Durum: ${status}, Oyuncu: ${currentUser?.name}`);
+    
+    if (!currentUser) return;
+    
+    // Match'in attendees array'ini güncelle
+    setMatches(prev => prev.map(m => {
+      if (m.id === matchId) {
+        const existingAttendees = m.attendees || [];
+        const playerIndex = existingAttendees.findIndex(a => a.playerId === currentUser.id);
+        
+        if (playerIndex >= 0) {
+          // Mevcut oyuncu, durumu güncelle
+          const updated = [...existingAttendees];
+          updated[playerIndex] = { playerId: currentUser.id, status };
+          return { ...m, attendees: updated };
+        } else {
+          // Yeni oyuncu, ekle
+          return { ...m, attendees: [...existingAttendees, { playerId: currentUser.id, status }] };
+        }
+      }
+      return m;
+    }));
+    
+    // Global rsvpStatus'ü de güncelle (geriye uyumluluk için)
+    setRsvpStatus(status);
+    
+    console.log('✅ Katılım durumunuz güncellendi!');
+  };
+
+  // 4. KATILIM İSTEĞİ ONAYLAMA
+  const handleApproveJoinRequest = (request: JoinRequest) => {
+    console.log('✅ Katılım isteği onaylanıyor:', request);
+    
+    // Yeni oyuncu oluştur
+    const newPlayer: Player = {
+      id: request.id,
+      name: request.name,
+      position: request.position,
+      rating: 6.0, // Varsayılan başlangıç puanı
+      reliability: 100, // Yeni üye güvenilir kabul edilir
+      avatar: request.avatar,
+      role: 'member',
+      tier: 'free'
+    };
+    
+    // Players listesine ekle
+    setPlayers(prev => [...prev, newPlayer]);
+    
+    // JoinRequests listesinden çıkar
+    setJoinRequests(prev => prev.filter(jr => jr.id !== request.id));
+    
+    console.log('✅ Oyuncu takıma eklendi!');
+  };
+
+  // 5. KATILIM İSTEĞİ REDDETMe
+  const handleRejectJoinRequest = (requestId: string) => {
+    console.log('❌ Katılım isteği reddediliyor:', requestId);
+    
+    // JoinRequests listesinden çıkar veya durumunu güncelle
+    setJoinRequests(prev => prev.map(jr => 
+      jr.id === requestId ? { ...jr, status: 'rejected' as const } : jr
+    ));
+    
+    // Veya tamamen sil
+    // setJoinRequests(prev => prev.filter(jr => jr.id !== requestId));
+    
+    console.log('✅ İstek reddedildi!');
+  };
+
+  // 6. SAHA EKLEME
+  const handleVenueAdd = (venue: Venue) => {
+    console.log('🏟️ Yeni saha ekleniyor:', venue);
+    setVenues(prev => [...prev, venue]);
+    console.log('✅ Saha başarıyla eklendi!');
+    goBack();
+  };
+
+  // 7. İŞLEM (Transaction) EKLEME
+  const handleTransactionAdd = (transaction: Transaction) => {
+    console.log('💰 Yeni işlem ekleniyor:', transaction);
+    setTransactions(prev => [...prev, transaction]);
+    console.log('✅ İşlem kaydedildi!');
+  };
+
+  // 8. ÖDEME DURUMU GÜNCELLEME
+  const handleUpdatePayment = (paymentId: string, newStatus: Payment['status']) => {
+    console.log(`💳 Ödeme güncelleniyor: ${paymentId} -> ${newStatus}`);
+    setPayments(prev => prev.map(p => 
+      p.id === paymentId ? { ...p, status: newStatus } : p
+    ));
+    console.log('✅ Ödeme durumu güncellendi!');
+  };
+
+  // 9. ANKET OYLAMAANKET OYLAMA
+  const handlePollVote = (pollId: string, optionId: string) => {
+    console.log(`🗳️ Anket oylaması: Poll ${pollId}, Seçenek ${optionId}`);
+    
+    setPolls(prev => prev.map(poll => {
+      if (poll.id === pollId && !poll.isVoted) {
+        return {
+          ...poll,
+          isVoted: true,
+          options: poll.options.map(opt => 
+            opt.id === optionId 
+              ? { ...opt, votes: opt.votes + 1 }
+              : opt
+          ),
+          totalVotes: poll.totalVotes + 1
+        };
+      }
+      return poll;
+    }));
+    
+    console.log('✅ Oyunuz kaydedildi!');
+  };
+
+  // 10. OYUNCU ROL DEĞİŞİKLİĞİ (Admin)
+  const handleChangePlayerRole = (playerId: string, newRole: 'admin' | 'member') => {
+    console.log(`👤 Oyuncu rolü değiştiriliyor: ${playerId} -> ${newRole}`);
+    
+    setPlayers(prev => prev.map(p => 
+      p.id === playerId ? { ...p, role: newRole } : p
+    ));
+    
+    // Eğer currentUser'ın rolü değişiyorsa onu da güncelle
+    if (currentUser?.id === playerId) {
+      setCurrentUser(prev => prev ? { ...prev, role: newRole } : null);
+    }
+    
+    console.log('✅ Rol güncellendi!');
+  };
+
+  // 11. TRANSFER İSTEĞİ OLUŞTURMA
+  const handleProposeTransfer = (playerId: string) => {
+    console.log('🔄 Transfer önerisi oluşturuluyor:', playerId);
+    
+    const newTransferRequest: TransferRequest = {
+      id: `tr_${Date.now()}`,
+      playerId: playerId,
+      proposerId: currentUser!.id,
+      status: 'pending_captain'
+    };
+    
+    setTransferRequests(prev => [...prev, newTransferRequest]);
+    console.log('✅ Transfer önerisi gönderildi!');
+  };
+
+  // 12. PROFİL OLUŞTURMA TAMAMLAMA
+  const handleProfileComplete = () => {
+    console.log('🎉 Yeni profil oluşturuluyor...');
+    
+    // Yeni kullanıcı oluştur
+    if (!currentUser) {
+      const newUser: Player = {
+        id: `player_${Date.now()}`,
+        name: 'Yeni Oyuncu',
+        position: 'MID',
+        rating: 7.0,
+        reliability: 80,
+        avatar: `https://i.pravatar.cc/150?u=${Date.now()}`,
+        role: 'member',
+        tier: 'free'
+      };
+      setCurrentUser(newUser);
+      setPlayers(prev => [...prev, newUser]);
+    }
+    
+    console.log('✅ Profil oluşturuldu!');
+    navigateTo('dashboard');
+  };
+
+  // 13. TAKIM KURULUM TAMAMLAMA (FIX #1: Dashboard'da göster)
+  const handleTeamSetupComplete = (team: TeamProfile) => {
+    console.log('⚽ Takım profili oluşturuluyor:', team);
+    setTeamProfile(team);
+    console.log('✅ Takım başarıyla kuruldu!', team);
+    navigateTo('dashboard');
+  };
+
+  // 14. SCOUTING: OYUNCU ÖNERİSİ (Guest Player)
+  const handleProposePlayer = (playerData: Partial<Player>, referrerId: string) => {
+    console.log('🔍 Yeni oyuncu önerisi alınıyor:', playerData, 'Öneren:', referrerId);
+    
+    const newPlayer: Player = {
+      id: `guest_${Date.now()}`,
+      name: playerData.name || 'Misafir Oyuncu',
+      position: playerData.position || 'MID',
+      rating: playerData.rating || 6.0,
+      reliability: 100,
+      avatar: playerData.avatar || `https://i.pravatar.cc/150?u=guest_${Date.now()}`,
+      role: 'guest',
+      tier: 'free',
+      referredBy: referrerId,
+      trialStatus: 'pending_approval',
+      contactNumber: playerData.contactNumber || ''
+    };
+    
+    setPlayers(prev => [...prev, newPlayer]);
+    
+    console.log('✅ Oyuncu önerisi gönderildi! Admin onayı bekleniyor.');
+    alert(`${newPlayer.name} başarıyla önerildi! Admin onayından sonra deneme sürecine alınacak.`);
+  };
+
+  // 15. SCOUTING: DENEME SÜRECİNİ BAŞLAT (Admin)
+  const handleStartTrial = (playerId: string) => {
+    console.log('🔄 Deneme süreci başlatılıyor:', playerId);
+    
+    setPlayers(prev => prev.map(p => 
+      p.id === playerId ? { ...p, trialStatus: 'in_trial' as const } : p
+    ));
+    
+    console.log('✅ Oyuncu deneme sürecine alındı!');
+  };
+
+  // 16. SCOUTING: FİNAL KARAR (Promote/Reject)
+  const handleFinalDecision = (playerId: string, decision: 'promote' | 'reject') => {
+    console.log(`⚖️ Final karar: ${playerId} -> ${decision}`);
+    
+    if (decision === 'promote') {
+      // Guest -> Member
+      setPlayers(prev => prev.map(p => 
+        p.id === playerId ? { ...p, role: 'member', trialStatus: undefined } : p
+      ));
+      console.log('✅ Oyuncu asil üye oldu!');
+    } else {
+      // Reject -> Remove from list
+      setPlayers(prev => prev.filter(p => p.id !== playerId));
+      console.log('❌ Oyuncu elendi.');
+    }
+  };
+
+  // 17. FIX #9: BOOKING (REZERVASYON) TAMAMLAMA
+  const handleBooking = (newMatch: Match) => {
+    console.log('📅 Rezervasyon tamamlanıyor:', newMatch);
+    setMatches(prev => [...prev, newMatch]);
+    console.log('✅ Maç oluşturuldu ve takvime eklendi!');
+    navigateTo('dashboard');
+  };
+
+  // 18. FIX #5: MAÇ SKORU GÜNCELLEME
+  const handleUpdateMatchScore = (matchId: string, score: string, newStatus?: 'completed' | 'cancelled') => {
+    console.log(`⚽ Maç skoru güncelleniyor: ${matchId} -> ${score}`);
+    
+    setMatches(prev => prev.map(m => 
+      m.id === matchId 
+        ? { ...m, score, status: newStatus || m.status } 
+        : m
+    ));
+    
+    console.log('✅ Maç sonucu güncellendi!');
+  };
+
+  // 19. FIX #7: AIDAT ÖDEMESİ / DEKONT YÜKLEME (Player Action)
+  const handleUploadPaymentProof = (paymentId: string, proofUrl: string) => {
+    console.log(`📤 Dekont yükleniyor: ${paymentId}`);
+    
+    setPayments(prev => prev.map(p => 
+      p.id === paymentId 
+        ? { ...p, proofUrl, status: 'waiting_approval' } 
+        : p
+    ));
+    
+    console.log('✅ Dekont yüklendi, admin onayı bekleniyor.');
+    alert('Dekont yüklendi! Yönetici onayından sonra ödemeniz işlenecek.');
+  };
+
+  // 20. FIX #2: FİNANSAL RAPOR - GELİR EKLEME
+  const handleAddIncome = (income: Transaction) => {
+    console.log('💵 Gelir ekleniyor:', income);
+    setTransactions(prev => [...prev, { ...income, category: 'gelir' }]);
+    console.log('✅ Gelir kaydedildi!');
+  };
+
+  // ===========================================
+  // RENDER SCREEN LOGIC
+  // ===========================================
+  const renderScreen = () => {
+    switch (currentScreen) {
+      // ========== PUBLIC SCREENS ==========
+      case 'welcome':
+        return (
+          <WelcomeScreen 
+            onNavigate={navigateTo}
+          />
+        );
+
+      case 'login':
+        return (
+          <LoginScreen 
+            onLogin={handleLogin}
+          />
+        );
+
+      case 'joinTeam':
+        return (
+          <JoinTeamScreen 
+            onBack={goBack}
+            onSubmit={(request) => {
+              console.log('📝 Katılım isteği alındı:', request);
+              setJoinRequests(prev => [...prev, request]);
+              navigateTo('createProfile');
+            }}
+          />
+        );
+
+      case 'createProfile':
+        return (
+          <CreateProfile 
+            onComplete={handleProfileComplete}
+          />
+        );
+
+      case 'teamSetup':
+        return (
+          <TeamSetup 
+            onBack={goBack}
+            onComplete={handleTeamSetupComplete}
+          />
+        );
+
+      // ========== PROTECTED MEMBER SCREENS ==========
+      case 'dashboard':
+        if (!currentUser) {
+          navigateTo('login');
+          return null;
+        }
+        return (
+          <Dashboard 
+            onNavigate={navigateTo}
+            currentUser={currentUser}
+            rsvpStatus={rsvpStatus}
+            onRsvpChange={setRsvpStatus}
+            transferRequests={transferRequests}
+            allMatches={matches}
+            allPlayers={players}
+            teamProfile={teamProfile}
+          />
+        );
+
+      case 'matches':
+        if (!currentUser) {
+          navigateTo('login');
+          return null;
+        }
+        return (
+          <div className="min-h-screen bg-secondary p-4">
+            <Header title="Maçlar" onBack={goBack} />
+            <div className="space-y-3 mt-4">
+              {matches.map(match => (
+                <MatchCard 
+                  key={match.id}
+                  match={match}
+                  onClick={() => navigateTo('matchDetails', { matchId: match.id })}
+                />
+              ))}
+            </div>
+          </div>
+        );
+
+      case 'matchDetails':
+        if (!currentUser || !matchDetailsId) {
+          navigateTo('dashboard');
+          return null;
+        }
+        return (
+          <MatchDetails 
+            matchId={matchDetailsId}
+            onBack={goBack}
+            currentUser={currentUser}
+            rsvpStatus={rsvpStatus}
+            onRsvpChange={(status) => handleRsvpChange(matchDetailsId, status)}
+            onUpdateScore={handleUpdateMatchScore}
+            allPlayers={players}
+            allMatches={matches}
+          />
+        );
+
+      case 'team':
+        if (!currentUser) {
+          navigateTo('login');
+          return null;
+        }
+        return (
+          <TeamList 
+            onBack={goBack}
+            onNavigate={navigateTo}
+            players={players}
+            currentUser={currentUser}
+            transferRequests={transferRequests}
+            onProposePlayer={handleProposeTransfer}
+          />
+        );
+
+      case 'profile':
+        if (!currentUser) {
+          navigateTo('login');
+          return null;
+        }
+        return (
+          <ProfileScreen 
+            onBack={goBack}
+            onNavigate={navigateTo}
+            currentUser={currentUser}
+            onLogout={() => {
+              setCurrentUser(null);
+              setScreenHistory([]);
+              setCurrentScreen('welcome');
+            }}
+          />
+        );
+
+      case 'editProfile':
+        if (!currentUser) {
+          navigateTo('login');
+          return null;
+        }
+        return (
+          <EditProfileScreen 
+            onBack={goBack}
+            currentUser={currentUser}
+            onSave={handleUpdateProfile}
+          />
+        );
+
+      case 'payments':
+        if (!currentUser) {
+          navigateTo('login');
+          return null;
+        }
+        return (
+          <PaymentLedger 
+            onBack={goBack}
+            payments={payments}
+            players={players}
+            currentUser={currentUser}
+            onUpdatePayment={handleUpdatePayment}
+            onUploadProof={handleUploadPaymentProof}
+          />
+        );
+
+      case 'members':
+        if (!currentUser) {
+          navigateTo('login');
+          return null;
+        }
+        return (
+          <MemberManagement 
+            onBack={goBack}
+            players={players}
+            setPlayers={setPlayers}
+            currentUser={currentUser}
+            joinRequests={joinRequests}
+            onApproveRequest={handleApproveJoinRequest}
+            onRejectRequest={handleRejectJoinRequest}
+            onChangeRole={handleChangePlayerRole}
+            onProposePlayer={handleProposePlayer}
+          />
+        );
+
+      case 'venues':
+        if (!currentUser) {
+          navigateTo('login');
+          return null;
+        }
+        return (
+          <VenueList 
+            onBack={goBack}
+            onNavigate={navigateTo}
+            venues={venues}
+            currentUser={currentUser}
+          />
+        );
+
+      case 'venueDetails':
+        if (!currentUser || !venueDetailsId) {
+          navigateTo('venues');
+          return null;
+        }
+        const currentVenue = venues.find(v => v.id === venueDetailsId);
+        if (!currentVenue) {
+          navigateTo('venues');
+          return null;
+        }
+        return (
+          <VenueDetails 
+            onBack={goBack}
+            venue={currentVenue}
+            currentUser={currentUser}
+          />
+        );
+
+      case 'venueAdd':
+        if (!currentUser) {
+          navigateTo('login');
+          return null;
+        }
+        return (
+          <VenueAdd 
+            onBack={goBack}
+            onSave={handleVenueAdd}
+          />
+        );
+
+      case 'lineupManager':
+        if (!currentUser) {
+          navigateTo('login');
+          return null;
+        }
+        return (
+          <LineupManager 
+            onBack={goBack}
+            players={players}
+            currentUser={currentUser}
+            onShare={() => navigateTo('squadShare')}
+          />
+        );
+
+      case 'squadShare':
+        if (!currentUser) {
+          navigateTo('login');
+          return null;
+        }
+        return (
+          <SquadShareWizard 
+            onBack={goBack}
+            players={players}
+          />
+        );
+
+      case 'settings':
+        if (!currentUser) {
+          navigateTo('login');
+          return null;
+        }
+        return (
+          <Settings 
+            onBack={goBack}
+            currentUser={currentUser}
+          />
+        );
+
+      case 'leaderboard':
+        if (!currentUser) {
+          navigateTo('login');
+          return null;
+        }
+        return (
+          <Leaderboard 
+            onBack={goBack}
+            players={players}
+          />
+        );
+
+      case 'subscription':
+        if (!currentUser) {
+          navigateTo('login');
+          return null;
+        }
+        return (
+          <SubscriptionScreen 
+            onBack={goBack}
+            onNavigate={navigateTo}
+            currentUser={currentUser}
+          />
+        );
+
+      case 'polls':
+        if (!currentUser) {
+          navigateTo('login');
+          return null;
+        }
+        return (
+          <Polls 
+            onBack={goBack}
+            polls={polls}
+            setPolls={setPolls}
+            currentUser={currentUser}
+            transferRequests={transferRequests}
+            onVote={handlePollVote}
+          />
+        );
+
+      case 'booking':
+        if (!currentUser) {
+          navigateTo('login');
+          return null;
+        }
+        return (
+          <BookingScreen 
+            onBack={goBack}
+            venues={venues}
+            venueId={venueDetailsId || venues[0]?.id}
+            onComplete={handleBooking}
+          />
+        );
+
+      case 'tournament':
+        if (!currentUser) {
+          navigateTo('login');
+          return null;
+        }
+        return (
+          <TournamentScreen 
+            onBack={goBack}
+            onNavigate={navigateTo}
+            currentUser={currentUser}
+          />
+        );
+
+      case 'whatsappCenter':
+        if (!currentUser) {
+          navigateTo('login');
+          return null;
+        }
+        return (
+          <WhatsAppIntegration 
+            onBack={goBack}
+            onNavigate={navigateTo}
+            currentUser={currentUser}
+          />
+        );
+
+      case 'attendance':
+        if (!currentUser) {
+          navigateTo('login');
+          return null;
+        }
+        return (
+          <AttendanceScreen 
+            onBack={goBack}
+            matches={matches}
+            players={players}
+            currentUser={currentUser}
+          />
+        );
+
+      case 'reserveSystem':
+        if (!currentUser) {
+          navigateTo('login');
+          return null;
+        }
+        return (
+          <ReserveSystem 
+            onBack={goBack}
+            players={players}
+            currentUser={currentUser}
+            onNavigate={navigateTo}
+          />
+        );
+
+      case 'messageLogs':
+        if (!currentUser) {
+          navigateTo('login');
+          return null;
+        }
+        return (
+          <MessageLogs 
+            onBack={goBack}
+            currentUser={currentUser}
+          />
+        );
+
+      case 'notifications':
+        if (!currentUser) {
+          navigateTo('login');
+          return null;
+        }
+        return (
+          <NotificationsScreen 
+            onBack={goBack}
+            onNavigate={navigateTo}
+            currentUser={currentUser}
+          />
+        );
+
+      // ========== PROTECTED ADMIN SCREENS ==========
+      case 'admin':
+        if (!currentUser) {
+          navigateTo('login');
+          return null;
+        }
+        if (currentUser.role !== 'admin' && currentUser.tier !== 'partner') {
+          alert('Bu özelliğe sadece yöneticiler erişebilir.');
+          navigateTo('dashboard');
+          return null;
+        }
+        return (
+          <AdminDashboard 
+            onBack={goBack}
+            onNavigate={navigateTo}
+            currentUser={currentUser}
+            joinRequests={joinRequests}
+            matches={matches}
+            payments={payments}
+            players={players}
+            onStartTrial={handleStartTrial}
+            onFinalDecision={handleFinalDecision}
+            onApproveRequest={handleApproveJoinRequest}
+            onRejectRequest={handleRejectJoinRequest}
+          />
+        );
+
+      case 'matchCreate':
+        if (!currentUser) {
+          navigateTo('login');
+          return null;
+        }
+        if (currentUser.role !== 'admin' && currentUser.tier !== 'partner') {
+          alert('Maç oluşturma yetkisi sadece yöneticilere aittir.');
+          navigateTo('dashboard');
+          return null;
+        }
+        return (
+          <MatchCreate 
+            onBack={goBack}
+            venues={venues}
+            currentUser={currentUser}
+            players={players}
+            onSave={handleCreateMatch}
+          />
+        );
+
+      case 'financialReports':
+        if (!currentUser) {
+          navigateTo('login');
+          return null;
+        }
+        if (currentUser.role !== 'admin' && currentUser.tier !== 'partner') {
+          alert('Finansal raporlara sadece yöneticiler erişebilir.');
+          navigateTo('dashboard');
+          return null;
+        }
+        return (
+          <FinancialReports 
+            onBack={goBack}
+            transactions={transactions}
+            onAddTransaction={handleTransactionAdd}
+            currentUser={currentUser}
+          />
+        );
+
+      // ========== DEFAULT ==========
+      default:
+        return (
+          <div className="min-h-screen bg-secondary flex items-center justify-center p-6 text-center">
+            <div>
+              <Icon name="error" size={64} className="text-alert mx-auto mb-4" />
+              <h2 className="text-white text-xl font-bold mb-2">Sayfa Bulunamadı</h2>
+              <p className="text-slate-400 text-sm mb-6">
+                Aradığınız sayfa mevcut değil.
+              </p>
+              <button 
+                onClick={() => setCurrentScreen(currentUser ? 'dashboard' : 'welcome')}
+                className="bg-primary text-secondary px-6 py-3 rounded-xl font-bold"
+              >
+                Ana Sayfaya Dön
+              </button>
+            </div>
+          </div>
+        );
+    }
+  };
+
+  // ===========================================
+  // COMPONENT RENDER
+  // ===========================================
+  return (
+    <div className="app-container">
+      {renderScreen()}
+    </div>
+  );
+}
+
+export default App;

@@ -4,10 +4,11 @@ import { Icon } from '../components/Icon';
 import { TeamProfile } from '../types';
 
 interface TeamSetupProps {
+  onBack?: () => void;
   onComplete: (profile: TeamProfile) => void;
 }
 
-export const TeamSetup: React.FC<TeamSetupProps> = ({ onComplete }) => {
+export const TeamSetup: React.FC<TeamSetupProps> = ({ onBack, onComplete }) => {
   const [name, setName] = useState('');
   const [shortName, setShortName] = useState('');
   const [primaryColor, setPrimaryColor] = useState('#10B981');
@@ -38,6 +39,19 @@ export const TeamSetup: React.FC<TeamSetupProps> = ({ onComplete }) => {
 
   return (
     <div className="min-h-screen bg-secondary flex flex-col p-6">
+       {/* Header with Back Button */}
+       {onBack && (
+         <div className="flex items-center gap-3 mb-4 pt-4">
+           <button 
+             onClick={onBack}
+             className="w-10 h-10 rounded-full flex items-center justify-center bg-surface border border-white/5 active:scale-95 transition-transform"
+           >
+             <Icon name="arrow_back" className="text-white" size={20} />
+           </button>
+           <h2 className="text-white text-lg font-bold">Geri</h2>
+         </div>
+       )}
+       
        {/* Progress */}
        <div className="flex gap-2 mb-8 pt-4">
           <div className={`h-1 flex-1 rounded-full ${step >= 1 ? 'bg-primary' : 'bg-white/10'}`}></div>

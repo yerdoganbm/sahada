@@ -58,6 +58,66 @@
       .safe-bottom {
         padding-bottom: env(safe-area-inset-bottom);
       }
+      
+      /* Modern Dark Calendar Picker Styles */
+      input[type="date"]::-webkit-calendar-picker-indicator,
+      input[type="time"]::-webkit-calendar-picker-indicator,
+      input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+        filter: invert(1);
+        cursor: pointer;
+        opacity: 0.8;
+        transition: opacity 0.2s;
+      }
+      input[type="date"]::-webkit-calendar-picker-indicator:hover,
+      input[type="time"]::-webkit-calendar-picker-indicator:hover,
+      input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover {
+        opacity: 1;
+      }
+      
+      /* Calendar popup dark theme (Chrome/Edge) */
+      input[type="date"]::-webkit-datetime-edit,
+      input[type="time"]::-webkit-datetime-edit,
+      input[type="datetime-local"]::-webkit-datetime-edit {
+        padding: 0;
+      }
+      
+      input[type="date"]::-webkit-datetime-edit-text,
+      input[type="time"]::-webkit-datetime-edit-text,
+      input[type="datetime-local"]::-webkit-datetime-edit-text {
+        color: #94a3b8;
+        padding: 0 2px;
+      }
+      
+      input[type="date"]::-webkit-datetime-edit-month-field,
+      input[type="date"]::-webkit-datetime-edit-day-field,
+      input[type="date"]::-webkit-datetime-edit-year-field,
+      input[type="time"]::-webkit-datetime-edit-hour-field,
+      input[type="time"]::-webkit-datetime-edit-minute-field,
+      input[type="datetime-local"]::-webkit-datetime-edit-month-field,
+      input[type="datetime-local"]::-webkit-datetime-edit-day-field,
+      input[type="datetime-local"]::-webkit-datetime-edit-year-field,
+      input[type="datetime-local"]::-webkit-datetime-edit-hour-field,
+      input[type="datetime-local"]::-webkit-datetime-edit-minute-field {
+        color: #ffffff;
+        background: transparent;
+        padding: 2px;
+        border-radius: 4px;
+      }
+      
+      input[type="date"]::-webkit-datetime-edit-month-field:focus,
+      input[type="date"]::-webkit-datetime-edit-day-field:focus,
+      input[type="date"]::-webkit-datetime-edit-year-field:focus,
+      input[type="time"]::-webkit-datetime-edit-hour-field:focus,
+      input[type="time"]::-webkit-datetime-edit-minute-field:focus,
+      input[type="datetime-local"]::-webkit-datetime-edit-month-field:focus,
+      input[type="datetime-local"]::-webkit-datetime-edit-day-field:focus,
+      input[type="datetime-local"]::-webkit-datetime-edit-year-field:focus,
+      input[type="datetime-local"]::-webkit-datetime-edit-hour-field:focus,
+      input[type="datetime-local"]::-webkit-datetime-edit-minute-field:focus {
+        background: rgba(16, 185, 129, 0.1);
+        color: #10B981;
+        outline: none;
+      }
     </style>
   <script type="importmap">
 {
@@ -71,5 +131,6 @@
 </head>
   <body>
     <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
   </body>
 </html>

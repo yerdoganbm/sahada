@@ -89,6 +89,7 @@ export const MatchCreate: React.FC<MatchCreateProps> = ({ onBack, venues, curren
           date: formData.date,
           time: formData.time,
           location: selectedVenue?.name || 'Saha Belirsiz',
+          venueId: formData.venueId, // FIX #3: Save venue ID
           status: 'upcoming',
           pricePerPerson: Number(formData.price),
           opponent: formData.opponent || 'Rakip Aranıyor'
@@ -145,24 +146,35 @@ export const MatchCreate: React.FC<MatchCreateProps> = ({ onBack, venues, curren
                      <label className="text-[10px] text-slate-400 font-bold uppercase flex items-center gap-1">
                         <Icon name="calendar_today" size={12} /> Tarih <span className="text-alert">*</span>
                      </label>
-                     <input 
-                        type="date" 
-                        min={today}
-                        value={formData.date}
-                        onChange={e => setFormData({...formData, date: e.target.value})}
-                        className="w-full bg-secondary border border-white/10 rounded-xl px-3 py-3 text-sm text-white focus:outline-none focus:border-primary transition-colors cursor-pointer"
-                     />
+                     <div className="relative">
+                       <input 
+                          type="date" 
+                          min={today}
+                          value={formData.date}
+                          onChange={e => setFormData({...formData, date: e.target.value})}
+                          className="w-full bg-secondary border border-white/10 rounded-xl px-3 py-3 text-sm text-white focus:outline-none focus:border-primary transition-colors cursor-pointer appearance-none [color-scheme:dark]"
+                          style={{ colorScheme: 'dark' }}
+                       />
+                       {!formData.date && (
+                         <div className="absolute inset-0 flex items-center px-3 pointer-events-none">
+                           <span className="text-slate-600 text-sm">Tarih seçin...</span>
+                         </div>
+                       )}
+                     </div>
                   </div>
                   <div className="space-y-1">
                      <label className="text-[10px] text-slate-400 font-bold uppercase flex items-center gap-1">
                         <Icon name="schedule" size={12} /> Saat <span className="text-alert">*</span>
                      </label>
-                     <input 
-                        type="time" 
-                        value={formData.time}
-                        onChange={e => setFormData({...formData, time: e.target.value})}
-                        className="w-full bg-secondary border border-white/10 rounded-xl px-3 py-3 text-sm text-white focus:outline-none focus:border-primary transition-colors cursor-pointer"
-                     />
+                     <div className="relative">
+                       <input 
+                          type="time" 
+                          value={formData.time}
+                          onChange={e => setFormData({...formData, time: e.target.value})}
+                          className="w-full bg-secondary border border-white/10 rounded-xl px-3 py-3 text-sm text-white focus:outline-none focus:border-primary transition-colors cursor-pointer appearance-none [color-scheme:dark]"
+                          style={{ colorScheme: 'dark' }}
+                       />
+                     </div>
                   </div>
               </div>
 

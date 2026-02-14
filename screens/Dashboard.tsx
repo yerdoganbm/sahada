@@ -198,9 +198,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 
                 {!isAdmin && (
                     <>
+                        <QuickAction icon="person_add" label="Üyeler" color="bg-blue-50 text-blue-600" onClick={() => onNavigate('members')} />
                         <QuickAction icon="emoji_events" label="Turnuvalar" color="bg-yellow-50 text-yellow-600" onClick={() => onNavigate('tournament')} />
                         <QuickAction icon="groups" label="Kadro" color="bg-emerald-50 text-emerald-600" onClick={() => onNavigate('team')} />
-                        <QuickAction icon="payments" label="Cüzdan" color="bg-blue-50 text-blue-500" onClick={() => onNavigate('payments')} />
                         <QuickAction icon="poll" label="Anketler" color="bg-orange-50 text-orange-500" onClick={() => onNavigate('polls')} />
                     </>
                 )}

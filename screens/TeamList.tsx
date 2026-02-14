@@ -7,6 +7,7 @@ import { MOCK_PLAYERS } from '../constants'; // Keeping for scout mock
 import { Player, ScreenName, TransferRequest } from '../types';
 
 interface TeamListProps {
+  onBack: () => void;
   currentUser?: Player;
   onNavigate?: (screen: ScreenName) => void;
   transferRequests?: TransferRequest[];
@@ -14,7 +15,7 @@ interface TeamListProps {
   players?: Player[];
 }
 
-export const TeamList: React.FC<TeamListProps> = ({ currentUser, onNavigate, transferRequests = [], onProposePlayer, players = [] }) => {
+export const TeamList: React.FC<TeamListProps> = ({ onBack, currentUser, onNavigate, transferRequests = [], onProposePlayer, players = [] }) => {
   const [activeTab, setActiveTab] = useState<'myTeam' | 'scout'>('myTeam');
   const [filterPosition, setFilterPosition] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState('');
@@ -36,9 +37,17 @@ export const TeamList: React.FC<TeamListProps> = ({ currentUser, onNavigate, tra
     <div className="pb-24 bg-secondary min-h-screen">
       <div className="sticky top-0 z-40 bg-secondary/95 backdrop-blur-xl border-b border-white/5 safe-top">
          <div className="px-4 pt-4 pb-2 flex justify-between items-center">
-            <h1 className="text-xl font-bold text-white tracking-tight">
-               {activeTab === 'myTeam' ? 'Takım Kadrosu' : 'Transfer Merkezi'}
-            </h1>
+            <div className="flex items-center gap-3">
+              <button 
+                onClick={onBack}
+                className="w-10 h-10 rounded-full flex items-center justify-center bg-surface border border-white/5 active:scale-95 transition-transform"
+              >
+                <Icon name="arrow_back" className="text-slate-400" size={20} />
+              </button>
+              <h1 className="text-xl font-bold text-white tracking-tight">
+                 {activeTab === 'myTeam' ? 'Takım Kadrosu' : 'Transfer Merkezi'}
+              </h1>
+            </div>
             <button className="w-10 h-10 rounded-full bg-surface border border-white/5 flex items-center justify-center text-primary active:scale-95 transition-transform">
                <Icon name="tune" />
             </button>

@@ -11,6 +11,8 @@ interface MemberManagementProps {
   joinRequests?: JoinRequest[];
   onApproveRequest?: (req: JoinRequest) => void;
   onRejectRequest?: (reqId: string) => void;
+  onChangeRole?: (playerId: string, newRole: 'admin' | 'member') => void;
+  onProposePlayer?: (playerData: Partial<Player>, referrerId: string) => void;
 }
 
 export const MemberManagement: React.FC<MemberManagementProps> = ({ 
@@ -20,14 +22,25 @@ export const MemberManagement: React.FC<MemberManagementProps> = ({
     setPlayers, 
     joinRequests = [],
     onApproveRequest,
-    onRejectRequest
+    onRejectRequest,
+    onChangeRole,
+    onProposePlayer
 }) => {
   const [activeTab, setActiveTab] = useState<'members' | 'requests' | 'rules'>('members');
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [showAddPlayerModal, setShowAddPlayerModal] = useState(false);
+  const [showProposeModal, setShowProposeModal] = useState(false);
   const [selectedMember, setSelectedMember] = useState<Player | null>(null);
   const [newPlayerName, setNewPlayerName] = useState('');
   const [newPlayerPos, setNewPlayerPos] = useState<'GK'|'DEF'|'MID'|'FWD'>('MID');
+  
+  // Propose Player Form State
+  const [proposeForm, setProposeForm] = useState({
+    name: '',
+    position: 'MID' as 'GK'|'DEF'|'MID'|'FWD',
+    contactNumber: '',
+    rating: 6.0
+  });
 
   const isAdmin = currentUser.role === 'admin';
 
@@ -57,9 +70,42 @@ export const MemberManagement: React.FC<MemberManagementProps> = ({
 
   const handleRoleChange = (memberId: string, newRole: 'admin' | 'member') => {
     if (!isAdmin) return;
+    
+    // Önce local state'i güncelle
     setPlayers(prev => prev.map(p => p.id === memberId ? { ...p, role: newRole } : p));
+    
+    // Sonra parent'a bildir (App.tsx'teki currentUser'ı da güncellemek için)
+    if (onChangeRole) {
+      onChangeRole(memberId, newRole);
+    }
+    
     alert('Kullanıcı yetkisi güncellendi.');
     setSelectedMember(null);
+  };
+
+  const handleProposePlayer = () => {
+    if (!proposeForm.name || !proposeForm.contactNumber) {
+      alert('Lütfen isim ve telefon numarasını giriniz.');
+      return;
+    }
+    
+    if (onProposePlayer) {
+      onProposePlayer({
+        name: proposeForm.name,
+        position: proposeForm.position,
+        contactNumber: proposeForm.contactNumber,
+        rating: proposeForm.rating
+      }, currentUser.id);
+    }
+    
+    // Reset form
+    setProposeForm({
+      name: '',
+      position: 'MID',
+      contactNumber: '',
+      rating: 6.0
+    });
+    setShowProposeModal(false);
   };
 
   // Helper to render role badge
@@ -99,6 +145,15 @@ export const MemberManagement: React.FC<MemberManagementProps> = ({
               {joinRequests.length > 0 && <span className="absolute top-1 right-2 w-2 h-2 rounded-full bg-red-500"></span>}
           </button>
         </div>
+
+        {/* Oyuncu Öner Button - Tüm kullanıcılar görebilir */}
+        <button 
+          onClick={() => setShowProposeModal(true)}
+          className="w-full mb-4 bg-primary/10 border border-primary/30 text-primary py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 active:scale-95 transition-transform"
+        >
+          <Icon name="person_search" size={18} />
+          Tanıdığın Birini Öner
+        </button>
 
         {activeTab === 'members' && (
           <>
@@ -256,6 +311,60 @@ export const MemberManagement: React.FC<MemberManagementProps> = ({
                          )}
                       </div>
                   ) : <div className="bg-primary/10 p-4 rounded-xl text-center"><p className="text-xs text-slate-300">Profiliniz.</p></div>}
+               </div>
+            </div>
+         </div>
+      )}
+
+      {/* Propose Player Modal - YENI */}
+      {showProposeModal && (
+         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in">
+             <div className="bg-surface w-full max-w-xs rounded-2xl border border-white/10 p-5 shadow-2xl animate-slide-up">
+               <div className="mb-4">
+                  <h3 className="text-lg font-bold text-white">Oyuncu Öner</h3>
+                  <p className="text-xs text-slate-400">Tanıdığın birini takıma öner.</p>
+               </div>
+               
+               <div className="space-y-3 mb-6">
+                   <div>
+                       <label className="text-[10px] text-slate-500 font-bold uppercase">Ad Soyad</label>
+                       <input 
+                          type="text" 
+                          value={proposeForm.name}
+                          onChange={e => setProposeForm({...proposeForm, name: e.target.value})}
+                          className="w-full bg-secondary border border-white/10 rounded-xl px-3 py-2 text-white text-sm"
+                          placeholder="Örn: Ahmet Yılmaz"
+                       />
+                   </div>
+                   <div>
+                       <label className="text-[10px] text-slate-500 font-bold uppercase">Telefon</label>
+                       <input 
+                          type="tel" 
+                          value={proposeForm.contactNumber}
+                          onChange={e => setProposeForm({...proposeForm, contactNumber: e.target.value})}
+                          className="w-full bg-secondary border border-white/10 rounded-xl px-3 py-2 text-white text-sm"
+                          placeholder="0532 XXX XX XX"
+                       />
+                   </div>
+                   <div>
+                       <label className="text-[10px] text-slate-500 font-bold uppercase">Mevki</label>
+                       <div className="flex gap-2 mt-1">
+                           {['GK', 'DEF', 'MID', 'FWD'].map(pos => (
+                               <button 
+                                key={pos} 
+                                onClick={() => setProposeForm({...proposeForm, position: pos as any})}
+                                className={`flex-1 py-2 rounded-lg text-[10px] font-bold border ${proposeForm.position === pos ? 'bg-primary text-secondary border-primary' : 'bg-surface border-white/10 text-slate-400'}`}
+                               >
+                                   {pos}
+                               </button>
+                           ))}
+                       </div>
+                   </div>
+               </div>
+
+               <div className="flex gap-3">
+                  <button onClick={() => setShowProposeModal(false)} className="flex-1 py-3 rounded-xl text-xs font-bold text-slate-400 bg-surface border border-white/10">İptal</button>
+                  <button onClick={handleProposePlayer} className="flex-1 py-3 rounded-xl text-xs font-bold bg-primary text-secondary">Öner</button>
                </div>
             </div>
          </div>
