@@ -1,5 +1,7 @@
 # 🧠 LIBERO NEURO-CORE → SAHADA ENTEGRASYONU
 
+**Not:** Bu repo sadece Sahada’ya özel entegrasyonu içerir (tracking + minimal API). Self-evolution, heatmap, replay, funnel, churn, GDPR, Vue/Svelte/Python SDK’lar vb. **tam Neuro Core ürünü** [Libero Quantum](https://github.com/yerdoganbm/libero-quantum) reposunda bulunur.
+
 ## Kurulum Kılavuzu (5 Dakika)
 
 ---
