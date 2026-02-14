@@ -1,13 +1,13 @@
 
 import React, { useState, useEffect } from 'react';
-import { ScreenName, Venue, Player, Payment, Transaction, SubscriptionTier, RsvpStatus, Match, TransferRequest, Poll, TeamProfile, JoinRequest } from './types';
+import { ScreenName, Venue, Player, Payment, Transaction, SubscriptionTier, RsvpStatus, Match, TransferRequest, Poll, TeamProfile, JoinRequest, Reservation } from './types';
 import { Dashboard } from './screens/Dashboard';
 import { TeamList } from './screens/TeamList';
 import { MatchDetails } from './screens/MatchDetails';
 import { MatchCard } from './components/MatchCard'; 
 import { Header } from './components/Header';
 import { Icon } from './components/Icon';
-import { MOCK_MATCHES, MOCK_VENUES, MOCK_PLAYERS, MOCK_PAYMENTS, MOCK_TRANSACTIONS, MOCK_POLLS } from './constants';
+import { MOCK_MATCHES, MOCK_VENUES, MOCK_PLAYERS, MOCK_PAYMENTS, MOCK_TRANSACTIONS, MOCK_POLLS, MOCK_RESERVATIONS } from './constants';
 import { PaymentLedger } from './screens/PaymentLedger';
 import { AdminDashboard } from './screens/AdminDashboard';
 import { MemberManagement } from './screens/MemberManagement';
@@ -36,6 +36,12 @@ import { NotificationsScreen } from './screens/NotificationsScreen';
 import { WelcomeScreen } from './screens/WelcomeScreen';
 import { TeamSetup } from './screens/TeamSetup';
 import { EditProfileScreen } from './screens/EditProfileScreen';
+// VENUE OWNER SCREENS
+import { VenueOwnerDashboard } from './screens/VenueOwnerDashboard';
+import { ReservationManagement } from './screens/ReservationManagement';
+import { VenueCalendar } from './screens/VenueCalendar';
+import { VenueFinancialReports } from './screens/VenueFinancialReports';
+import { CustomerManagement } from './screens/CustomerManagement';
 
 function App() {
   // ===========================================
@@ -52,6 +58,7 @@ function App() {
   const [payments, setPayments] = useState<Payment[]>(MOCK_PAYMENTS);
   const [transactions, setTransactions] = useState<Transaction[]>(MOCK_TRANSACTIONS);
   const [polls, setPolls] = useState<Poll[]>(MOCK_POLLS);
+  const [reservations, setReservations] = useState<Reservation[]>(MOCK_RESERVATIONS); // VENUE OWNER
   
   // Additional States
   const [rsvpStatus, setRsvpStatus] = useState<RsvpStatus>('pending');
@@ -105,6 +112,10 @@ function App() {
         // Üye (Mehmet Demir)
         console.log('✅ Üye olarak giriş yapıldı:', user.name);
         setCurrentScreen('dashboard');
+      } else if (user.role === 'venue_owner') {
+        // Saha Sahibi
+        console.log('🏟️ Saha sahibi olarak giriş yapıldı:', user.name);
+        setCurrentScreen('venueOwnerDashboard');
       } else {
         // Diğer mevcut kullanıcılar
         console.log('✅ Giriş yapıldı:', user.name);
@@ -499,6 +510,35 @@ function App() {
     console.log('💵 Gelir ekleniyor:', income);
     setTransactions(prev => [...prev, { ...income, category: 'gelir' }]);
     console.log('✅ Gelir kaydedildi!');
+  };
+
+  // VENUE OWNER HANDLERS
+  // Rezervasyon onaylama
+  const handleApproveReservation = (reservationId: string) => {
+    console.log('✅ Rezervasyon onaylanıyor:', reservationId);
+    setReservations(prev => prev.map(r => 
+      r.id === reservationId 
+        ? { ...r, status: 'confirmed' as const, confirmedAt: new Date().toISOString() }
+        : r
+    ));
+    alert('Rezervasyon onaylandı! Takıma bildirim gönderildi.');
+  };
+
+  // Rezervasyon reddetme
+  const handleRejectReservation = (reservationId: string, reason: string) => {
+    console.log('❌ Rezervasyon reddediliyor:', reservationId, 'Neden:', reason);
+    setReservations(prev => prev.map(r => 
+      r.id === reservationId 
+        ? { 
+            ...r, 
+            status: 'cancelled' as const, 
+            cancelledAt: new Date().toISOString(),
+            cancelReason: reason,
+            paymentStatus: 'refunded' as const
+          }
+        : r
+    ));
+    alert('Rezervasyon reddedildi. Müşteriye bildirim gönderildi.');
   };
 
   // ===========================================
@@ -968,6 +1008,59 @@ function App() {
             currentUser={currentUser}
           />
         );
+
+      // ========== VENUE OWNER SCREENS ==========
+      case 'venueOwnerDashboard':
+        if (!currentUser || currentUser.role !== 'venue_owner') {
+          navigateTo('login');
+          return null;
+        }
+        return (
+          <VenueOwnerDashboard
+            currentUser={currentUser}
+            reservations={reservations}
+            onNavigate={navigateTo}
+            onApproveReservation={handleApproveReservation}
+            onRejectReservation={handleRejectReservation}
+          />
+        );
+
+      case 'reservationManagement':
+        if (!currentUser || currentUser.role !== 'venue_owner') {
+          navigateTo('login');
+          return null;
+        }
+        return (
+          <ReservationManagement
+            currentUser={currentUser}
+            reservations={reservations}
+            onBack={goBack}
+            onApproveReservation={handleApproveReservation}
+            onRejectReservation={handleRejectReservation}
+            onViewDetails={(id) => alert(`Rezervasyon detayı: ${id}`)}
+          />
+        );
+
+      case 'venueCalendar':
+        if (!currentUser || currentUser.role !== 'venue_owner') {
+          navigateTo('login');
+          return null;
+        }
+        return <VenueCalendar onBack={goBack} />;
+
+      case 'venueFinancialReports':
+        if (!currentUser || currentUser.role !== 'venue_owner') {
+          navigateTo('login');
+          return null;
+        }
+        return <VenueFinancialReports currentUser={currentUser} onBack={goBack} />;
+
+      case 'customerManagement':
+        if (!currentUser || currentUser.role !== 'venue_owner') {
+          navigateTo('login');
+          return null;
+        }
+        return <CustomerManagement onBack={goBack} />;
 
       // ========== DEFAULT ==========
       default:
