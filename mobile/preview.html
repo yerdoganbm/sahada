@@ -1,0 +1,846 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Sahada Mobile Preview</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .simulator-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            max-width: 1200px;
+            width: 100%;
+        }
+
+        .phone-frame {
+            width: 390px;
+            height: 844px;
+            background: #000;
+            border-radius: 40px;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+            position: relative;
+            border: 8px solid #1e293b;
+            margin: 0 auto;
+        }
+
+        .status-bar {
+            height: 44px;
+            background: transparent;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 20px 0;
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+        }
+
+        .time {
+            color: #fff;
+            font-size: 15px;
+            font-weight: 600;
+        }
+
+        .status-icons {
+            display: flex;
+            gap: 6px;
+            font-size: 14px;
+        }
+
+        .screen {
+            height: 100%;
+            overflow-y: auto;
+            background: #0B0F1A;
+            padding-top: 44px;
+            padding-bottom: 83px;
+        }
+
+        .screen::-webkit-scrollbar {
+            display: none;
+        }
+
+        .bottom-tabs {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 83px;
+            background: #0B0F1A;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            display: flex;
+            padding: 8px 0;
+        }
+
+        .tab {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: #64748B;
+        }
+
+        .tab:hover {
+            transform: scale(1.05);
+        }
+
+        .tab.active {
+            color: #10B981;
+        }
+
+        .tab-icon {
+            font-size: 24px;
+        }
+
+        .tab-label {
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .home-indicator {
+            width: 140px;
+            height: 5px;
+            background: rgba(255,255,255,0.3);
+            border-radius: 3px;
+            position: absolute;
+            bottom: 8px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        /* Welcome Screen */
+        .welcome-screen {
+            height: 100%;
+            background: url('https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=800') center/cover;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            padding: 40px 24px;
+        }
+
+        .welcome-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(0,0,0,0.7);
+        }
+
+        .welcome-content {
+            position: relative;
+            z-index: 1;
+            animation: fadeInUp 0.8s ease-out;
+        }
+
+        .welcome-logo {
+            width: 80px;
+            height: 80px;
+            background: rgba(16,185,129,0.2);
+            border-radius: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 48px;
+            margin-bottom: 16px;
+            border: 2px solid rgba(16,185,129,0.4);
+            transform: rotate(-3deg);
+        }
+
+        .welcome-title {
+            font-size: 48px;
+            font-weight: 800;
+            color: #fff;
+            font-style: italic;
+            margin-bottom: 8px;
+        }
+
+        .welcome-subtitle {
+            font-size: 18px;
+            color: #94a3b8;
+            margin-bottom: 32px;
+        }
+
+        .welcome-subtitle span {
+            color: #10B981;
+            font-weight: 700;
+        }
+
+        .btn-primary {
+            background: #10B981;
+            color: #0B0F1A;
+            border: none;
+            border-radius: 16px;
+            padding: 16px 32px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 12px;
+            transition: all 0.2s;
+            box-shadow: 0 0 20px rgba(16,185,129,0.4);
+        }
+
+        .btn-primary:active {
+            transform: scale(0.98);
+        }
+
+        .btn-secondary {
+            background: rgba(255,255,255,0.1);
+            color: #fff;
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 16px;
+            padding: 14px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        /* Login Screen */
+        .login-screen {
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            min-height: 100%;
+        }
+
+        .login-logo {
+            width: 64px;
+            height: 64px;
+            background: #151e32;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+            margin: 0 auto 24px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .login-title {
+            font-size: 32px;
+            font-weight: 700;
+            color: #fff;
+            text-align: center;
+            margin-bottom: 8px;
+        }
+
+        .login-subtitle {
+            font-size: 14px;
+            color: #94a3b8;
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .input-group {
+            margin-bottom: 24px;
+        }
+
+        .input-label {
+            font-size: 10px;
+            font-weight: 700;
+            color: #64748B;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+            margin-left: 4px;
+        }
+
+        .phone-input {
+            background: #151e32;
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 16px;
+            padding: 16px;
+            color: #fff;
+            font-size: 16px;
+            font-weight: 500;
+            width: 100%;
+        }
+
+        .phone-input::placeholder {
+            color: #475569;
+        }
+
+        .test-info {
+            background: rgba(255,255,255,0.05);
+            padding: 16px;
+            border-radius: 12px;
+            text-align: center;
+            margin-top: 24px;
+        }
+
+        .test-info-text {
+            font-size: 11px;
+            color: #64748B;
+        }
+
+        /* Dashboard */
+        .dashboard {
+            padding: 24px;
+        }
+
+        .dashboard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            padding-top: 16px;
+        }
+
+        .profile-section {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .avatar {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            position: relative;
+        }
+
+        .status-dot {
+            position: absolute;
+            bottom: -2px;
+            right: -2px;
+            width: 14px;
+            height: 14px;
+            background: #10B981;
+            border: 2px solid #0B0F1A;
+            border-radius: 50%;
+        }
+
+        .user-name {
+            font-size: 14px;
+            font-weight: 700;
+            color: #fff;
+        }
+
+        .user-tier {
+            font-size: 9px;
+            font-weight: 700;
+            color: #64748B;
+            background: rgba(255,255,255,0.1);
+            padding: 2px 8px;
+            border-radius: 6px;
+            display: inline-block;
+            margin-top: 4px;
+        }
+
+        .match-card {
+            height: 200px;
+            background: linear-gradient(135deg, #134e4a 0%, #0f766e 100%);
+            border-radius: 32px;
+            padding: 24px;
+            position: relative;
+            margin-bottom: 24px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .match-card:active {
+            transform: scale(0.98);
+        }
+
+        .today-badge {
+            background: #10B981;
+            color: #fff;
+            font-size: 10px;
+            font-weight: 700;
+            padding: 6px 12px;
+            border-radius: 999px;
+            display: inline-block;
+            box-shadow: 0 4px 12px rgba(16,185,129,0.3);
+        }
+
+        .match-time {
+            font-size: 28px;
+            font-weight: 700;
+            color: #fff;
+            position: absolute;
+            bottom: 24px;
+            left: 24px;
+        }
+
+        .match-location {
+            font-size: 14px;
+            color: #d1d5db;
+            position: absolute;
+            bottom: 28px;
+            left: 24px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .quick-actions {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .quick-action {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+        }
+
+        .quick-action-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 26px;
+            transition: transform 0.2s;
+        }
+
+        .quick-action:active .quick-action-icon {
+            transform: scale(0.95);
+        }
+
+        .quick-action-label {
+            font-size: 10px;
+            font-weight: 700;
+            color: #64748B;
+        }
+
+        .progress-card {
+            background: #151e32;
+            border-radius: 24px;
+            padding: 20px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .progress-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: #fff;
+        }
+
+        .progress-count {
+            font-size: 12px;
+            font-weight: 700;
+            color: #10B981;
+        }
+
+        .progress-bar {
+            height: 12px;
+            background: #0B0F1A;
+            border-radius: 999px;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: #10B981;
+            border-radius: 999px;
+            width: 85%;
+            transition: width 1s ease-out;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .section-title {
+            font-size: 10px;
+            font-weight: 700;
+            color: #64748B;
+            letter-spacing: 1.5px;
+            margin-bottom: 16px;
+        }
+
+        .info-panel {
+            background: #1e293b;
+            border-radius: 12px;
+            padding: 20px;
+            color: #94a3b8;
+            margin: 20px;
+        }
+
+        .info-panel h3 {
+            color: #fff;
+            margin-bottom: 12px;
+        }
+
+        .info-panel ul {
+            margin-left: 20px;
+        }
+
+        .info-panel li {
+            margin: 8px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="simulator-container">
+        <!-- Phone Frame -->
+        <div class="phone-frame" id="phone">
+            <!-- Status Bar -->
+            <div class="status-bar">
+                <span class="time">9:41</span>
+                <div class="status-icons">
+                    <span>📶</span>
+                    <span>📡</span>
+                    <span>🔋</span>
+                </div>
+            </div>
+
+            <!-- Screen Content -->
+            <div class="screen" id="screen">
+                <!-- Content will be injected here -->
+            </div>
+
+            <!-- Bottom Tabs (hidden initially) -->
+            <div class="bottom-tabs" id="bottomTabs" style="display: none;">
+                <button class="tab active" onclick="navigate('dashboard')">
+                    <span class="tab-icon">🏠</span>
+                    <span class="tab-label">Ana Sayfa</span>
+                </button>
+                <button class="tab" onclick="navigate('matches')">
+                    <span class="tab-icon">⚽</span>
+                    <span class="tab-label">Maçlar</span>
+                </button>
+                <button class="tab" onclick="navigate('team')">
+                    <span class="tab-icon">👥</span>
+                    <span class="tab-label">Takım</span>
+                </button>
+                <button class="tab" onclick="navigate('profile')">
+                    <span class="tab-icon">👤</span>
+                    <span class="tab-label">Profil</span>
+                </button>
+            </div>
+
+            <!-- Home Indicator -->
+            <div class="home-indicator"></div>
+        </div>
+
+        <!-- Instructions -->
+        <div class="info-panel">
+            <h3>📱 Sahada Mobile App Simulator</h3>
+            <p><strong>Test Kullanıcıları:</strong></p>
+            <ul>
+                <li><strong>Admin:</strong> "1" → Ahmet Yılmaz</li>
+                <li><strong>Kaptan:</strong> "7" → Burak Yılmaz</li>
+                <li><strong>Üye:</strong> "2" → Mehmet Demir</li>
+            </ul>
+            <p style="margin-top: 16px;"><small>💡 Bu React Native mobile app'in web preview'udur.</small></p>
+        </div>
+    </div>
+
+    <script>
+        let currentUser = null;
+        let currentScreen = 'welcome';
+
+        const USERS = {
+            '1': { id: '1', name: 'Ahmet Yılmaz', role: 'admin', tier: 'partner', rating: 8.5, avatar: 'https://i.pravatar.cc/150?u=1' },
+            '7': { id: '7', name: 'Burak Yılmaz', role: 'member', isCaptain: true, tier: 'premium', rating: 8.0, avatar: 'https://i.pravatar.cc/150?u=7' },
+            '2': { id: '2', name: 'Mehmet Demir', role: 'member', tier: 'free', rating: 7.2, avatar: 'https://i.pravatar.cc/150?u=2' },
+        };
+
+        function navigate(screen) {
+            currentScreen = screen;
+            render();
+        }
+
+        function login(phone) {
+            let userId = phone;
+            if (phone.includes('admin') || phone === '1') userId = '1';
+            else if (phone.includes('kaptan') || phone === '7') userId = '7';
+            else if (phone === '2') userId = '2';
+
+            currentUser = USERS[userId];
+            if (currentUser) {
+                navigate('dashboard');
+                document.getElementById('bottomTabs').style.display = 'flex';
+            }
+        }
+
+        function logout() {
+            currentUser = null;
+            navigate('welcome');
+            document.getElementById('bottomTabs').style.display = 'none';
+        }
+
+        function render() {
+            const screen = document.getElementById('screen');
+            const tabs = document.querySelectorAll('.tab');
+
+            // Update active tab
+            tabs.forEach(tab => {
+                tab.classList.remove('active');
+                if (tab.onclick.toString().includes(currentScreen)) {
+                    tab.classList.add('active');
+                }
+            });
+
+            switch (currentScreen) {
+                case 'welcome':
+                    screen.innerHTML = `
+                        <div class="welcome-screen">
+                            <div class="welcome-overlay"></div>
+                            <div class="welcome-content">
+                                <div class="welcome-logo">⚽</div>
+                                <h1 class="welcome-title">SAHADA</h1>
+                                <p class="welcome-subtitle">Maç Senin. <span>Kontrol Sende.</span></p>
+                                <button class="btn-primary" onclick="navigate('login')">
+                                    Hemen Başla →
+                                </button>
+                                <div style="display: flex; gap: 12px; margin-top: 12px;">
+                                    <button class="btn-secondary" style="flex: 1;" onclick="navigate('login')">
+                                        ➕ Takım Kur
+                                    </button>
+                                    <button class="btn-secondary" style="flex: 1;" onclick="navigate('login')">
+                                        📱 Koda Katıl
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    break;
+
+                case 'login':
+                    screen.innerHTML = `
+                        <div class="login-screen">
+                            <div class="login-logo">⚽</div>
+                            <h2 class="login-title">Giriş Yap</h2>
+                            <p class="login-subtitle">Numaran ile hızlıca sahalara dön.</p>
+                            
+                            <div class="input-group">
+                                <label class="input-label">TELEFON NUMARASI</label>
+                                <input 
+                                    type="tel" 
+                                    class="phone-input" 
+                                    id="phoneInput"
+                                    placeholder="5XX XXX XX XX"
+                                    autofocus
+                                />
+                            </div>
+                            
+                            <button class="btn-primary" onclick="handleLogin()">
+                                Devam Et →
+                            </button>
+                            
+                            <div class="test-info">
+                                <p class="test-info-text">Test için: Admin=1, Kaptan=7, Üye=2</p>
+                            </div>
+                        </div>
+                    `;
+                    break;
+
+                case 'dashboard':
+                    screen.innerHTML = `
+                        <div class="dashboard">
+                            <div class="dashboard-header">
+                                <div class="profile-section">
+                                    <div style="position: relative;">
+                                        <img src="${currentUser.avatar}" class="avatar" />
+                                        <div class="status-dot"></div>
+                                    </div>
+                                    <div>
+                                        <div class="user-name">${currentUser.name}</div>
+                                        <div class="user-tier">${currentUser.tier === 'partner' ? 'SAHA PARTNER' : currentUser.tier === 'premium' ? 'PRO BALLER' : 'STARTER ÜYE'}</div>
+                                    </div>
+                                </div>
+                                <div style="display: flex; gap: 8px;">
+                                    <button class="btn-secondary" style="width: 40px; height: 40px; padding: 0; border-radius: 999px;">⚙️</button>
+                                    <button class="btn-secondary" style="width: 40px; height: 40px; padding: 0; border-radius: 999px; position: relative;">
+                                        🔔
+                                        <div style="position: absolute; top: 8px; right: 8px; width: 8px; height: 8px; background: #ef4444; border-radius: 50%;"></div>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="match-card">
+                                <div class="today-badge">BUGÜN</div>
+                                <div class="match-time" style="bottom: 48px;">Bu Akşam 20:00</div>
+                                <div class="match-location">📍 Şehir Stadı</div>
+                                <div style="position: absolute; bottom: 24px; right: 24px; color: #fff; font-weight: 700;">☁️ 18°C</div>
+                            </div>
+
+                            <div class="section-title">HIZLI İŞLEMLER</div>
+                            <div class="quick-actions">
+                                ${currentUser.role === 'admin' ? `
+                                <div class="quick-action">
+                                    <div class="quick-action-icon" style="background: #0B0F1A; color: #fff;">🛡️</div>
+                                    <div class="quick-action-label">Yönetim</div>
+                                </div>
+                                <div class="quick-action">
+                                    <div class="quick-action-icon" style="background: #dbeafe; color: #3b82f6;">➕</div>
+                                    <div class="quick-action-label">Üyeler</div>
+                                </div>
+                                ` : ''}
+                                <div class="quick-action">
+                                    <div class="quick-action-icon" style="background: #d1fae5; color: #10b981;">👥</div>
+                                    <div class="quick-action-label">Kadro</div>
+                                </div>
+                                <div class="quick-action">
+                                    <div class="quick-action-icon" style="background: #fed7aa; color: #f59e0b;">📊</div>
+                                    <div class="quick-action-label">Anketler</div>
+                                </div>
+                            </div>
+
+                            <div class="progress-card">
+                                <div class="progress-header">
+                                    <span class="progress-title">🏋️ Maç Hazırlığı</span>
+                                    <span class="progress-count">12/14 Hazır</span>
+                                </div>
+                                <div class="progress-bar">
+                                    <div class="progress-fill"></div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    break;
+
+                case 'matches':
+                    screen.innerHTML = `
+                        <div style="padding: 24px;">
+                            <h2 style="color: #fff; font-size: 24px; font-weight: 700; margin-bottom: 24px; padding-top: 16px;">Maçlar</h2>
+                            <div style="display: flex; flex-direction: column; gap: 12px;">
+                                <div style="background: #151e32; border-radius: 16px; padding: 16px; border: 1px solid rgba(255,255,255,0.1);">
+                                    <div style="color: #64748B; font-size: 12px; margin-bottom: 8px;">📅 2026-02-20</div>
+                                    <div style="color: #fff; font-size: 18px; font-weight: 700; margin-bottom: 4px;">20:00</div>
+                                    <div style="color: #94a3b8; font-size: 14px;">Şehir Stadı</div>
+                                </div>
+                                <div style="background: #151e32; border-radius: 16px; padding: 16px; border: 1px solid rgba(255,255,255,0.1);">
+                                    <div style="color: #64748B; font-size: 12px; margin-bottom: 8px;">📅 2026-02-18</div>
+                                    <div style="color: #fff; font-size: 18px; font-weight: 700; margin-bottom: 4px;">19:00</div>
+                                    <div style="color: #94a3b8; font-size: 14px;">Merkez Saha</div>
+                                    <div style="color: #10B981; font-size: 16px; font-weight: 700; margin-top: 8px;">5-3</div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    break;
+
+                case 'team':
+                    screen.innerHTML = `
+                        <div style="padding: 24px;">
+                            <h2 style="color: #fff; font-size: 24px; font-weight: 700; margin-bottom: 24px; padding-top: 16px;">Takım</h2>
+                            <div style="display: flex; flex-direction: column; gap: 12px;">
+                                <div style="display: flex; align-items: center; background: #151e32; border-radius: 16px; padding: 16px; gap: 12px;">
+                                    <img src="https://i.pravatar.cc/150?u=1" style="width: 48px; height: 48px; border-radius: 12px;" />
+                                    <div style="flex: 1;">
+                                        <div style="color: #fff; font-size: 14px; font-weight: 600;">Ahmet Yılmaz</div>
+                                        <div style="color: #64748B; font-size: 12px;">MID</div>
+                                    </div>
+                                    <div style="background: #10B981; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700;">8.5</div>
+                                </div>
+                                <div style="display: flex; align-items: center; background: #151e32; border-radius: 16px; padding: 16px; gap: 12px;">
+                                    <img src="https://i.pravatar.cc/150?u=7" style="width: 48px; height: 48px; border-radius: 12px;" />
+                                    <div style="flex: 1;">
+                                        <div style="color: #fff; font-size: 14px; font-weight: 600;">Burak Yılmaz</div>
+                                        <div style="color: #64748B; font-size: 12px;">FWD</div>
+                                    </div>
+                                    <div style="background: #10B981; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700;">8.0</div>
+                                </div>
+                                <div style="display: flex; align-items: center; background: #151e32; border-radius: 16px; padding: 16px; gap: 12px;">
+                                    <img src="https://i.pravatar.cc/150?u=2" style="width: 48px; height: 48px; border-radius: 12px;" />
+                                    <div style="flex: 1;">
+                                        <div style="color: #fff; font-size: 14px; font-weight: 600;">Mehmet Demir</div>
+                                        <div style="color: #64748B; font-size: 12px;">DEF</div>
+                                    </div>
+                                    <div style="background: #10B981; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700;">7.2</div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    break;
+
+                case 'profile':
+                    screen.innerHTML = `
+                        <div style="padding: 24px;">
+                            <div style="text-align: center; padding: 32px 0;">
+                                <img src="${currentUser.avatar}" style="width: 100px; height: 100px; border-radius: 50px; margin-bottom: 16px;" />
+                                <div style="color: #fff; font-size: 24px; font-weight: 700; margin-bottom: 4px;">${currentUser.name}</div>
+                                <div style="color: #94a3b8; font-size: 14px;">${currentUser.role === 'admin' ? 'Yönetici' : currentUser.isCaptain ? 'Kaptan' : 'Üye'}</div>
+                            </div>
+
+                            <div style="background: #151e32; border-radius: 16px; padding: 20px; display: flex; margin-bottom: 24px;">
+                                <div style="flex: 1; text-align: center;">
+                                    <div style="color: #10B981; font-size: 20px; font-weight: 700; margin-bottom: 4px;">${currentUser.rating}</div>
+                                    <div style="color: #64748B; font-size: 12px;">Rating</div>
+                                </div>
+                                <div style="width: 1px; background: rgba(255,255,255,0.1); margin: 0 20px;"></div>
+                                <div style="flex: 1; text-align: center;">
+                                    <div style="color: #10B981; font-size: 20px; font-weight: 700; margin-bottom: 4px;">95%</div>
+                                    <div style="color: #64748B; font-size: 12px;">Güvenilirlik</div>
+                                </div>
+                            </div>
+
+                            <button class="btn-secondary" style="width: 100%; margin-bottom: 12px; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                                ✏️ Profili Düzenle
+                            </button>
+                            <button class="btn-secondary" style="width: 100%; background: rgba(239,68,68,0.1); border-color: rgba(239,68,68,0.2); color: #ef4444;" onclick="logout()">
+                                🚪 Çıkış Yap
+                            </button>
+                        </div>
+                    `;
+                    break;
+            }
+        }
+
+        function handleLogin() {
+            const phone = document.getElementById('phoneInput').value;
+            if (!phone) {
+                alert('Lütfen telefon numaranızı giriniz.');
+                return;
+            }
+            login(phone);
+        }
+
+        // Initial render
+        render();
+    </script>
+</body>
+</html>

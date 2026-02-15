@@ -1,0 +1,350 @@
+/* ===========================================
+   MOBILE-FIRST RESPONSIVE DESIGN
+   =========================================== */
+
+/* Base Mobile Styles (320px+) */
+@media (max-width: 768px) {
+  /* Layout */
+  body {
+    font-size: 14px;
+    overflow-x: hidden;
+  }
+
+  /* Safe Areas for Notch/Home Indicator */
+  .safe-top {
+    padding-top: max(env(safe-area-inset-top), 20px);
+  }
+
+  .safe-bottom {
+    padding-bottom: max(env(safe-area-inset-bottom), 20px);
+  }
+
+  /* Mobile Container */
+  .container {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  /* Touch Targets (min 44x44px) */
+  button, 
+  a,
+  .clickable {
+    min-height: 44px;
+    min-width: 44px;
+    padding: 12px;
+  }
+
+  /* Mobile Typography */
+  h1 { font-size: 24px; line-height: 1.2; }
+  h2 { font-size: 20px; line-height: 1.3; }
+  h3 { font-size: 18px; line-height: 1.4; }
+  h4 { font-size: 16px; line-height: 1.4; }
+  p { font-size: 14px; line-height: 1.5; }
+  small { font-size: 12px; }
+
+  /* Cards & Sections */
+  .card,
+  .section {
+    margin-bottom: 16px;
+    border-radius: 16px;
+    padding: 16px;
+  }
+
+  /* Grid Responsive */
+  .grid-cols-4 { grid-template-columns: repeat(2, 1fr) !important; }
+  .grid-cols-3 { grid-template-columns: repeat(2, 1fr) !important; }
+  .grid-cols-2 { grid-template-columns: 1fr !important; }
+
+  /* Flex Responsive */
+  .flex-row-desktop {
+    flex-direction: column !important;
+  }
+
+  /* Hide on Mobile */
+  .desktop-only {
+    display: none !important;
+  }
+
+  /* Show on Mobile */
+  .mobile-only {
+    display: block !important;
+  }
+
+  /* Mobile Navigation */
+  .bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 70px;
+    background: var(--surface, #151e32);
+    border-top: 1px solid rgba(255,255,255,0.1);
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    padding-bottom: env(safe-area-inset-bottom);
+    z-index: 100;
+  }
+
+  .bottom-nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 8px 12px;
+    color: #64748B;
+    text-decoration: none;
+    font-size: 11px;
+    font-weight: 600;
+    transition: all 0.2s;
+  }
+
+  .bottom-nav-item.active {
+    color: #10B981;
+  }
+
+  .bottom-nav-icon {
+    font-size: 24px;
+  }
+
+  /* Mobile Header */
+  .mobile-header {
+    position: sticky;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 60px;
+    background: var(--surface, #151e32);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 16px;
+    padding-top: env(safe-area-inset-top);
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    z-index: 90;
+  }
+
+  /* Content Padding for Fixed Nav */
+  .mobile-content {
+    padding-top: 60px;
+    padding-bottom: 90px;
+    min-height: 100vh;
+  }
+
+  /* Touch Scroll */
+  .scroll-container {
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x mandatory;
+  }
+
+  .scroll-item {
+    scroll-snap-align: start;
+  }
+
+  /* Mobile Forms */
+  input,
+  select,
+  textarea {
+    font-size: 16px !important; /* Prevents zoom on iOS */
+    padding: 14px;
+    border-radius: 12px;
+  }
+
+  /* Mobile Modals */
+  .modal {
+    width: 100vw !important;
+    height: 100vh !important;
+    border-radius: 0 !important;
+    margin: 0 !important;
+  }
+
+  .modal-mobile {
+    position: fixed;
+    inset: 0;
+    background: var(--secondary, #0B0F1A);
+    z-index: 1000;
+    overflow-y: auto;
+  }
+
+  /* Swipeable Cards */
+  .swipeable {
+    touch-action: pan-y;
+    user-select: none;
+  }
+
+  /* Pull to Refresh Hint */
+  .ptr-hint {
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #64748B;
+    font-size: 12px;
+  }
+
+  /* Match Cards Mobile */
+  .match-card {
+    height: 180px !important;
+    padding: 20px !important;
+  }
+
+  /* Avatar Sizes */
+  .avatar-sm { width: 32px; height: 32px; }
+  .avatar-md { width: 44px; height: 44px; }
+  .avatar-lg { width: 64px; height: 64px; }
+  .avatar-xl { width: 80px; height: 80px; }
+
+  /* Spacing Mobile */
+  .space-y-4 > * + * { margin-top: 16px; }
+  .space-y-6 > * + * { margin-top: 24px; }
+  .gap-4 { gap: 16px; }
+  .gap-6 { gap: 24px; }
+
+  /* Touch Feedback */
+  .tap-highlight {
+    -webkit-tap-highlight-color: rgba(16, 185, 129, 0.1);
+  }
+
+  button:active,
+  .btn:active {
+    transform: scale(0.98);
+    opacity: 0.9;
+  }
+
+  /* Horizontal Scroll Lists */
+  .horizontal-scroll {
+    display: flex;
+    overflow-x: auto;
+    gap: 12px;
+    padding: 16px;
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x mandatory;
+  }
+
+  .horizontal-scroll::-webkit-scrollbar {
+    display: none;
+  }
+
+  .horizontal-scroll-item {
+    flex-shrink: 0;
+    scroll-snap-align: start;
+  }
+
+  /* Image Optimization */
+  img {
+    max-width: 100%;
+    height: auto;
+  }
+
+  /* Loading States */
+  .skeleton {
+    background: linear-gradient(
+      90deg,
+      rgba(255,255,255,0.05) 25%,
+      rgba(255,255,255,0.1) 50%,
+      rgba(255,255,255,0.05) 75%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+  }
+
+  @keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+}
+
+/* Tablet Landscape (768px - 1024px) */
+@media (min-width: 768px) and (max-width: 1024px) {
+  .container {
+    max-width: 720px;
+    margin: 0 auto;
+  }
+
+  .grid-cols-4 { grid-template-columns: repeat(3, 1fr) !important; }
+  .grid-cols-3 { grid-template-columns: repeat(2, 1fr) !important; }
+
+  /* Show bottom nav on tablet too */
+  .bottom-nav {
+    display: flex;
+  }
+}
+
+/* Desktop (1024px+) */
+@media (min-width: 1024px) {
+  .mobile-only {
+    display: none !important;
+  }
+
+  .desktop-only {
+    display: block !important;
+  }
+
+  .bottom-nav {
+    display: none; /* Hide mobile nav on desktop */
+  }
+
+  .mobile-content {
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+}
+
+/* Landscape Mobile Phones */
+@media (max-height: 500px) and (orientation: landscape) {
+  .mobile-header {
+    height: 48px;
+    padding-top: 0;
+  }
+
+  .bottom-nav {
+    height: 56px;
+  }
+
+  .mobile-content {
+    padding-top: 48px;
+    padding-bottom: 72px;
+  }
+}
+
+/* High DPI Screens */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  img {
+    image-rendering: -webkit-optimize-contrast;
+  }
+}
+
+/* Dark Mode Adjustments for Mobile */
+@media (prefers-color-scheme: dark) {
+  .mobile-header,
+  .bottom-nav {
+    background: #0B0F1A;
+  }
+}
+
+/* Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Print Styles */
+@media print {
+  .mobile-header,
+  .bottom-nav,
+  button {
+    display: none !important;
+  }
+
+  body {
+    background: white !important;
+    color: black !important;
+  }
+}

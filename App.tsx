@@ -1,6 +1,10 @@
 
 import React, { useState, useEffect } from 'react';
 import { ToastProvider } from './components/Toast';
+import { BottomNav } from './components/BottomNav';
+import { MobileHeader } from './components/MobileHeader';
+import { InstallBanner } from './components/InstallBanner';
+import { useViewportHeight } from './hooks/useMobileFeatures';
 import { ScreenName, Venue, Player, Payment, Transaction, SubscriptionTier, RsvpStatus, Match, TransferRequest, Poll, TeamProfile, JoinRequest, Reservation } from './types';
 import { Dashboard } from './screens/Dashboard';
 import { TeamList } from './screens/TeamList';
@@ -59,6 +63,9 @@ function App() {
   const [currentUser, setCurrentUser] = useState<Player | null>(null);
   const [currentScreen, setCurrentScreen] = useState<ScreenName>('welcome');
   const [screenHistory, setScreenHistory] = useState<ScreenName[]>([]);
+  
+  // 📱 Mobile: Setup viewport height for mobile browsers
+  useViewportHeight();
   
   // Browser back button desteği
   useEffect(() => {
@@ -1483,11 +1490,60 @@ function App() {
   // ===========================================
   return (
     <ToastProvider>
-      <div className="app-container">
+      <div className="app-container mobile-content">
+        {/* Mobile Header - Show on mobile for logged-in users */}
+        {currentUser && currentScreen !== 'welcome' && currentScreen !== 'login' && (
+          <MobileHeader
+            title={getScreenTitle(currentScreen)}
+            showBack={screenHistory.length > 0}
+            onBack={screenHistory.length > 0 ? goBack : undefined}
+            rightAction={{
+              icon: 'notifications',
+              onClick: () => navigateTo('notifications'),
+              badge: 3, // TODO: Get real notification count
+            }}
+          />
+        )}
+
+        {/* Main Content */}
         {renderScreen()}
+
+        {/* Mobile Bottom Navigation */}
+        {currentUser && currentScreen !== 'welcome' && currentScreen !== 'login' && (
+          <BottomNav
+            currentScreen={currentScreen}
+            onNavigate={navigateTo}
+            userRole={currentUser.role}
+          />
+        )}
+
+        {/* Install PWA Banner */}
+        {currentUser && <InstallBanner />}
       </div>
     </ToastProvider>
   );
+}
+
+// Helper function to get screen titles for mobile header
+function getScreenTitle(screen: ScreenName): string {
+  const titles: Record<string, string> = {
+    dashboard: 'Ana Sayfa',
+    team: 'Takım',
+    matches: 'Maçlar',
+    profile: 'Profil',
+    settings: 'Ayarlar',
+    admin: 'Yönetim',
+    members: 'Üyeler',
+    venues: 'Sahalar',
+    payments: 'Ödemeler',
+    polls: 'Anketler',
+    matchCreate: 'Maç Oluştur',
+    financialReports: 'Finansal Raporlar',
+    whatsapp: 'WhatsApp',
+    notifications: 'Bildirimler',
+    // Add more as needed
+  };
+  return titles[screen] || 'Sahada';
 }
 
 export default App;
