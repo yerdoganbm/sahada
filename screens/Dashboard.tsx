@@ -59,8 +59,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
   return (
     <div className="pb-24 bg-white min-h-screen text-slate-800 animate-fadeIn">
       
-      {/* Header Profile Section */}
-      <div className="px-6 pt-8 pb-4 flex justify-between items-center bg-white sticky top-0 z-40 animate-fadeInDown">
+      {/* Header Profile Section - Hide on mobile (MobileHeader will show) */}
+      <div className="desktop-only px-6 pt-8 pb-4 flex justify-between items-center bg-white sticky top-0 z-40 animate-fadeInDown">
         <div className="flex items-center gap-3 animate-slideInLeft">
           <div className="relative cursor-pointer hover-scale" onClick={() => onNavigate('profile')}>
              <div className="w-10 h-10 rounded-xl bg-slate-100 overflow-hidden border border-slate-200 transition-all">
@@ -95,12 +95,33 @@ export const Dashboard: React.FC<DashboardProps> = ({
         </div>
       </div>
 
-      <div className="px-6 space-y-6 stagger-container">
+      {/* Mobile Profile Banner - Show only on mobile */}
+      <div className="mobile-only px-4 pt-4 pb-2 bg-white">
+        <div className="flex items-center gap-3">
+          <div className="relative" onClick={() => onNavigate('profile')}>
+             <div className="w-12 h-12 rounded-xl bg-slate-100 overflow-hidden border-2 border-slate-200">
+                <img src={currentUser.avatar} alt={currentUser.name} className="w-full h-full object-cover" />
+             </div>
+             <div className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-green-500 border-2 border-white rounded-full animate-pulse"></div>
+          </div>
+          <div className="flex-1">
+            <h1 className="text-base font-bold text-slate-900 leading-tight">
+                {currentUser.name}
+            </h1>
+            <div className={`text-[9px] font-bold px-2 py-0.5 rounded border inline-block mt-0.5 ${tierInfo.color}`}>
+              {currentUser.isCaptain && <span className="mr-1">©️</span>}
+              {tierInfo.label.toUpperCase()}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="px-4 md:px-6 space-y-4 md:space-y-6 stagger-container">
         
         {/* TEAM NAME BANNER (New) */}
         {teamProfile && (
              <div className="text-center py-2 animate-fadeInUp">
-                 <h2 className="text-2xl font-black text-slate-800 uppercase tracking-tighter gradient-text" style={{ color: teamProfile.colors[0] }}>
+                 <h2 className="text-xl md:text-2xl font-black text-slate-800 uppercase tracking-tighter gradient-text" style={{ color: teamProfile.colors[0] }}>
                      {teamProfile.name}
                  </h2>
                  <p className="text-[10px] text-slate-400 font-bold tracking-widest">{allPlayers.length} OYUNCU</p>
@@ -111,33 +132,33 @@ export const Dashboard: React.FC<DashboardProps> = ({
         {hasMatches ? (
             <div 
                 onClick={() => onNavigate('matchDetails', { id: nextMatch.id })}
-                className="w-full aspect-[4/3] rounded-[32px] relative overflow-hidden shadow-2xl shadow-teal-900/20 cursor-pointer hover-lift btn-press group animate-scaleIn"
+                className="w-full aspect-[16/10] md:aspect-[4/3] rounded-3xl md:rounded-[32px] relative overflow-hidden shadow-2xl shadow-teal-900/20 cursor-pointer hover-lift btn-press group animate-scaleIn"
             >
                 {/* Map Background Image */}
                 <div className="absolute inset-0 bg-[url('https://api.mapbox.com/styles/v1/mapbox/dark-v10/static/29.0,41.0,13.5,0/600x400?access_token=pk.eyJ1IjoiZXhhbXBsZSIsImEiOiJja2xsN3F3OG0wMDc2MnB0Ynh5cm15ZnVyIn0.7j_k9lQ6y0d3y0q0f0g0g0')] bg-cover bg-center opacity-60 mix-blend-multiply"></div>
                 <div className="absolute inset-0 bg-gradient-to-b from-teal-900/80 via-teal-900/40 to-teal-950/90"></div>
 
-                <div className="absolute top-4 left-4 animate-fadeInDown delay-200">
-                    <span className="bg-primary text-white text-[10px] font-bold px-3 py-1.5 rounded-full shadow-lg shadow-green-900/20 animate-pulse">
+                <div className="absolute top-3 md:top-4 left-3 md:left-4 animate-fadeInDown delay-200">
+                    <span className="bg-primary text-white text-[9px] md:text-[10px] font-bold px-2.5 md:px-3 py-1 md:py-1.5 rounded-full shadow-lg shadow-green-900/20 animate-pulse">
                         BUGÜN
                     </span>
                 </div>
 
-                <div className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center text-white border border-white/20">
-                    <Icon name="ios_share" size={16} />
+                <div className="absolute top-3 md:top-4 right-3 md:right-4 w-7 h-7 md:w-8 md:h-8 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center text-white border border-white/20 tap-highlight">
+                    <Icon name="ios_share" size={14} />
                 </div>
 
-                <div className="absolute bottom-6 left-6 right-6">
-                    <h2 className="text-3xl font-bold text-white mb-1 tracking-tight">Bu Akşam {nextMatch.time}</h2>
+                <div className="absolute bottom-4 md:bottom-6 left-4 md:left-6 right-4 md:right-6">
+                    <h2 className="text-xl md:text-3xl font-bold text-white mb-1 tracking-tight">Bu Akşam {nextMatch.time}</h2>
                     <div className="flex items-center gap-1.5 text-slate-200">
-                        <Icon name="location_on" size={16} className="text-primary" />
-                        <span className="font-medium text-sm">{nextMatch.location}</span>
+                        <Icon name="location_on" size={14} className="text-primary" />
+                        <span className="font-medium text-xs md:text-sm">{nextMatch.location}</span>
                     </div>
                 </div>
                 
-                <div className="absolute bottom-6 right-6 text-white text-right">
-                    <div className="flex items-center justify-end gap-1 font-bold bg-black/20 backdrop-blur-md px-2 py-1 rounded-lg border border-white/10">
-                        <Icon name="cloud" size={14} /> 18°C
+                <div className="absolute bottom-4 md:bottom-6 right-4 md:right-6 text-white text-right">
+                    <div className="flex items-center justify-end gap-1 font-bold bg-black/20 backdrop-blur-md px-2 py-1 rounded-lg border border-white/10 text-xs md:text-sm">
+                        <Icon name="cloud" size={12} /> 18°C
                     </div>
                 </div>
             </div>
@@ -191,34 +212,44 @@ export const Dashboard: React.FC<DashboardProps> = ({
             </div>
         )}
 
-        {/* Quick Actions */}
+        {/* Quick Actions - Mobile optimized horizontal scroll */}
         <div className="animate-fadeInUp delay-300">
-            <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4">Hızlı İşlemler</h3>
-            <div className="flex gap-4 overflow-x-auto no-scrollbar pb-2 snap-x snap-mandatory smooth-scroll">
+            <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3 px-1">Hızlı İşlemler</h3>
+            <div className="horizontal-scroll">
                 {isAdmin && (
                     <>
                         <QuickAction icon="admin_panel_settings" label="Yönetim" color="bg-slate-800 text-white" onClick={() => onNavigate('admin')} />
                         <QuickAction icon="person_add" label="Üyeler" color="bg-blue-50 text-blue-600" onClick={() => onNavigate('members')} />
                         <QuickAction icon="groups" label="Kadro" color="bg-emerald-50 text-emerald-600" onClick={() => onNavigate('team')} />
                         <QuickAction icon="poll" label="Anketler" color="bg-orange-50 text-orange-500" onClick={() => onNavigate('polls')} />
+                        <QuickAction icon="analytics" label="Finans" color="bg-purple-50 text-purple-600" onClick={() => onNavigate('financialReports')} />
                     </>
                 )}
                 
-                {!isAdmin && (
+                {!isAdmin && isCaptain && (
                     <>
                         <QuickAction icon="person_add" label="Üyeler" color="bg-blue-50 text-blue-600" onClick={() => onNavigate('members')} />
-                        <QuickAction icon="emoji_events" label="Turnuvalar" color="bg-yellow-50 text-yellow-600" onClick={() => onNavigate('tournament')} />
+                        <QuickAction icon="groups" label="Kadro" color="bg-emerald-50 text-emerald-600" onClick={() => onNavigate('team')} />
+                        <QuickAction icon="emoji_events" label="Turnuva" color="bg-yellow-50 text-yellow-600" onClick={() => onNavigate('tournament')} />
+                        <QuickAction icon="poll" label="Anketler" color="bg-orange-50 text-orange-500" onClick={() => onNavigate('polls')} />
+                    </>
+                )}
+                
+                {!isAdmin && !isCaptain && (
+                    <>
+                        <QuickAction icon="emoji_events" label="Turnuva" color="bg-yellow-50 text-yellow-600" onClick={() => onNavigate('tournament')} />
                         <QuickAction icon="groups" label="Kadro" color="bg-emerald-50 text-emerald-600" onClick={() => onNavigate('team')} />
                         <QuickAction icon="poll" label="Anketler" color="bg-orange-50 text-orange-500" onClick={() => onNavigate('polls')} />
+                        <QuickAction icon="leaderboard" label="Sıralama" color="bg-purple-50 text-purple-600" onClick={() => onNavigate('leaderboard')} />
                     </>
                 )}
             </div>
         </div>
 
-        {/* Match Prep Progress (Consistent UI) */}
+        {/* Match Prep Progress */}
         {!isPartner && hasMatches && (
-            <div className="bg-slate-50 rounded-[28px] p-5 border border-slate-100 shadow-sm relative overflow-hidden glass-card animate-fadeInUp delay-400">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+            <div className="bg-slate-50 rounded-3xl md:rounded-[28px] p-4 md:p-5 border border-slate-100 shadow-sm relative overflow-hidden glass-card animate-fadeInUp delay-400">
+                <div className="absolute top-0 right-0 w-24 h-24 md:w-32 md:h-32 bg-primary/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
                 <div className="flex justify-between items-center mb-3 relative z-10">
                     <span className="font-bold text-slate-900 text-sm flex items-center gap-2">
                         <Icon name="fitness_center" size={16} className="text-slate-400" />
@@ -228,14 +259,20 @@ export const Dashboard: React.FC<DashboardProps> = ({
                         {joinedCount}/{totalSlots} Hazır
                     </span>
                 </div>
-                <div className="h-3 w-full bg-slate-200 rounded-full overflow-hidden mb-5 border border-slate-300/50">
+                <div className="h-2.5 md:h-3 w-full bg-slate-200 rounded-full overflow-hidden mb-4 md:mb-5 border border-slate-300/50">
                     <div className="h-full bg-primary rounded-full transition-all duration-1000 animate-glow" style={{ width: `${percentage}%` }}></div>
                 </div>
                 <div className="flex justify-between items-center relative z-10">
                     <div className="flex -space-x-2">
                         {allPlayers.slice(0, 3).map(p => (
-                            <img key={p.id} src={p.avatar} className="w-8 h-8 rounded-full border-2 border-white shadow-sm" />
+                            <img key={p.id} src={p.avatar} className="w-7 h-7 md:w-8 md:h-8 rounded-full border-2 border-white shadow-sm" alt={p.name} />
                         ))}
+                        {allPlayers.length > 3 && (
+                            <div className="w-7 h-7 md:w-8 md:h-8 rounded-full border-2 border-white bg-slate-300 flex items-center justify-center text-[10px] font-bold text-slate-600">
+                                +{allPlayers.length - 3}
+                            </div>
+                        )}
+                    </div>
                     </div>
                     <div className="flex gap-2">
                         <button onClick={() => onRsvpChange('yes')} className={`w-8 h-8 rounded-full flex items-center justify-center transition-all hover-scale btn-press ${rsvpStatus === 'yes' ? 'bg-primary text-white shadow-lg animate-glow' : 'bg-white text-slate-400 border border-slate-200'}`}>

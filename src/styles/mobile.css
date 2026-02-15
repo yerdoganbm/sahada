@@ -218,9 +218,10 @@
     display: flex;
     overflow-x: auto;
     gap: 12px;
-    padding: 16px;
+    padding: 4px 4px 16px 4px;
     -webkit-overflow-scrolling: touch;
     scroll-snap-type: x mandatory;
+    scroll-padding: 0 16px;
   }
 
   .horizontal-scroll::-webkit-scrollbar {
@@ -229,6 +230,14 @@
 
   .horizontal-scroll-item {
     flex-shrink: 0;
+    scroll-snap-align: start;
+    min-width: 90px;
+  }
+
+  /* Quick Action Cards - Mobile optimized */
+  .quick-action-card {
+    flex-shrink: 0;
+    width: 90px;
     scroll-snap-align: start;
   }
 

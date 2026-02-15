@@ -1495,8 +1495,8 @@ function App() {
         {currentUser && currentScreen !== 'welcome' && currentScreen !== 'login' && (
           <MobileHeader
             title={getScreenTitle(currentScreen)}
-            showBack={screenHistory.length > 0}
-            onBack={screenHistory.length > 0 ? goBack : undefined}
+            showBack={screenHistory.length > 0 && currentScreen !== 'dashboard'}
+            onBack={screenHistory.length > 0 && currentScreen !== 'dashboard' ? goBack : undefined}
             rightAction={{
               icon: 'notifications',
               onClick: () => navigateTo('notifications'),
