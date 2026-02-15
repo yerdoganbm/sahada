@@ -33,10 +33,10 @@ export const linking: LinkingOptions<RootStackParamList> = {
           venueId: (venueId: string) => venueId,
         },
       },
-      Profile: {
-        path: 'user/:userId?',
+      ProfileDetails: {
+        path: 'user/:userId',
         parse: {
-          userId: (userId: string) => userId || undefined,
+          userId: (userId: string) => userId,
         },
       },
       Settings: 'settings',

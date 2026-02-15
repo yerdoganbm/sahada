@@ -3,12 +3,19 @@
  * Shared types for the mobile app
  */
 
+import { NavigatorScreenParams } from '@react-navigation/native';
+
 export type RsvpStatus = 'yes' | 'no' | 'maybe' | 'pending';
 export type MatchStatus = 'upcoming' | 'live' | 'completed' | 'cancelled';
 export type PlayerRole = 'admin' | 'member' | 'guest' | 'venue_owner';
 export type PlayerPosition = 'GK' | 'DEF' | 'MID' | 'FWD';
 export type SubscriptionTier = 'free' | 'premium' | 'partner';
 export type PaymentStatus = 'paid' | 'pending' | 'overdue' | 'waiting_approval';
+
+// Domain defaults for Sahada workflows
+export type MatchCapacity = 12 | 14 | 16;
+export type AttendanceStatus = 'YES' | 'NO' | 'MAYBE' | 'CANCELLED';
+export type MatchPaymentStatus = 'PAID' | 'PENDING' | 'REFUND';
 
 export interface Player {
   id: string;
@@ -46,9 +53,11 @@ export interface Match {
   score?: string;
   teamId?: string;
   venueId?: string;
+  capacity?: MatchCapacity;
+  waitlistEnabled?: boolean;
   attendees?: Array<{
     playerId: string;
-    status: RsvpStatus;
+    status: AttendanceStatus;
   }>;
   mvpVotes?: Array<{
     playerId: string;
@@ -77,7 +86,7 @@ export interface Payment {
   playerName: string;
   amount: number;
   dueDate: string;
-  status: PaymentStatus;
+  status: MatchPaymentStatus;
   month: string;
   proofUrl?: string;
   teamId?: string;
@@ -134,10 +143,10 @@ export interface JoinRequest {
 export type RootStackParamList = {
   Welcome: undefined;
   Login: undefined;
-  MainTabs: undefined;
+  MainTabs: NavigatorScreenParams<MainTabParamList> | undefined;
   MatchDetails: { matchId: string };
   VenueDetails: { venueId: string };
-  Profile: { userId?: string };
+  ProfileDetails: { userId: string };
   Settings: undefined;
   TeamSetup: undefined;
   MatchCreate: undefined;
