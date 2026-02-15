@@ -65,6 +65,12 @@ export interface Player {
   scoutScore?: number; // 0-100 (toplam scout puanı)
   lastEvaluationDate?: string;
   
+  // MOCK STATS (gol, asist, MVP, maç sayısı - istatistik ekranları için)
+  goals?: number;
+  assists?: number;
+  mvpCount?: number;
+  matchesPlayed?: number;
+
   // VENUE OWNER FIELDS
   venueOwnerInfo?: {
     venueIds: string[]; // Sahip olduğu sahalar

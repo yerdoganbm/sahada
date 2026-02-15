@@ -1,35 +1,46 @@
 
-import { Match, Player, Payment, Venue, Transaction, Poll, TournamentTeam, BracketMatch, Reservation } from './types';
+import { Match, Player, Payment, Venue, Transaction, Poll, TournamentTeam, BracketMatch, Reservation, AppNotification } from './types';
+
+export const MOCK_NOTIFICATIONS: AppNotification[] = [
+  { id: '1', type: 'match', title: 'Maç Daveti', message: 'Salı 21:00 maçı için kadroya eklendin. Lütfen onay ver.', time: '10 dk önce', isRead: false, actionScreen: 'matchDetails' },
+  { id: '2', type: 'payment', title: 'Ödeme Hatırlatma', message: 'Geçen haftaki maçtan 120 TL bakiyen bulunuyor.', time: '2 saat önce', isRead: false, actionScreen: 'payments' },
+  { id: '3', type: 'social', title: 'MVP Seçildin! 👑', message: 'Son maçtaki performansınla arkadaşların seni MVP seçti.', time: 'Dün', isRead: true, actionScreen: 'leaderboard' },
+  { id: '4', type: 'system', title: 'Saha Bakımı', message: 'Favori sahanızda zemin yenileme çalışması tamamlandı.', time: '2 gün önce', isRead: true, actionScreen: 'venues' },
+];
 
 export const MOCK_PLAYERS: Player[] = [
   { 
     id: '1', name: 'Ahmet Yılmaz', position: 'MID', rating: 8.5, reliability: 95, avatar: 'https://i.pravatar.cc/150?u=1', isCaptain: true, role: 'admin', tier: 'free', marketValue: '2.5M',
-    attributes: { pac: 82, sho: 85, pas: 88, dri: 84, def: 60, phy: 70 }
+    attributes: { pac: 82, sho: 85, pas: 88, dri: 84, def: 60, phy: 70 },
+    goals: 8, assists: 12, mvpCount: 2, matchesPlayed: 16
   },
   { 
     id: '2', name: 'Mehmet Demir', position: 'FWD', rating: 9.0, reliability: 88, avatar: 'https://i.pravatar.cc/150?u=2', role: 'member', tier: 'free', marketValue: '3.0M',
-    attributes: { pac: 90, sho: 92, pas: 75, dri: 88, def: 40, phy: 75 }
+    attributes: { pac: 90, sho: 92, pas: 75, dri: 88, def: 40, phy: 75 },
+    goals: 32, assists: 6, mvpCount: 8, matchesPlayed: 17
   },
   { 
     id: '3', name: 'Caner Erkin', position: 'DEF', rating: 7.8, reliability: 92, avatar: 'https://i.pravatar.cc/150?u=3', role: 'member', tier: 'free', marketValue: '1.2M',
-    attributes: { pac: 75, sho: 60, pas: 78, dri: 70, def: 85, phy: 80 }
+    attributes: { pac: 75, sho: 60, pas: 78, dri: 70, def: 85, phy: 80 },
+    goals: 2, assists: 4, mvpCount: 0, matchesPlayed: 15
   },
   { 
     id: '4', name: 'Volkan Babacan', position: 'GK', rating: 8.2, reliability: 100, avatar: 'https://i.pravatar.cc/150?u=4', role: 'member', tier: 'premium', marketValue: '1.8M',
-    attributes: { pac: 50, sho: 50, pas: 60, dri: 50, def: 88, phy: 85 }
+    attributes: { pac: 50, sho: 50, pas: 60, dri: 50, def: 88, phy: 85 },
+    goals: 0, assists: 0, mvpCount: 1, matchesPlayed: 18
   },
-  { id: '5', name: 'Ozan Tufan', position: 'MID', rating: 7.5, reliability: 75, avatar: 'https://i.pravatar.cc/150?u=5', role: 'member', tier: 'free', marketValue: '900K' },
-  { id: '6', name: 'Hakan Çalhanoğlu', position: 'MID', rating: 9.2, reliability: 98, avatar: 'https://i.pravatar.cc/150?u=6', role: 'admin', tier: 'partner', marketValue: '5.0M' },
-  { id: '7', name: 'Burak Yılmaz', position: 'FWD', rating: 8.1, reliability: 85, avatar: 'https://i.pravatar.cc/150?u=7', role: 'member', isCaptain: true, tier: 'free' },
-  { id: '8', name: 'Çağlar Söyüncü', position: 'DEF', rating: 8.8, reliability: 90, avatar: 'https://i.pravatar.cc/150?u=8', role: 'member', tier: 'premium' },
-  { id: '9', name: 'Merih Demiral', position: 'DEF', rating: 8.6, reliability: 82, avatar: 'https://i.pravatar.cc/150?u=9', role: 'member', tier: 'free' },
-  { id: '10', name: 'Cengiz Ünder', position: 'FWD', rating: 8.3, reliability: 78, avatar: 'https://i.pravatar.cc/150?u=10', role: 'member', tier: 'free' },
-  { id: '11', name: 'Uğurcan Çakır', position: 'GK', rating: 8.4, reliability: 96, avatar: 'https://i.pravatar.cc/150?u=11', role: 'member', tier: 'premium' },
-  { id: '12', name: 'İrfan Can', position: 'MID', rating: 7.9, reliability: 88, avatar: 'https://i.pravatar.cc/150?u=12', role: 'member', tier: 'free' },
-  { id: '13', name: 'Mert Müldür', position: 'DEF', rating: 7.6, reliability: 91, avatar: 'https://i.pravatar.cc/150?u=13', role: 'member', tier: 'free' },
-  { id: '14', name: 'Orkun Kökçü', position: 'MID', rating: 8.0, reliability: 84, avatar: 'https://i.pravatar.cc/150?u=14', role: 'member', tier: 'free' },
-  { id: '15', name: 'Yusuf Yazıcı', position: 'MID', rating: 7.7, reliability: 65, avatar: 'https://i.pravatar.cc/150?u=15', role: 'member', tier: 'free' },
-  { id: '16', name: 'Enes Ünal', position: 'FWD', rating: 7.5, reliability: 70, avatar: 'https://i.pravatar.cc/150?u=16', role: 'member', tier: 'free' },
+  { id: '5', name: 'Ozan Tufan', position: 'MID', rating: 7.5, reliability: 75, avatar: 'https://i.pravatar.cc/150?u=5', role: 'member', tier: 'free', marketValue: '900K', goals: 5, assists: 15, mvpCount: 4, matchesPlayed: 14 },
+  { id: '6', name: 'Hakan Çalhanoğlu', position: 'MID', rating: 9.2, reliability: 98, avatar: 'https://i.pravatar.cc/150?u=6', role: 'admin', tier: 'partner', marketValue: '5.0M', goals: 24, assists: 10, mvpCount: 5, matchesPlayed: 17 },
+  { id: '7', name: 'Burak Yılmaz', position: 'FWD', rating: 8.1, reliability: 85, avatar: 'https://i.pravatar.cc/150?u=7', role: 'member', isCaptain: true, tier: 'free', goals: 19, assists: 12, mvpCount: 3, matchesPlayed: 16 },
+  { id: '8', name: 'Çağlar Söyüncü', position: 'DEF', rating: 8.8, reliability: 90, avatar: 'https://i.pravatar.cc/150?u=8', role: 'member', tier: 'premium', goals: 1, assists: 11, mvpCount: 2, matchesPlayed: 15 },
+  { id: '9', name: 'Merih Demiral', position: 'DEF', rating: 8.6, reliability: 82, avatar: 'https://i.pravatar.cc/150?u=9', role: 'member', tier: 'free', goals: 3, assists: 2, mvpCount: 0, matchesPlayed: 14 },
+  { id: '10', name: 'Cengiz Ünder', position: 'FWD', rating: 8.3, reliability: 78, avatar: 'https://i.pravatar.cc/150?u=10', role: 'member', tier: 'free', goals: 14, assists: 8, mvpCount: 2, matchesPlayed: 13 },
+  { id: '11', name: 'Uğurcan Çakır', position: 'GK', rating: 8.4, reliability: 96, avatar: 'https://i.pravatar.cc/150?u=11', role: 'member', tier: 'premium', goals: 0, assists: 0, mvpCount: 2, matchesPlayed: 12 },
+  { id: '12', name: 'İrfan Can', position: 'MID', rating: 7.9, reliability: 88, avatar: 'https://i.pravatar.cc/150?u=12', role: 'member', tier: 'free', goals: 4, assists: 7, mvpCount: 1, matchesPlayed: 16 },
+  { id: '13', name: 'Mert Müldür', position: 'DEF', rating: 7.6, reliability: 91, avatar: 'https://i.pravatar.cc/150?u=13', role: 'member', tier: 'free', goals: 0, assists: 5, mvpCount: 0, matchesPlayed: 15 },
+  { id: '14', name: 'Orkun Kökçü', position: 'MID', rating: 8.0, reliability: 84, avatar: 'https://i.pravatar.cc/150?u=14', role: 'member', tier: 'free', goals: 6, assists: 9, mvpCount: 1, matchesPlayed: 14 },
+  { id: '15', name: 'Yusuf Yazıcı', position: 'MID', rating: 7.7, reliability: 65, avatar: 'https://i.pravatar.cc/150?u=15', role: 'member', tier: 'free', goals: 7, assists: 3, mvpCount: 0, matchesPlayed: 11 },
+  { id: '16', name: 'Enes Ünal', position: 'FWD', rating: 7.5, reliability: 70, avatar: 'https://i.pravatar.cc/150?u=16', role: 'member', tier: 'free', goals: 11, assists: 4, mvpCount: 1, matchesPlayed: 12 },
   // SAHA SAHİBİ
   { 
     id: 'venue_owner_1', 

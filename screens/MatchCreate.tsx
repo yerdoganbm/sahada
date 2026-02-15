@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { Icon } from '../components/Icon';
-import { Venue, Player, Match } from '../types';
+import { Venue, Player, Match, MatchCapacity } from '../types';
 import { MOCK_PLAYERS } from '../constants';
 
 interface MatchCreateProps {
@@ -20,7 +20,8 @@ export const MatchCreate: React.FC<MatchCreateProps> = ({ onBack, venues, curren
     venueId: '',
     price: '120',
     opponent: '',
-    isRecurring: false
+    isRecurring: false,
+    capacity: 14 as MatchCapacity
   });
   const [selectedPlayers, setSelectedPlayers] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -49,8 +50,17 @@ export const MatchCreate: React.FC<MatchCreateProps> = ({ onBack, venues, curren
 
   const handleNext = () => {
     if (currentStep === 1) {
-      if (!formData.date || !formData.time || !formData.venueId || !formData.price) {
-        alert('Lütfen zorunlu alanları doldurunuz.');
+      if (!formData.date || !formData.time) {
+        alert('Lütfen tarih ve saat seçiniz.');
+        return;
+      }
+      if (!formData.venueId) {
+        alert('Lütfen bir saha seçiniz.');
+        return;
+      }
+      const priceNum = Number(formData.price);
+      if (!formData.price || isNaN(priceNum) || priceNum <= 0) {
+        alert('Kişi başı ücret 0\'dan büyük olmalıdır.');
         return;
       }
       setCurrentStep(2);
@@ -89,10 +99,11 @@ export const MatchCreate: React.FC<MatchCreateProps> = ({ onBack, venues, curren
           date: formData.date,
           time: formData.time,
           location: selectedVenue?.name || 'Saha Belirsiz',
-          venueId: formData.venueId, // FIX #3: Save venue ID
+          venueId: formData.venueId,
           status: 'upcoming',
           pricePerPerson: Number(formData.price),
-          opponent: formData.opponent || 'Rakip Aranıyor'
+          opponent: formData.opponent || 'Rakip Aranıyor',
+          capacity: formData.capacity
         };
 
         alert(`Maç başarıyla oluşturuldu! ${selectedPlayers.length} oyuncuya bildirim gönderildi.`);
@@ -236,6 +247,25 @@ export const MatchCreate: React.FC<MatchCreateProps> = ({ onBack, venues, curren
                         className="w-full bg-secondary border border-white/10 rounded-xl px-3 py-3 text-sm text-white focus:outline-none focus:border-primary transition-colors"
                      />
                   </div>
+              </div>
+
+              {/* Capacity */}
+              <div className="space-y-1">
+                 <label className="text-[10px] text-slate-400 font-bold uppercase flex items-center gap-1">
+                    <Icon name="groups" size={12} /> Kadro Kapasitesi <span className="text-alert">*</span>
+                 </label>
+                 <div className="flex gap-2">
+                   {([12, 14, 16] as MatchCapacity[]).map((cap) => (
+                     <button
+                       key={cap}
+                       type="button"
+                       onClick={() => setFormData({ ...formData, capacity: cap })}
+                       className={`flex-1 py-3 rounded-xl text-sm font-bold border transition-all ${formData.capacity === cap ? 'bg-primary text-secondary border-primary' : 'bg-secondary border-white/10 text-slate-400 hover:border-white/20'}`}
+                     >
+                       {cap} kişi
+                     </button>
+                   ))}
+                 </div>
               </div>
 
               {/* Recurring Toggle */}

@@ -27,29 +27,26 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ onBack, players = [], 
     };
   }, [players, currentUser]);
 
-  // Mock Data mimicking the image
-  const stats = {
-    topScorer: {
-      first: { name: 'Can Demir', goals: 32, avatar: 'https://i.pravatar.cc/150?u=2', position: 'FW' },
-      second: { name: 'Hakan Yılmaz', goals: 24, avatar: 'https://i.pravatar.cc/150?u=6', position: 'MF' },
-      third: { name: 'Mert Kaya', goals: 19, avatar: 'https://i.pravatar.cc/150?u=13', position: 'FW' },
-    },
-    assists: [
-      { rank: 1, name: 'Emre Aras', count: 15, position: 'MF • ORTA SAHA', avatar: 'https://i.pravatar.cc/150?u=5' },
-      { rank: 2, name: 'Burak Tan', count: 12, position: 'MF • ORTA SAHA', avatar: 'https://i.pravatar.cc/150?u=7' },
-      { rank: 3, name: 'Oğuz Kağan', count: 11, position: 'DF • DEFANS', avatar: 'https://i.pravatar.cc/150?u=8' },
-    ],
-    mvp: [
-      { rank: 1, name: 'Can Demir', count: 8, position: 'FW • FORVET', avatar: 'https://i.pravatar.cc/150?u=2' },
-      { rank: 2, name: 'Hakan Yılmaz', count: 5, position: 'MF • ORTA SAHA', avatar: 'https://i.pravatar.cc/150?u=6' },
-      { rank: 3, name: 'Emre Aras', count: 4, position: 'MF • ORTA SAHA', avatar: 'https://i.pravatar.cc/150?u=5' },
-    ],
-    matches: [
-      { rank: 1, name: 'Selim Engin', count: 18, position: 'GK • KALECİ', avatar: 'https://i.pravatar.cc/150?u=4' },
-      { rank: 2, name: 'Can Demir', count: 17, position: 'FW • FORVET', avatar: 'https://i.pravatar.cc/150?u=2' },
-      { rank: 3, name: 'Hakan Yılmaz', count: 17, position: 'MF • ORTA SAHA', avatar: 'https://i.pravatar.cc/150?u=6' },
-    ]
-  };
+  // İstatistikleri oyuncu mock verisinden türet (gol, asist, MVP, maç sayısı)
+  const stats = useMemo(() => {
+    const list = players.filter(p => p.role !== 'venue_owner');
+    const byGoals = [...list].sort((a, b) => (b.goals ?? 0) - (a.goals ?? 0));
+    const byAssists = [...list].sort((a, b) => (b.assists ?? 0) - (a.assists ?? 0));
+    const byMvp = [...list].sort((a, b) => (b.mvpCount ?? 0) - (a.mvpCount ?? 0));
+    const byMatches = [...list].sort((a, b) => (b.matchesPlayed ?? 0) - (a.matchesPlayed ?? 0));
+    const pos = (p: Player) => `${p.position} • ${POS_LABEL[p.position] || p.position}`;
+    const fallback = { name: '-', goals: 0, avatar: 'https://i.pravatar.cc/150?u=0', position: 'FWD' as const };
+    return {
+      topScorer: {
+        first: byGoals[0] ? { name: byGoals[0].name, goals: byGoals[0].goals ?? 0, avatar: byGoals[0].avatar, position: byGoals[0].position } : fallback,
+        second: byGoals[1] ? { name: byGoals[1].name, goals: byGoals[1].goals ?? 0, avatar: byGoals[1].avatar, position: byGoals[1].position } : fallback,
+        third: byGoals[2] ? { name: byGoals[2].name, goals: byGoals[2].goals ?? 0, avatar: byGoals[2].avatar, position: byGoals[2].position } : fallback,
+      },
+      assists: byAssists.slice(0, 3).map((p, i) => ({ rank: i + 1, name: p.name, count: p.assists ?? 0, position: pos(p), avatar: p.avatar })),
+      mvp: byMvp.slice(0, 3).map((p, i) => ({ rank: i + 1, name: p.name, count: p.mvpCount ?? 0, position: pos(p), avatar: p.avatar })),
+      matches: byMatches.slice(0, 3).map((p, i) => ({ rank: i + 1, name: p.name, count: p.matchesPlayed ?? 0, position: pos(p), avatar: p.avatar })),
+    };
+  }, [players]);
 
   return (
     <div className="bg-secondary min-h-screen pb-24 relative overflow-x-hidden">

@@ -5,14 +5,14 @@ import { BottomNav } from './components/BottomNav';
 import { MobileHeader } from './components/MobileHeader';
 import { InstallBanner } from './components/InstallBanner';
 import { useViewportHeight } from './hooks/useMobileFeatures';
-import { ScreenName, Venue, Player, Payment, Transaction, SubscriptionTier, RsvpStatus, Match, TransferRequest, Poll, TeamProfile, JoinRequest, Reservation } from './types';
+import { ScreenName, Venue, Player, Payment, Transaction, SubscriptionTier, RsvpStatus, Match, TransferRequest, Poll, TeamProfile, JoinRequest, Reservation, AppNotification } from './types';
 import { Dashboard } from './screens/Dashboard';
 import { TeamList } from './screens/TeamList';
 import { MatchDetails } from './screens/MatchDetails';
 import { MatchCard } from './components/MatchCard'; 
 import { Header } from './components/Header';
 import { Icon } from './components/Icon';
-import { MOCK_MATCHES, MOCK_VENUES, MOCK_PLAYERS, MOCK_PAYMENTS, MOCK_TRANSACTIONS, MOCK_POLLS, MOCK_RESERVATIONS, MOCK_TALENT_POOL } from './constants';
+import { MOCK_MATCHES, MOCK_VENUES, MOCK_PLAYERS, MOCK_PAYMENTS, MOCK_TRANSACTIONS, MOCK_POLLS, MOCK_RESERVATIONS, MOCK_TALENT_POOL, MOCK_NOTIFICATIONS } from './constants';
 import { PaymentLedger } from './screens/PaymentLedger';
 import { AdminDashboard } from './screens/AdminDashboard';
 import { MemberManagement } from './screens/MemberManagement';
@@ -117,6 +117,7 @@ function App() {
     }
   ]);
   const [teamProfile, setTeamProfile] = useState<TeamProfile | null>(null);
+  const [notifications, setNotifications] = useState<AppNotification[]>(MOCK_NOTIFICATIONS);
   const [matchDetailsId, setMatchDetailsId] = useState<string | null>(null);
   const [venueDetailsId, setVenueDetailsId] = useState<string | null>(null);
   const [reservationDetailsId, setReservationDetailsId] = useState<string | null>(null);
@@ -137,8 +138,9 @@ function App() {
     const user = MOCK_PLAYERS.find(p => p.id === userId);
     
     if (user) {
-      // User found - Log in with their role
+      // User found - Log in with their role; auth stack temizlensin, gereksiz geri dönüş olmasın
       setCurrentUser(user);
+      setScreenHistory([]);
       // Giriş yapan kullanıcının takımını gösterebilmek için varsayılan takım (henüz takım kurulmadıysa)
       setTeamProfile(prev => prev ?? {
         id: 'default',
@@ -188,10 +190,12 @@ function App() {
       };
       setCurrentUser(newAdmin);
       console.log('✅ Yeni takım kurucusu oluşturuldu:', newAdmin);
+      setScreenHistory(prev => [...prev, 'login']);
       setCurrentScreen('teamSetup');
     } else {
-      // Bilinmeyen kullanıcı - profil oluşturma ekranına yönlendir
+      // Bilinmeyen kullanıcı - profil oluşturma ekranına yönlendir (geri = login)
       console.log('❌ Kullanıcı bulunamadı, profil oluşturma ekranına yönlendiriliyor...');
+      setScreenHistory(prev => [...prev, 'login']);
       setCurrentScreen('createProfile');
     }
   };
@@ -301,10 +305,12 @@ function App() {
 
   // 3. RSVP GÜNCELLEME (FIX #6: Per-Match RSVP)
   const handleRsvpChange = (matchId: string, status: RsvpStatus) => {
-    console.log(`📋 RSVP güncelleniyor: Maç ${matchId}, Durum: ${status}, Oyuncu: ${currentUser?.name}`);
-    
     if (!currentUser) return;
-    
+    const match = matches.find(m => m.id === matchId);
+    if (!match) {
+      alert('Maç bulunamadı.');
+      return;
+    }
     // Match'in attendees array'ini güncelle
     setMatches(prev => prev.map(m => {
       if (m.id === matchId) {
@@ -484,9 +490,9 @@ function App() {
       setCurrentUser(newUser);
       setPlayers(prev => [...prev, newUser]);
     }
-    
     console.log('✅ Profil oluşturuldu! Dashboard\'a yönlendiriliyor...');
-    navigateTo('dashboard');
+    setScreenHistory([]);
+    setCurrentScreen('dashboard');
   };
 
   // 13. TAKIM KURULUM TAMAMLAMA (Dashboard'a yönlendir)
@@ -515,8 +521,8 @@ function App() {
       
       console.log('✅ Takım ve kurucu profili başarıyla oluşturuldu!', { team, user: updatedUser });
     }
-    
-    navigateTo('dashboard');
+    setScreenHistory([]);
+    setCurrentScreen('dashboard');
   };
 
   // 14. SCOUTING: OYUNCU ÖNERİSİ (Guest Player)
@@ -1268,6 +1274,9 @@ function App() {
             onBack={goBack}
             onNavigate={navigateTo}
             currentUser={currentUser}
+            notifications={notifications}
+            onMarkAllRead={() => setNotifications(prev => prev.map(n => ({ ...n, isRead: true })))}
+            onMarkRead={(id) => setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n))}
           />
         );
 
@@ -1526,7 +1535,7 @@ function App() {
             leftAction={{
               icon: 'notifications',
               onClick: () => navigateTo('notifications'),
-              badge: 3, // TODO: Get real notification count
+              badge: notifications.filter(n => !n.isRead).length,
             }}
           />
         )}

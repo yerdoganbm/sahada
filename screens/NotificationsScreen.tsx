@@ -1,31 +1,21 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Icon } from '../components/Icon';
 import { AppNotification, ScreenName } from '../types';
 
 interface NotificationsScreenProps {
   onBack: () => void;
   onNavigate: (screen: ScreenName, params?: any) => void;
+  currentUser?: unknown;
+  notifications: AppNotification[];
+  onMarkAllRead: () => void;
+  onMarkRead: (id: string) => void;
 }
 
-export const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ onBack, onNavigate }) => {
-  const [notifications, setNotifications] = useState<AppNotification[]>([
-    { id: '1', type: 'match', title: 'Maç Daveti', message: 'Salı 21:00 maçı için kadroya eklendin. Lütfen onay ver.', time: '10 dk önce', isRead: false, actionScreen: 'matchDetails' },
-    { id: '2', type: 'payment', title: 'Ödeme Hatırlatma', message: 'Geçen haftaki maçtan 120 TL bakiyen bulunuyor.', time: '2 saat önce', isRead: false, actionScreen: 'payments' },
-    { id: '3', type: 'social', title: 'MVP Seçildin! 👑', message: 'Son maçtaki performansınla arkadaşların seni MVP seçti.', time: 'Dün', isRead: true, actionScreen: 'leaderboard' },
-    { id: '4', type: 'system', title: 'Saha Bakımı', message: 'Favori sahanızda zemin yenileme çalışması tamamlandı.', time: '2 gün önce', isRead: true, actionScreen: 'venues' },
-  ]);
-
-  const markAllRead = () => {
-    setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
-  };
-
+export const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ onBack, onNavigate, notifications, onMarkAllRead, onMarkRead }) => {
   const handleNotificationClick = (n: AppNotification) => {
-      // Mark specific one as read
-      setNotifications(prev => prev.map(item => item.id === n.id ? { ...item, isRead: true } : item));
-      if (n.actionScreen) {
-          onNavigate(n.actionScreen);
-      }
+    onMarkRead(n.id);
+    if (n.actionScreen) onNavigate(n.actionScreen);
   };
 
   const getIcon = (type: string) => {
@@ -56,7 +46,7 @@ export const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ onBack
            </button>
            <h1 className="font-bold text-white text-lg">Bildirimler</h1>
         </div>
-        <button onClick={markAllRead} className="text-xs text-primary font-bold">Tümünü Oku</button>
+        <button onClick={onMarkAllRead} className="text-xs text-primary font-bold">Tümünü Oku</button>
       </div>
 
       <div className="p-4 space-y-3">
