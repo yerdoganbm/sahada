@@ -118,7 +118,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
       <div className="px-4 md:px-6 space-y-4 md:space-y-6 stagger-container">
         
-        {/* TEAM NAME BANNER (New) */}
+        {/* TEAM NAME BANNER */}
         {teamProfile && (
              <div className="text-center py-2 animate-fadeInUp">
                  <h2 className="text-xl md:text-2xl font-black text-slate-800 uppercase tracking-tighter gradient-text" style={{ color: teamProfile.colors[0] }}>
@@ -134,7 +134,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 onClick={() => onNavigate('matchDetails', { id: nextMatch.id })}
                 className="w-full aspect-[16/10] md:aspect-[4/3] rounded-3xl md:rounded-[32px] relative overflow-hidden shadow-2xl shadow-teal-900/20 cursor-pointer hover-lift btn-press group animate-scaleIn"
             >
-                {/* Map Background Image */}
                 <div className="absolute inset-0 bg-[url('https://api.mapbox.com/styles/v1/mapbox/dark-v10/static/29.0,41.0,13.5,0/600x400?access_token=pk.eyJ1IjoiZXhhbXBsZSIsImEiOiJja2xsN3F3OG0wMDc2MnB0Ynh5cm15ZnVyIn0.7j_k9lQ6y0d3y0q0f0g0g0')] bg-cover bg-center opacity-60 mix-blend-multiply"></div>
                 <div className="absolute inset-0 bg-gradient-to-b from-teal-900/80 via-teal-900/40 to-teal-950/90"></div>
 
@@ -191,7 +190,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
             </div>
         )}
 
-        {/* Pending Approvals (For Captain) */}
+        {/* Pending Approvals */}
         {isCaptain && pendingApprovals.length > 0 && (
             <div 
               onClick={() => onNavigate('polls')}
@@ -212,7 +211,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
             </div>
         )}
 
-        {/* Quick Actions - Mobile optimized horizontal scroll */}
+        {/* Quick Actions */}
         <div className="animate-fadeInUp delay-300">
             <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3 px-1">Hızlı İşlemler</h3>
             <div className="horizontal-scroll">
@@ -273,10 +272,12 @@ export const Dashboard: React.FC<DashboardProps> = ({
                             </div>
                         )}
                     </div>
-                    </div>
                     <div className="flex gap-2">
-                        <button onClick={() => onRsvpChange('yes')} className={`w-8 h-8 rounded-full flex items-center justify-center transition-all hover-scale btn-press ${rsvpStatus === 'yes' ? 'bg-primary text-white shadow-lg animate-glow' : 'bg-white text-slate-400 border border-slate-200'}`}>
+                        <button onClick={() => onRsvpChange('yes')} className={`w-8 h-8 rounded-full flex items-center justify-center transition-all hover-scale btn-press ${rsvpStatus === 'yes' ? 'bg-primary text-white shadow-lg' : 'bg-white text-slate-400 border border-slate-200'}`}>
                             <Icon name="check" size={16} />
+                        </button>
+                        <button onClick={() => onRsvpChange('maybe')} className={`w-8 h-8 rounded-full flex items-center justify-center transition-all hover-scale btn-press ${rsvpStatus === 'maybe' ? 'bg-yellow-500 text-white shadow-lg' : 'bg-white text-slate-400 border border-slate-200'}`}>
+                            <Icon name="question_mark" size={16} />
                         </button>
                         <button onClick={() => onRsvpChange('no')} className={`w-8 h-8 rounded-full flex items-center justify-center transition-all hover-scale btn-press ${rsvpStatus === 'no' ? 'bg-red-500 text-white shadow-lg' : 'bg-white text-slate-400 border border-slate-200'}`}>
                             <Icon name="close" size={16} />
