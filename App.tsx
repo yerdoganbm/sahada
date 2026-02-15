@@ -1508,15 +1508,7 @@ function App() {
         {/* Main Content */}
         {renderScreen()}
 
-        {/* Mobile Bottom Navigation */}
-        {currentUser && currentScreen !== 'welcome' && currentScreen !== 'login' && (
-          <BottomNav
-            currentScreen={currentScreen}
-            onNavigate={navigateTo}
-            userRole={currentUser.role}
-          />
-        )}
-
+        {/* Bottom Navigation - REMOVED */}
         {/* Install PWA Banner */}
         {currentUser && <InstallBanner />}
       </div>

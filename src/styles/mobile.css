@@ -145,7 +145,7 @@
 
   /* Content Padding for Fixed Nav */
   .mobile-content {
-    padding-bottom: 78px; /* Adjusted for new bottom nav height */
+    padding-bottom: 20px; /* Removed bottom nav padding */
     min-height: 100vh;
     background: #0B0F1A;
   }
