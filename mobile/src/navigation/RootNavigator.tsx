@@ -5,8 +5,10 @@
 
 import React from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
+import { ActivityIndicator, View } from 'react-native';
 import { useAuth } from '../contexts/AuthContext';
 import { RootStackParamList } from '../types';
+import { colors } from '../theme';
 
 // Auth Screens
 import WelcomeScreen from '../screens/WelcomeScreen';
@@ -29,7 +31,22 @@ import {
 const Stack = createStackNavigator<RootStackParamList>();
 
 export default function RootNavigator() {
-  const { user } = useAuth();
+  const { user, isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <View
+        style={{
+          flex: 1,
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: '#0B0F1A',
+        }}
+      >
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
 
   return (
     <Stack.Navigator
@@ -60,7 +77,7 @@ export default function RootNavigator() {
             }}
           />
           <Stack.Screen name="VenueDetails" component={VenueDetailsScreen} />
-          <Stack.Screen name="Profile" component={ProfileScreen} />
+          <Stack.Screen name="ProfileDetails" component={ProfileScreen} />
           <Stack.Screen name="Settings" component={SettingsScreen} />
           <Stack.Screen name="MatchCreate" component={MatchCreateScreen} />
           <Stack.Screen name="Admin" component={AdminDashboardScreen} />

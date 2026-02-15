@@ -13,7 +13,7 @@ import {
   Image,
   RefreshControl,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { CommonActions, useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useAuth } from '../contexts/AuthContext';
@@ -42,12 +42,12 @@ export default function DashboardScreen() {
       <View style={styles.header}>
         <View style={styles.profileSection}>
           <TouchableOpacity
-            onPress={() => navigation.navigate('Profile')}
+            onPress={() => navigation.navigate('MainTabs', { screen: 'Profile' })}
             activeOpacity={0.8}
           >
             <View style={styles.avatarContainer}>
               <Image
-                source={{ uri: user?.avatar }}
+                source={{ uri: user?.avatar || 'https://i.pravatar.cc/150?u=guest' }}
                 style={styles.avatar}
               />
               <View style={styles.statusIndicator} />
@@ -143,7 +143,11 @@ export default function DashboardScreen() {
               icon="account-group"
               label="Kadro"
               color="#10B981"
-              onPress={() => navigation.getParent()?.navigate('Team')}
+              onPress={() =>
+                navigation.dispatch(
+                  CommonActions.navigate('MainTabs', { screen: 'Team' })
+                )
+              }
             />
             <QuickActionButton
               icon="poll"
