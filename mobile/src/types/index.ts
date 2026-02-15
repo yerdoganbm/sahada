@@ -105,6 +105,8 @@ export interface Transaction {
 export interface TeamProfile {
   id: string;
   name: string;
+  shortName?: string;
+  inviteCode?: string;
   logo?: string;
   colors: string[];
   founderName: string;

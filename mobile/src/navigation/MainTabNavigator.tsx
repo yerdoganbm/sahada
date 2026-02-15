@@ -58,7 +58,6 @@ export default function MainTabNavigator() {
           tabBarIcon: ({ color, size }) => (
             <Icon name="soccer" size={size} color={color} />
           ),
-          tabBarBadge: 3, // TODO: Dynamic badge for upcoming matches
         }}
       />
       

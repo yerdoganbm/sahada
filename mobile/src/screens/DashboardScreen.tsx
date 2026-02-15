@@ -3,7 +3,7 @@
  * Main home screen after login
  */
 
-import React from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -12,6 +12,9 @@ import {
   StyleSheet,
   Image,
   RefreshControl,
+  ActivityIndicator,
+  Share,
+  Alert,
 } from 'react-native';
 import { CommonActions, useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -19,19 +22,46 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useAuth } from '../contexts/AuthContext';
 import { RootStackParamList } from '../types';
 import { colors, spacing, borderRadius, typography, shadows } from '../theme';
+import { getMatches } from '../services/matches';
+import { hapticLight } from '../utils/haptic';
+import type { Match } from '../types';
 
 type DashboardNavigationProp = StackNavigationProp<RootStackParamList>;
+
+function formatMatchDay(dateStr: string): string {
+  const d = new Date(dateStr);
+  const today = new Date();
+  if (d.toDateString() === today.toDateString()) return 'BUGÜN';
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  if (d.toDateString() === tomorrow.toDateString()) return 'YARIN';
+  return d.toLocaleDateString('tr-TR', { weekday: 'short', day: 'numeric', month: 'short' });
+}
 
 export default function DashboardScreen() {
   const navigation = useNavigation<DashboardNavigationProp>();
   const { user } = useAuth();
-  const [refreshing, setRefreshing] = React.useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [upcomingMatches, setUpcomingMatches] = useState<Match[]>([]);
+  const [loadingMatches, setLoadingMatches] = useState(true);
 
-  const onRefresh = React.useCallback(() => {
-    setRefreshing(true);
-    // TODO: Fetch latest data
-    setTimeout(() => setRefreshing(false), 1000);
+  const fetchUpcoming = useCallback(async () => {
+    const list = await getMatches({ upcoming: true });
+    setUpcomingMatches(list);
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoadingMatches(true);
+    fetchUpcoming().finally(() => { if (!cancelled) setLoadingMatches(false); });
+    return () => { cancelled = true; };
+  }, [fetchUpcoming]);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await fetchUpcoming();
+    setRefreshing(false);
+  }, [fetchUpcoming]);
 
   const isAdmin = user?.role === 'admin';
   const isCaptain = user?.isCaptain;
@@ -89,34 +119,66 @@ export default function DashboardScreen() {
         }
       >
         {/* Next Match Card */}
-        <TouchableOpacity
-          style={styles.matchCard}
-          activeOpacity={0.9}
-          onPress={() => navigation.navigate('MatchDetails', { matchId: 'm1' })}
-        >
-          <View style={styles.matchCardGradient} />
-          
-          <View style={styles.matchCardTop}>
-            <View style={styles.todayBadge}>
-              <Text style={styles.todayBadgeText}>BUGÜN</Text>
+        {loadingMatches ? (
+          <View style={[styles.matchCard, styles.matchCardLoading]}>
+            <ActivityIndicator size="large" color={colors.primary} />
+            <Text style={styles.matchCardLoadingText}>Maçlar yükleniyor...</Text>
+          </View>
+        ) : upcomingMatches.length > 0 ? (
+          <TouchableOpacity
+            style={styles.matchCard}
+            activeOpacity={0.9}
+            onPress={() => navigation.navigate('MatchDetails', { matchId: upcomingMatches[0].id })}
+          >
+            <View style={styles.matchCardGradient} />
+            <View style={styles.matchCardTop}>
+              <View style={styles.todayBadge}>
+                <Text style={styles.todayBadgeText}>{formatMatchDay(upcomingMatches[0].date)}</Text>
+              </View>
+              <TouchableOpacity
+                style={styles.shareButton}
+                onPress={() => {
+                  hapticLight();
+                  const m = upcomingMatches[0];
+                  const msg = `${formatMatchDay(m.date)} ${m.time} - ${m.venue || m.location || 'Saha'}. Sahada ile takip et.`;
+                  Share.share({ message: msg, title: 'Maç daveti' });
+                }}
+                accessibilityLabel="Maçı paylaş"
+                accessibilityRole="button"
+              >
+                <Icon name="share-variant" size={18} color={colors.text.primary} />
+              </TouchableOpacity>
             </View>
-            <TouchableOpacity style={styles.shareButton}>
-              <Icon name="share-variant" size={18} color={colors.text.primary} />
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.matchCardContent}>
-            <Text style={styles.matchTime}>Bu Akşam 20:00</Text>
-            <View style={styles.matchLocation}>
-              <Icon name="map-marker" size={16} color={colors.primary} />
-              <Text style={styles.matchLocationText}>Şehir Stadı</Text>
+            <View style={styles.matchCardContent}>
+              <Text style={styles.matchTime}>{upcomingMatches[0].time}</Text>
+              <TouchableOpacity
+                style={styles.matchLocation}
+                onPress={(e) => {
+                  e?.stopPropagation?.();
+                  if (upcomingMatches[0].venueId) {
+                    navigation.navigate('VenueDetails', { venueId: upcomingMatches[0].venueId! });
+                  }
+                }}
+                activeOpacity={upcomingMatches[0].venueId ? 0.7 : 1}
+                disabled={!upcomingMatches[0].venueId}
+              >
+                <Icon name="map-marker" size={16} color={colors.primary} />
+                <Text style={[styles.matchLocationText, !!upcomingMatches[0].venueId && styles.matchLocationLink]}>
+                  {upcomingMatches[0].venue || upcomingMatches[0].location || 'Saha'}
+                </Text>
+              </TouchableOpacity>
             </View>
+            <View style={styles.matchCardBottom}>
+              <Text style={styles.weatherText}>☁️ 18°C</Text>
+            </View>
+          </TouchableOpacity>
+        ) : (
+          <View style={[styles.matchCard, styles.matchCardEmpty]}>
+            <Icon name="soccer" size={32} color={colors.text.tertiary} />
+            <Text style={styles.matchCardEmptyText}>Sonraki maç planlanmadı</Text>
+            <Text style={styles.matchCardEmptySub}>Yönetim panelinden maç oluşturabilirsiniz.</Text>
           </View>
-
-          <View style={styles.matchCardBottom}>
-            <Text style={styles.weatherText}>☁️ 18°C</Text>
-          </View>
-        </TouchableOpacity>
+        )}
 
         {/* Quick Actions */}
         <View style={styles.section}>
@@ -135,7 +197,11 @@ export default function DashboardScreen() {
                   icon="account-plus"
                   label="Üyeler"
                   color="#3B82F6"
-                  onPress={() => {}}
+                  onPress={() =>
+                    navigation.dispatch(
+                      CommonActions.navigate('MainTabs', { screen: 'Team' })
+                    )
+                  }
                 />
               </>
             )}
@@ -153,48 +219,66 @@ export default function DashboardScreen() {
               icon="poll"
               label="Anketler"
               color="#F59E0B"
-              onPress={() => {}}
+              onPress={() =>
+                Alert.alert(
+                  'Anketler',
+                  'Maç ve kadro anketleri yakında eklenecek.',
+                  [{ text: 'Tamam' }]
+                )
+              }
             />
           </View>
         </View>
 
-        {/* Match Prep Progress */}
-        <View style={styles.section}>
-          <View style={styles.progressCard}>
-            <View style={styles.progressHeader}>
-              <View style={styles.progressTitle}>
-                <Icon name="weight-lifter" size={18} color={colors.text.tertiary} />
-                <Text style={styles.progressLabel}>Maç Hazırlığı</Text>
+        {/* Match Prep Progress - sonraki maç RSVP sayısı */}
+        {upcomingMatches.length > 0 && (
+          <View style={styles.section}>
+            <View style={styles.progressCard}>
+              <View style={styles.progressHeader}>
+                <View style={styles.progressTitle}>
+                  <Icon name="weight-lifter" size={18} color={colors.text.tertiary} />
+                  <Text style={styles.progressLabel}>Maç Hazırlığı</Text>
+                </View>
+                {(() => {
+                  const m = upcomingMatches[0];
+                  const yesCount = m.attendees?.filter((a) => a.status === 'YES').length ?? 0;
+                  const total = m.capacity ?? 14;
+                  const pct = total ? Math.round((yesCount / total) * 100) : 0;
+                  return (
+                    <Text style={styles.progressCount}>{yesCount}/{total} Hazır</Text>
+                  );
+                })()}
               </View>
-              <Text style={styles.progressCount}>12/14 Hazır</Text>
-            </View>
-
-            <View style={styles.progressBar}>
-              <View style={[styles.progressFill, { width: '85%' }]} />
-            </View>
-
-            <View style={styles.progressFooter}>
-              <View style={styles.avatarGroup}>
-                {[1, 2, 3].map((i) => (
-                  <Image
-                    key={i}
-                    source={{ uri: `https://i.pravatar.cc/150?u=${i}` }}
-                    style={styles.miniAvatar}
-                  />
-                ))}
+              <View style={styles.progressBar}>
+                {(() => {
+                  const m = upcomingMatches[0];
+                  const yesCount = m.attendees?.filter((a) => a.status === 'YES').length ?? 0;
+                  const total = m.capacity ?? 14;
+                  const pct = total ? (yesCount / total) * 100 : 0;
+                  return <View style={[styles.progressFill, { width: `${pct}%` }]} />;
+                })()}
               </View>
-
-              <View style={styles.rsvpButtons}>
-                <TouchableOpacity style={[styles.rsvpButton, styles.rsvpButtonYes]}>
-                  <Icon name="check" size={16} color={colors.text.primary} />
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.rsvpButton}>
-                  <Icon name="close" size={16} color={colors.text.tertiary} />
+              <View style={styles.progressFooter}>
+                <View style={styles.avatarGroup}>
+                  {[1, 2, 3].map((i) => (
+                    <Image
+                      key={i}
+                      source={{ uri: `https://i.pravatar.cc/150?u=${i}` }}
+                      style={styles.miniAvatar}
+                    />
+                  ))}
+                </View>
+                <TouchableOpacity
+                  style={styles.rsvpLink}
+                  onPress={() => navigation.navigate('MatchDetails', { matchId: upcomingMatches[0].id })}
+                >
+                  <Text style={styles.rsvpLinkText}>Katılımını belirt</Text>
+                  <Icon name="chevron-right" size={18} color={colors.primary} />
                 </TouchableOpacity>
               </View>
             </View>
           </View>
-        </View>
+        )}
       </ScrollView>
     </View>
   );
@@ -330,6 +414,30 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     ...shadows.lg,
   },
+  matchCardLoading: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  matchCardLoadingText: {
+    marginTop: spacing.sm,
+    fontSize: typography.fontSize.sm,
+    color: colors.text.secondary,
+  },
+  matchCardEmpty: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  matchCardEmptyText: {
+    marginTop: spacing.sm,
+    fontSize: typography.fontSize.md,
+    fontWeight: typography.fontWeight.semiBold,
+    color: colors.text.secondary,
+  },
+  matchCardEmptySub: {
+    marginTop: spacing.xs,
+    fontSize: typography.fontSize.sm,
+    color: colors.text.tertiary,
+  },
   matchCardGradient: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: `${colors.primary}20`,
@@ -379,6 +487,10 @@ const styles = StyleSheet.create({
     fontWeight: typography.fontWeight.medium,
     color: colors.text.secondary,
     marginLeft: spacing.xs,
+  },
+  matchLocationLink: {
+    textDecorationLine: 'underline',
+    color: colors.primary,
   },
   matchCardBottom: {
     position: 'absolute',
@@ -496,5 +608,15 @@ const styles = StyleSheet.create({
   rsvpButtonYes: {
     backgroundColor: colors.primary,
     borderColor: colors.primary,
+  },
+  rsvpLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  rsvpLinkText: {
+    fontSize: typography.fontSize.sm,
+    fontWeight: typography.fontWeight.semiBold,
+    color: colors.primary,
   },
 });

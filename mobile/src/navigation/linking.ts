@@ -46,6 +46,8 @@ export const linking: LinkingOptions<RootStackParamList> = {
   },
 };
 
-// Example usage:
-// WhatsApp message: "Maça gel! sahada://match/m123"
-// Opens app directly to match details
+// Kullanım (giriş yapılmış olmalı):
+// sahada://match/m123  → Maç detayı
+// sahada://venue/v1    → Saha detayı
+// sahada://user/7      → Profil detayı
+// Bildirim tıklanınca aynı URL'ler kullanılabilir.

@@ -3,7 +3,7 @@
  * User authentication with biometric support
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -18,11 +18,18 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import ReactNativeBiometrics from 'react-native-biometrics';
 import { useAuth } from '../contexts/AuthContext';
 import { RootStackParamList } from '../types';
 import { colors, spacing, borderRadius, typography } from '../theme';
+import { hapticLight } from '../utils/haptic';
+
+const BIOMETRIC_USER_KEY = '@sahada_biometric_user';
 
 type LoginScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Login'>;
+
+const rnBiometrics = new ReactNativeBiometrics();
 
 export default function LoginScreen() {
   const navigation = useNavigation<LoginScreenNavigationProp>();
@@ -30,8 +37,30 @@ export default function LoginScreen() {
   
   const [phone, setPhone] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [biometricAvailable, setBiometricAvailable] = useState(false);
+  const [savedUserId, setSavedUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const [sensor, userId] = await Promise.all([
+          rnBiometrics.isSensorAvailable(),
+          AsyncStorage.getItem(BIOMETRIC_USER_KEY),
+        ]);
+        if (!cancelled && sensor.available && userId) {
+          setBiometricAvailable(true);
+          setSavedUserId(userId);
+        }
+      } catch {
+        if (!cancelled) setBiometricAvailable(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   const handleLogin = async () => {
+    hapticLight();
     if (!phone.trim()) {
       Alert.alert('Hata', 'Lütfen telefon numaranızı giriniz.');
       return;
@@ -60,6 +89,25 @@ export default function LoginScreen() {
     }
   };
 
+  const handleBiometricLogin = async () => {
+    hapticLight();
+    if (!savedUserId) return;
+    setIsLoading(true);
+    try {
+      const { success } = await rnBiometrics.simplePrompt({
+        promptMessage: 'Sahada ile giriş yap',
+        cancelButtonText: 'İptal',
+      });
+      if (success) {
+        await login(savedUserId);
+      }
+    } catch (error) {
+      Alert.alert('Hata', 'Biyometrik doğrulama başarısız.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <KeyboardAvoidingView
       style={styles.container}
@@ -71,6 +119,8 @@ export default function LoginScreen() {
           style={styles.backButton}
           onPress={() => navigation.goBack()}
           activeOpacity={0.7}
+          accessibilityLabel="Geri"
+          accessibilityRole="button"
         >
           <Icon name="arrow-left" size={24} color={colors.text.primary} />
         </TouchableOpacity>
@@ -109,6 +159,8 @@ export default function LoginScreen() {
           onPress={handleLogin}
           disabled={isLoading}
           activeOpacity={0.8}
+          accessibilityLabel="Giriş yap"
+          accessibilityRole="button"
         >
           {isLoading ? (
             <ActivityIndicator color={colors.secondary} />
@@ -119,6 +171,21 @@ export default function LoginScreen() {
             </>
           )}
         </TouchableOpacity>
+
+        {/* Biometric Login */}
+        {biometricAvailable && (
+          <TouchableOpacity
+            style={styles.biometricButton}
+            onPress={handleBiometricLogin}
+            disabled={isLoading}
+            activeOpacity={0.8}
+          >
+            <Icon name="fingerprint" size={24} color={colors.primary} />
+            <Text style={styles.biometricButtonText}>
+              Face ID / Parmak izi ile giriş
+            </Text>
+          </TouchableOpacity>
+        )}
 
         {/* Divider */}
         <View style={styles.divider}>
@@ -243,6 +310,19 @@ const styles = StyleSheet.create({
   },
   loginButtonDisabled: {
     opacity: 0.7,
+  },
+  biometricButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: spacing.md,
+    marginBottom: spacing.sm,
+  },
+  biometricButtonText: {
+    color: colors.primary,
+    fontSize: typography.fontSize.md,
+    fontWeight: typography.fontWeight.semiBold,
+    marginLeft: spacing.sm,
   },
   loginButtonText: {
     color: colors.secondary,

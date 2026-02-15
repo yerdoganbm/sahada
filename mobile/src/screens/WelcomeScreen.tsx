@@ -114,6 +114,8 @@ export default function WelcomeScreen() {
             style={styles.primaryButton}
             onPress={() => navigation.navigate('Login')}
             activeOpacity={0.8}
+            accessibilityLabel="Hemen başla, giriş yap"
+            accessibilityRole="button"
           >
             <Text style={styles.primaryButtonText}>Hemen Başla</Text>
             <Icon name="arrow-right" size={20} color={colors.secondary} />
@@ -124,6 +126,8 @@ export default function WelcomeScreen() {
               style={styles.secondaryButton}
               onPress={() => navigation.navigate('TeamSetup')}
               activeOpacity={0.8}
+              accessibilityLabel="Takımını sıfırdan kur"
+              accessibilityRole="button"
             >
               <Icon name="plus-circle-outline" size={18} color={colors.text.secondary} />
               <Text style={styles.secondaryButtonText}>Takım Kur</Text>

@@ -19,14 +19,12 @@ import MainTabNavigator from './MainTabNavigator';
 
 // Detail Screens
 import ProfileScreen from '../screens/ProfileScreen';
-import {
-  MatchDetailsScreen,
-  VenueDetailsScreen,
-  SettingsScreen,
-  TeamSetupScreen,
-  MatchCreateScreen,
-  AdminDashboardScreen,
-} from '../screens/PlaceholderScreens';
+import SettingsScreen from '../screens/SettingsScreen';
+import TeamSetupScreen from '../screens/TeamSetupScreen';
+import MatchDetailsScreen from '../screens/MatchDetailsScreen';
+import VenueDetailsScreen from '../screens/VenueDetailsScreen';
+import MatchCreateScreen from '../screens/MatchCreateScreen';
+import AdminDashboardScreen from '../screens/AdminDashboardScreen';
 
 const Stack = createStackNavigator<RootStackParamList>();
 

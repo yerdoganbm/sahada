@@ -5,7 +5,11 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Player } from '../types';
+import { Player, TeamProfile } from '../types';
+import { setApiAuthUserId } from '../services/api';
+
+const TEAM_STORAGE_KEY = '@sahada_team';
+const BIOMETRIC_USER_KEY = '@sahada_biometric_user';
 
 interface AuthContextType {
   user: Player | null;
@@ -13,6 +17,7 @@ interface AuthContextType {
   login: (userId: string) => Promise<void>;
   logout: () => Promise<void>;
   updateUser: (updates: Partial<Player>) => Promise<void>;
+  createTeamAndLogin: (team: TeamProfile, founderName: string, founderEmail?: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -71,7 +76,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const savedUser = await AsyncStorage.getItem(STORAGE_KEY);
       if (savedUser) {
-        setUser(JSON.parse(savedUser));
+        const parsed = JSON.parse(savedUser);
+        setUser(parsed);
+        setApiAuthUserId(parsed.id ?? null);
+      } else {
+        setApiAuthUserId(null);
       }
     } catch (error) {
       console.error('Error loading user:', error);
@@ -87,7 +96,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       if (foundUser) {
         setUser(foundUser);
+        setApiAuthUserId(foundUser.id);
         await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(foundUser));
+        await AsyncStorage.setItem(BIOMETRIC_USER_KEY, foundUser.id);
         console.log('✅ Logged in as:', foundUser.name);
       } else {
         throw new Error('User not found');
@@ -101,11 +112,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = async () => {
     try {
       setUser(null);
+      setApiAuthUserId(null);
       await AsyncStorage.removeItem(STORAGE_KEY);
+      await AsyncStorage.removeItem(TEAM_STORAGE_KEY);
+      await AsyncStorage.removeItem(BIOMETRIC_USER_KEY);
       console.log('✅ Logged out');
     } catch (error) {
       console.error('Logout error:', error);
     }
+  };
+
+  const createTeamAndLogin = async (
+    team: TeamProfile,
+    founderName: string,
+    founderEmail?: string
+  ) => {
+    const newUser: Player = {
+      id: `new_admin_${Date.now()}`,
+      name: founderName,
+      position: 'MID',
+      rating: 7,
+      reliability: 100,
+      avatar: `https://i.pravatar.cc/150?u=${Date.now()}`,
+      role: 'admin',
+      isCaptain: true,
+      tier: 'free',
+      email: founderEmail,
+    };
+    await AsyncStorage.setItem(TEAM_STORAGE_KEY, JSON.stringify(team));
+    setUser(newUser);
+    setApiAuthUserId(newUser.id);
+    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(newUser));
+    await AsyncStorage.setItem(BIOMETRIC_USER_KEY, newUser.id);
+    console.log('✅ Takım kuruldu ve giriş yapıldı:', founderName);
   };
 
   const updateUser = async (updates: Partial<Player>) => {
@@ -122,7 +161,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, logout, updateUser }}>
+    <AuthContext.Provider value={{ user, isLoading, login, logout, updateUser, createTeamAndLogin }}>
       {children}
     </AuthContext.Provider>
   );
