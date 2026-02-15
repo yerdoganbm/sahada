@@ -57,7 +57,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const tierInfo = getTierInfo();
 
   return (
-    <div className="pb-24 bg-white min-h-screen text-slate-800 animate-fadeIn">
+    <div className="pb-16 md:pb-24 bg-white min-h-screen text-slate-800 animate-fadeIn">
       
       {/* Header Profile Section - Hide on mobile (MobileHeader will show) */}
       <div className="desktop-only px-6 pt-8 pb-4 flex justify-between items-center bg-white sticky top-0 z-40 animate-fadeInDown">
@@ -290,8 +290,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
   );
 };
 
-const QuickAction = ({ icon, label, color, onClick }: { icon: string, label: string, color: string, onClick: () => void }) => (
-    <button onClick={onClick} className="flex flex-col items-center gap-2 group btn-press hover-scale transition-all min-w-[72px] snap-center touch-feedback">
+const QuickAction = ({ icon, label, color, onClick }: { icon: string; label: string; color: string; onClick: () => void }) => (
+    <button onClick={onClick} className="flex flex-col items-center gap-2 group btn-press hover-scale transition-all min-w-[72px] snap-center touch-feedback quick-action-card">
         <div className={`w-14 h-14 rounded-[20px] flex items-center justify-center shadow-sm ${color} transition-all hover-lift`}>
             <Icon name={icon} size={26} />
         </div>
