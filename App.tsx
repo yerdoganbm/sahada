@@ -235,6 +235,11 @@ function App() {
   // GO BACK HANDLER
   // ===========================================
   const goBack = () => {
+    // Clear detail IDs when leaving detail screens to avoid stale state
+    if (currentScreen === 'matchDetails') setMatchDetailsId(null);
+    if (currentScreen === 'venueDetails') setVenueDetailsId(null);
+    if (currentScreen === 'reservationDetails') setReservationDetailsId(null);
+
     if (screenHistory.length > 0) {
       const previousScreen = screenHistory[screenHistory.length - 1];
       setScreenHistory(prev => prev.slice(0, -1));

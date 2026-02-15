@@ -10,7 +10,8 @@ export type ScreenName = 'welcome' | 'login' | 'joinTeam' | 'teamSetup' | 'creat
 
 export type SubscriptionTier = 'free' | 'premium' | 'partner';
 
-export type RsvpStatus = 'yes' | 'maybe' | 'no' | 'pending';
+/** Domain: Attendance. YES/NO/MAYBE + sonradan CANCELLED. */
+export type RsvpStatus = 'yes' | 'maybe' | 'no' | 'pending' | 'cancelled';
 
 export interface TeamProfile {
   id: string;
@@ -81,34 +82,40 @@ export interface Player {
   };
 }
 
+/** Domain: Match capacity 12 | 14 | 16. Kadro dolunca WAITLIST. */
+export type MatchCapacity = 12 | 14 | 16;
+
 export interface Match {
   id: string;
   date: string;
   time: string;
   location: string;
-  venueId?: string; // FIX #3: Link to venue for filtering
+  venueId?: string;
   opponent?: string;
   status: 'upcoming' | 'completed' | 'cancelled';
   score?: string;
   pricePerPerson: number;
-  attendees?: { // FIX #6: Per-match RSVP tracking
+  /** Capacity: 12, 14, or 16 (default 14). */
+  capacity?: MatchCapacity;
+  attendees?: {
     playerId: string;
     status: RsvpStatus;
   }[];
-  mvpVotes?: { // MVP voting
+  mvpVotes?: {
     playerId: string;
     voterId: string;
   }[];
-  mvpWinner?: string; // Final MVP winner
+  mvpWinner?: string;
 }
 
+/** Domain: Payment. PAID | PENDING | REFUND. */
 export interface Payment {
   id: string;
   playerId: string;
   amount: number;
-  status: 'paid' | 'pending' | 'failed' | 'waiting_approval';
+  status: 'paid' | 'pending' | 'failed' | 'waiting_approval' | 'refund';
   date?: string;
-  proofUrl?: string; // For receipt upload
+  proofUrl?: string;
 }
 
 export interface Transaction {

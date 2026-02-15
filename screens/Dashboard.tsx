@@ -131,7 +131,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
         {/* Main Match Card OR Empty State */}
         {hasMatches ? (
             <div 
-                onClick={() => onNavigate('matchDetails', { id: nextMatch.id })}
+                onClick={() => onNavigate('matchDetails', { matchId: nextMatch.id })}
                 className="w-full aspect-[16/10] md:aspect-[4/3] rounded-3xl md:rounded-[32px] relative overflow-hidden shadow-2xl shadow-teal-900/20 cursor-pointer hover-lift btn-press group animate-scaleIn"
             >
                 <div className="absolute inset-0 bg-[url('https://api.mapbox.com/styles/v1/mapbox/dark-v10/static/29.0,41.0,13.5,0/600x400?access_token=pk.eyJ1IjoiZXhhbXBsZSIsImEiOiJja2xsN3F3OG0wMDc2MnB0Ynh5cm15ZnVyIn0.7j_k9lQ6y0d3y0q0f0g0g0')] bg-cover bg-center opacity-60 mix-blend-multiply"></div>

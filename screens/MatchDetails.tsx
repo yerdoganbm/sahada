@@ -46,8 +46,24 @@ export const MatchDetails: React.FC<MatchDetailsProps> = ({
   const [newMessage, setNewMessage] = useState('');
   const chatEndRef = useRef<HTMLDivElement>(null);
 
-  const match = allMatches.find(m => m.id === matchId) || allMatches[0];
+  const match = allMatches.find(m => m.id === matchId) ?? allMatches[0] ?? null;
   const isCompleted = match.status === 'completed';
+
+  // P0: Guard against missing match (invalid id or empty list)
+  if (!match) {
+    return (
+      <div className="pb-8 bg-secondary min-h-screen flex flex-col items-center justify-center p-6">
+        <div className="w-16 h-16 rounded-full bg-alert/10 flex items-center justify-center mb-4">
+          <Icon name="error_outline" size={32} className="text-alert" />
+        </div>
+        <h2 className="text-white text-lg font-bold mb-2">Maç bulunamadı</h2>
+        <p className="text-slate-400 text-sm text-center mb-6">Maç silinmiş veya erişim yetkiniz yok.</p>
+        <button onClick={onBack} className="bg-primary text-secondary px-6 py-3 rounded-xl font-bold">
+          Geri Dön
+        </button>
+      </div>
+    );
+  }
 
   useEffect(() => {
       if (viewMode === 'chat') {
