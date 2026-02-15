@@ -139,6 +139,16 @@ function App() {
     if (user) {
       // User found - Log in with their role
       setCurrentUser(user);
+      // Giriş yapan kullanıcının takımını gösterebilmek için varsayılan takım (henüz takım kurulmadıysa)
+      setTeamProfile(prev => prev ?? {
+        id: 'default',
+        name: 'Sahada FC',
+        shortName: 'Sahada',
+        colors: ['#10B981', '#0B0F1A'],
+        foundedYear: '2024',
+        logo: '',
+        inviteCode: 'SAHADA-2024'
+      });
       
       // Sabit Test Senaryoları:
       if (userId === '1') {
@@ -912,7 +922,15 @@ function App() {
         }
         return (
           <div className="min-h-screen bg-secondary p-4">
-            <Header title="Maçlar" onBack={goBack} />
+            <Header
+              title="Maçlar"
+              onBack={goBack}
+              leftAction={
+                <button onClick={() => navigateTo('notifications')} className="p-2 rounded-full hover:bg-slate-800 transition-colors" aria-label="Bildirimler">
+                  <Icon name="notifications" className="text-slate-400" size={20} />
+                </button>
+              }
+            />
             <div className="space-y-3 mt-4">
               {matches.map(match => (
                 <MatchCard 
@@ -972,8 +990,10 @@ function App() {
             onBack={goBack}
             onNavigate={navigateTo}
             currentUser={currentUser}
+            teamProfile={teamProfile}
             onLogout={() => {
               setCurrentUser(null);
+              setTeamProfile(null);
               setScreenHistory([]);
               setCurrentScreen('welcome');
             }}
@@ -1121,6 +1141,7 @@ function App() {
           <Leaderboard 
             onBack={goBack}
             players={players}
+            currentUser={currentUser}
           />
         );
 
@@ -1502,7 +1523,7 @@ function App() {
             title={getScreenTitle(currentScreen)}
             showBack={screenHistory.length > 0 && currentScreen !== 'dashboard'}
             onBack={screenHistory.length > 0 && currentScreen !== 'dashboard' ? goBack : undefined}
-            rightAction={{
+            leftAction={{
               icon: 'notifications',
               onClick: () => navigateTo('notifications'),
               badge: 3, // TODO: Get real notification count

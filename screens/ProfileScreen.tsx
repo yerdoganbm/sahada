@@ -2,16 +2,17 @@
 import React from 'react';
 import { Header } from '../components/Header';
 import { Icon } from '../components/Icon';
-import { ScreenName, Player } from '../types';
+import { ScreenName, Player, TeamProfile } from '../types';
 
 interface ProfileScreenProps {
   onBack: () => void;
   onNavigate: (screen: ScreenName) => void;
   onLogout?: () => void;
   currentUser: Player;
+  teamProfile?: TeamProfile | null;
 }
 
-export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onBack, onNavigate, onLogout, currentUser }) => {
+export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onBack, onNavigate, onLogout, currentUser, teamProfile }) => {
   const isPremium = currentUser.tier === 'premium' || currentUser.tier === 'partner';
   const isPartner = currentUser.tier === 'partner';
   const isAdmin = currentUser.role === 'admin';
@@ -21,10 +22,15 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onBack, onNavigate
       <Header 
         title="Profilim"
         onBack={onBack}
+        leftAction={
+          <button onClick={() => onNavigate('notifications')} className="p-2 rounded-full hover:bg-slate-800 transition-colors" aria-label="Bildirimler">
+            <Icon name="notifications" className="text-slate-400" size={20} />
+          </button>
+        }
         rightAction={
-            <button onClick={() => onNavigate('settings')} className="p-2 text-slate-400 hover:text-white">
-                <Icon name="settings" />
-            </button>
+          <button onClick={() => onNavigate('settings')} className="p-2 rounded-full hover:bg-slate-800 transition-colors text-slate-400 hover:text-white">
+            <Icon name="settings" size={20} />
+          </button>
         }
       />
       <div className="p-4 flex flex-col items-center">
@@ -44,9 +50,16 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onBack, onNavigate
            {currentUser.name}
            {isPremium && <Icon name="verified" className={isPartner ? "text-blue-500" : "text-yellow-500"} size={20} />}
         </h2>
-        <p className="text-slate-400 mb-6 font-mono text-sm bg-surface px-3 py-1 rounded-full border border-white/5 mt-2">
+        <p className="text-slate-400 mb-1 font-mono text-sm bg-surface px-3 py-1 rounded-full border border-white/5 mt-2">
           #{currentUser.position} • {isPartner ? 'Saha Partneri' : isPremium ? 'Pro Baller' : 'Starter Üye'}
         </p>
+        {teamProfile && (
+          <p className="text-slate-500 mb-6 text-sm flex items-center justify-center gap-1.5">
+            <Icon name="groups" size={14} className="text-primary" />
+            <span className="font-semibold text-white/90">{teamProfile.name}</span>
+          </p>
+        )}
+        {!teamProfile && <div className="mb-6" />}
 
         {/* Upgrade Banner (Only if not Partner and not Premium) */}
         {!isPartner && !isPremium && (

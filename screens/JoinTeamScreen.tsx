@@ -37,15 +37,17 @@ export const JoinTeamScreen: React.FC<JoinTeamScreenProps> = ({ onBack, onSubmit
   };
 
   // Mock checking phone number (Simulating User Lookup)
-  const handleCheckPhone = () => {
-      if (phone.length < 10) {
-          alert('Lütfen geçerli bir telefon numarası giriniz.');
+  const handleCheckPhone = (e?: React.MouseEvent) => {
+      e?.preventDefault();
+      e?.stopPropagation();
+      const digitsOnly = phone.replace(/\D/g, '');
+      if (digitsOnly.length < 10) {
+          alert('Lütfen geçerli bir telefon numarası giriniz (en az 10 rakam).');
           return;
       }
       setIsLoading(true);
       setTimeout(() => {
           setIsLoading(false);
-          // Simulate: User not found, trigger registration flow
           setStep('register');
       }, 1000);
   };
@@ -115,6 +117,7 @@ export const JoinTeamScreen: React.FC<JoinTeamScreenProps> = ({ onBack, onSubmit
                    </div>
                    
                    <button 
+                       type="button"
                        onClick={handleCheckCode}
                        disabled={isLoading}
                        className="w-full bg-blue-600 hover:bg-blue-500 text-white py-4 rounded-2xl font-bold text-base shadow-lg transition-all active:scale-[0.98] mt-4 flex items-center justify-center gap-2"
@@ -148,6 +151,7 @@ export const JoinTeamScreen: React.FC<JoinTeamScreenProps> = ({ onBack, onSubmit
                             type="tel"
                             value={phone}
                             onChange={(e) => setPhone(e.target.value)}
+                            onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleCheckPhone(); } }}
                             placeholder="5XX XXX XX XX"
                             className="w-full bg-surface border border-white/10 rounded-xl pl-12 pr-4 py-4 text-white placeholder-slate-600 focus:outline-none focus:border-primary transition-all text-lg font-medium tracking-wide"
                             autoFocus
@@ -156,6 +160,7 @@ export const JoinTeamScreen: React.FC<JoinTeamScreenProps> = ({ onBack, onSubmit
                    </div>
                    
                    <button 
+                       type="button"
                        onClick={handleCheckPhone}
                        disabled={isLoading}
                        className="w-full bg-primary hover:bg-green-400 text-secondary py-4 rounded-2xl font-bold text-base shadow-glow transition-all active:scale-[0.98] mt-4 flex items-center justify-center gap-2"
@@ -216,6 +221,7 @@ export const JoinTeamScreen: React.FC<JoinTeamScreenProps> = ({ onBack, onSubmit
                     </div>
 
                     <button 
+                        type="button"
                         onClick={handleRegisterAndJoin}
                         disabled={isLoading}
                         className="w-full bg-primary hover:bg-green-400 text-secondary py-4 rounded-2xl font-bold text-base shadow-glow transition-all active:scale-[0.98] mt-4 flex items-center justify-center gap-2"

@@ -1,12 +1,31 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Icon } from '../components/Icon';
+import { Player } from '../types';
+
+const POS_LABEL: Record<string, string> = { GK: 'Kaleci', DEF: 'Defans', MID: 'Orta Saha', FWD: 'Forvet' };
 
 interface LeaderboardProps {
   onBack: () => void;
+  players?: Player[];
+  currentUser?: Player | null;
 }
 
-export const Leaderboard: React.FC<LeaderboardProps> = ({ onBack }) => {
+export const Leaderboard: React.FC<LeaderboardProps> = ({ onBack, players = [], currentUser }) => {
   const [filter, setFilter] = useState<'month' | 'year' | 'all'>('year');
+
+  // Liderlik istatistikleri: rating ve güvenilirlik sıralaması (takım verisinden)
+  const leadershipStats = useMemo(() => {
+    const byRating = [...players].sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0));
+    const byReliability = [...players].sort((a, b) => (b.reliability ?? 0) - (a.reliability ?? 0));
+    const ratingRank = currentUser ? byRating.findIndex(p => p.id === currentUser.id) + 1 : 0;
+    const reliabilityRank = currentUser ? byReliability.findIndex(p => p.id === currentUser.id) + 1 : 0;
+    return {
+      byRating: byRating.slice(0, 5).map((p, i) => ({ rank: i + 1, name: p.name, count: p.rating ?? 0, position: p.position, avatar: p.avatar })),
+      byReliability: byReliability.slice(0, 5).map((p, i) => ({ rank: i + 1, name: p.name, count: p.reliability ?? 0, position: p.position, avatar: p.avatar })),
+      ratingRank,
+      reliabilityRank
+    };
+  }, [players, currentUser]);
 
   // Mock Data mimicking the image
   const stats = {
@@ -43,7 +62,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ onBack }) => {
           <Icon name="arrow_back" className="text-white" />
         </button>
         <div className="text-center">
-            <h1 className="font-bold text-white text-lg">İstatistikler</h1>
+            <h1 className="font-bold text-white text-lg">Liderlik & İstatistikler</h1>
             <p className="text-[10px] text-slate-400">Grup Geneli Performans</p>
         </div>
         <div className="w-10"></div> {/* Spacer */}
@@ -144,6 +163,59 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ onBack }) => {
                 label="Devamlılık"
             />
 
+        </div>
+
+        {/* Liderlik İstatistikleri - Rating & Güvenilirlik */}
+        <div className="mt-8">
+          <div className="bg-amber-500/10 text-amber-400 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider mb-3 border border-amber-500/20 inline-block">
+            Liderlik İstatistikleri
+          </div>
+          <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+            <Icon name="leaderboard" className="text-amber-400" /> Takım içi sıralama
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <StatCard 
+              title="Puan (Rating)" 
+              icon="star" 
+              accentColor="text-amber-400" 
+              data={leadershipStats.byRating.map((p: any) => ({ ...p, position: `${p.position} • ${POS_LABEL[p.position] || p.position}` }))} 
+              label="TOP 5"
+            />
+            <StatCard 
+              title="Güvenilirlik (%)" 
+              icon="verified_user" 
+              accentColor="text-green-400" 
+              data={leadershipStats.byReliability.map((p: any) => ({ ...p, position: `${p.position} • ${POS_LABEL[p.position] || p.position}` }))} 
+              label="TOP 5"
+            />
+          </div>
+          {currentUser && (
+            <div className="mt-4 bg-surface rounded-2xl p-4 border border-white/10">
+              <h3 className="text-sm font-bold text-white mb-3 flex items-center gap-2">
+                <Icon name="person" className="text-primary" /> Senin sıralaman
+              </h3>
+              <div className="flex flex-wrap gap-4">
+                <div className="flex items-center gap-2 bg-white/5 rounded-xl px-4 py-2">
+                  <Icon name="star" size={18} className="text-amber-400" />
+                  <span className="text-slate-400 text-xs">Puan sıralaması</span>
+                  <span className="font-bold text-white">{leadershipStats.ratingRank > 0 ? `#${leadershipStats.ratingRank}` : '—'}</span>
+                </div>
+                <div className="flex items-center gap-2 bg-white/5 rounded-xl px-4 py-2">
+                  <Icon name="verified_user" size={18} className="text-green-400" />
+                  <span className="text-slate-400 text-xs">Güvenilirlik</span>
+                  <span className="font-bold text-white">{leadershipStats.reliabilityRank > 0 ? `#${leadershipStats.reliabilityRank}` : '—'}</span>
+                </div>
+                <div className="flex items-center gap-2 bg-white/5 rounded-xl px-4 py-2">
+                  <span className="text-slate-400 text-xs">Rating</span>
+                  <span className="font-bold text-primary">{currentUser.rating?.toFixed(1) ?? '—'}</span>
+                </div>
+                <div className="flex items-center gap-2 bg-white/5 rounded-xl px-4 py-2">
+                  <span className="text-slate-400 text-xs">Güvenilirlik</span>
+                  <span className="font-bold text-primary">%{currentUser.reliability ?? '—'}</span>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
       </div>

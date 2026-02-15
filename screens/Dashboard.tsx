@@ -76,21 +76,26 @@ export const Dashboard: React.FC<DashboardProps> = ({
               {currentUser.isCaptain && <span className="mr-1 text-yellow-600">©️</span>}
               {tierInfo.label.toUpperCase()}
             </div>
+            {teamProfile && (
+              <p className="text-[9px] text-slate-500 font-semibold mt-0.5 flex items-center gap-0.5">
+                <Icon name="groups" size={10} /> {teamProfile.name}
+              </p>
+            )}
           </div>
         </div>
         <div className="flex items-center gap-2 animate-slideInRight">
-          <button 
-              onClick={() => onNavigate('settings')}
-              className="w-10 h-10 rounded-full border border-slate-100 bg-slate-50 flex items-center justify-center transition-all hover:bg-slate-100 hover-scale btn-press"
-          >
-             <Icon name="settings" size={20} className="text-slate-600" />
-          </button>
           <button 
               onClick={() => onNavigate('notifications')}
               className={`w-10 h-10 rounded-full border flex items-center justify-center transition-all relative hover-scale btn-press ${hasNotification ? 'bg-slate-50 border-slate-100 text-slate-600' : 'bg-transparent border-transparent text-slate-300'}`}
           >
              <Icon name={hasNotification ? "notifications_active" : "notifications_off"} size={20} />
              {hasNotification && <div className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border border-white animate-pulse"></div>}
+          </button>
+          <button 
+              onClick={() => onNavigate('settings')}
+              className="w-10 h-10 rounded-full border border-slate-100 bg-slate-50 flex items-center justify-center transition-all hover:bg-slate-100 hover-scale btn-press"
+          >
+             <Icon name="settings" size={20} className="text-slate-600" />
           </button>
         </div>
       </div>
@@ -112,6 +117,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
               {currentUser.isCaptain && <span className="mr-1">©️</span>}
               {tierInfo.label.toUpperCase()}
             </div>
+            {teamProfile && (
+              <p className="text-[10px] text-slate-500 font-semibold mt-1 flex items-center gap-1">
+                <Icon name="groups" size={10} /> {teamProfile.name}
+              </p>
+            )}
           </div>
         </div>
       </div>
