@@ -20,81 +20,92 @@ interface MobileHeaderProps {
 export function MobileHeader({ title, showBack, onBack, rightAction }: MobileHeaderProps) {
   return (
     <header className="mobile-header mobile-only safe-top">
-      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-        {showBack && onBack && (
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
+        {showBack && onBack ? (
           <button
             onClick={onBack}
             className="tap-highlight"
             style={{
-              width: '40px',
-              height: '40px',
-              borderRadius: '12px',
-              background: 'rgba(255,255,255,0.05)',
-              border: 'none',
+              width: '36px',
+              height: '36px',
+              borderRadius: '10px',
+              background: 'rgba(255,255,255,0.08)',
+              border: '1px solid rgba(255,255,255,0.1)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               cursor: 'pointer',
+              flexShrink: 0,
             }}
             aria-label="Geri"
           >
-            <Icon name="arrow_back" />
+            <Icon name="arrow_back" style={{ fontSize: '20px', color: '#fff' }} />
           </button>
+        ) : (
+          <div style={{ width: '36px' }} /> // Spacer when no back button
         )}
         <h1
           style={{
-            fontSize: '18px',
+            fontSize: '17px',
             fontWeight: '700',
             color: '#fff',
             margin: 0,
+            flex: 1,
+            textAlign: showBack ? 'left' : 'center',
+            marginLeft: showBack ? '0' : '-36px', // Center when no back button
           }}
         >
           {title}
         </h1>
       </div>
 
-      {rightAction && (
-        <button
-          onClick={rightAction.onClick}
-          className="tap-highlight"
-          style={{
-            width: '40px',
-            height: '40px',
-            borderRadius: '12px',
-            background: 'rgba(255,255,255,0.05)',
-            border: 'none',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer',
-            position: 'relative',
-          }}
-          aria-label="Aksiyon"
-        >
-          <Icon name={rightAction.icon} />
-          {rightAction.badge && rightAction.badge > 0 && (
-            <span
-              style={{
-                position: 'absolute',
-                top: '4px',
-                right: '4px',
-                width: '18px',
-                height: '18px',
-                borderRadius: '50%',
-                background: '#ef4444',
-                color: '#fff',
-                fontSize: '10px',
-                fontWeight: '700',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              {rightAction.badge > 9 ? '9+' : rightAction.badge}
-            </span>
-          )}
-        </button>
-      )}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        {rightAction && (
+          <button
+            onClick={rightAction.onClick}
+            className="tap-highlight"
+            style={{
+              width: '36px',
+              height: '36px',
+              borderRadius: '10px',
+              background: 'rgba(255,255,255,0.08)',
+              border: '1px solid rgba(255,255,255,0.1)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              position: 'relative',
+              flexShrink: 0,
+            }}
+            aria-label="Aksiyon"
+          >
+            <Icon name={rightAction.icon} style={{ fontSize: '20px', color: '#fff' }} />
+            {rightAction.badge && rightAction.badge > 0 && (
+              <span
+                style={{
+                  position: 'absolute',
+                  top: '3px',
+                  right: '3px',
+                  minWidth: '16px',
+                  height: '16px',
+                  borderRadius: '8px',
+                  background: '#ef4444',
+                  color: '#fff',
+                  fontSize: '9px',
+                  fontWeight: '700',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '0 4px',
+                  border: '1.5px solid #0B0F1A',
+                }}
+              >
+                {rightAction.badge > 9 ? '9+' : rightAction.badge}
+              </span>
+            )}
+          </button>
+        )}
+      </div>
     </header>
   );
 }

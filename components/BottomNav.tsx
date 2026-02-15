@@ -16,21 +16,21 @@ interface BottomNavProps {
 export function BottomNav({ currentScreen, onNavigate, userRole = 'member' }: BottomNavProps) {
   const navItems = [
     { 
-      id: 'dashboard' as ScreenName, 
-      icon: 'home', 
-      label: 'Ana Sayfa',
-      roles: ['admin', 'member', 'venue_owner', 'scout']
-    },
-    { 
       id: 'team' as ScreenName, 
       icon: 'groups', 
       label: 'Takım',
       roles: ['admin', 'member']
     },
     {
-      id: 'matches' as ScreenName,
-      icon: 'sports_soccer',
-      label: 'Maçlar', 
+      id: 'venues' as ScreenName,
+      icon: 'stadium',
+      label: 'Sahalar', 
+      roles: ['admin', 'member', 'venue_owner']
+    },
+    { 
+      id: 'polls' as ScreenName, 
+      icon: 'poll', 
+      label: 'Anketler',
       roles: ['admin', 'member']
     },
     { 
