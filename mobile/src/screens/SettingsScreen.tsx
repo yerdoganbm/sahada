@@ -10,6 +10,7 @@ import {
   TouchableOpacity,
   ScrollView,
   Switch,
+  Alert,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
@@ -99,6 +100,31 @@ export default function SettingsScreen() {
             value={notifications.payments}
             onToggle={() => toggleNotification('payments')}
           />
+        </View>
+      </View>
+
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Görünüm</Text>
+        <View style={styles.card}>
+          <TouchableOpacity
+            style={styles.row}
+            onPress={() =>
+              Alert.alert(
+                'Tema',
+                'Açık ve koyu tema seçeneği yakında eklenecek.',
+                [{ text: 'Tamam' }]
+              )
+            }
+          >
+            <View style={styles.rowIcon}>
+              <Icon name="theme-light-dark" size={22} color={colors.primary} />
+            </View>
+            <View style={styles.rowContent}>
+              <Text style={styles.rowLabel}>Tema</Text>
+              <Text style={styles.rowDesc}>Koyu / Açık mod</Text>
+            </View>
+            <Icon name="chevron-right" size={22} color={colors.text.secondary} />
+          </TouchableOpacity>
         </View>
       </View>
 

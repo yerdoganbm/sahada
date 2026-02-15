@@ -12,6 +12,7 @@ import { StatusBar } from 'react-native';
 import RootNavigator from './navigation/RootNavigator';
 import { AuthProvider } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { linking } from './navigation/linking';
 
 function App(): React.JSX.Element {
@@ -19,16 +20,18 @@ function App(): React.JSX.Element {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <ThemeProvider>
-          <AuthProvider>
-            <StatusBar
-              barStyle="light-content"
-              backgroundColor="#0B0F1A"
-              translucent
-            />
-            <NavigationContainer linking={linking}>
-              <RootNavigator />
-            </NavigationContainer>
-          </AuthProvider>
+          <ErrorBoundary>
+            <AuthProvider>
+              <StatusBar
+                barStyle="light-content"
+                backgroundColor="#0B0F1A"
+                translucent
+              />
+              <NavigationContainer linking={linking}>
+                <RootNavigator />
+              </NavigationContainer>
+            </AuthProvider>
+          </ErrorBoundary>
         </ThemeProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>

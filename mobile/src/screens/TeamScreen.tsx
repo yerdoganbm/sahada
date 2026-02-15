@@ -83,6 +83,9 @@ export default function TeamScreen() {
           <View style={styles.empty}>
             <Icon name="account-group" size={48} color={colors.text.tertiary} />
             <Text style={styles.emptyText}>Henüz kayıtlı oyuncu yok</Text>
+            <TouchableOpacity style={styles.retryButton} onPress={onRefresh}>
+              <Text style={styles.retryButtonText}>Yeniden dene</Text>
+            </TouchableOpacity>
           </View>
         }
         renderItem={({ item }) => (
@@ -151,6 +154,18 @@ const styles = StyleSheet.create({
     marginTop: spacing.md,
     fontSize: typography.fontSize.md,
     color: colors.text.secondary,
+  },
+  retryButton: {
+    marginTop: spacing.lg,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.lg,
+    borderRadius: borderRadius.lg,
+    backgroundColor: colors.primary,
+  },
+  retryButtonText: {
+    fontSize: typography.fontSize.sm,
+    fontWeight: typography.fontWeight.semiBold,
+    color: colors.secondary,
   },
   playerCard: {
     flexDirection: 'row',

@@ -11,6 +11,7 @@ import {
   TouchableOpacity,
   Image,
   ActivityIndicator,
+  Share,
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -144,7 +145,18 @@ export default function MatchDetailsScreen() {
           <Icon name="arrow-left" size={24} color={colors.text.primary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Maç Detayı</Text>
-        <View style={styles.placeholder} />
+        <TouchableOpacity
+          style={styles.backBtn}
+          onPress={() => {
+            hapticLight();
+            const msg = `${formatMatchDate(displayMatch.date)} ${displayMatch.time} - ${displayMatch.venue || displayMatch.location || 'Saha'}. Sahada ile takip et.`;
+            Share.share({ message: msg, title: 'Maç daveti' });
+          }}
+          accessibilityLabel="Maçı paylaş"
+          accessibilityRole="button"
+        >
+          <Icon name="share-variant" size={22} color={colors.text.primary} />
+        </TouchableOpacity>
       </View>
 
       <View style={styles.card}>

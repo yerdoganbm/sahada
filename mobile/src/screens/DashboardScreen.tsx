@@ -177,6 +177,9 @@ export default function DashboardScreen() {
             <Icon name="soccer" size={32} color={colors.text.tertiary} />
             <Text style={styles.matchCardEmptyText}>Sonraki maç planlanmadı</Text>
             <Text style={styles.matchCardEmptySub}>Yönetim panelinden maç oluşturabilirsiniz.</Text>
+            <TouchableOpacity style={styles.retryButton} onPress={onRefresh}>
+              <Text style={styles.retryButtonText}>Yeniden dene</Text>
+            </TouchableOpacity>
           </View>
         )}
 
@@ -437,6 +440,19 @@ const styles = StyleSheet.create({
     marginTop: spacing.xs,
     fontSize: typography.fontSize.sm,
     color: colors.text.tertiary,
+  },
+  retryButton: {
+    marginTop: spacing.lg,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.lg,
+    borderRadius: borderRadius.lg,
+    backgroundColor: colors.primary,
+    alignSelf: 'center',
+  },
+  retryButtonText: {
+    fontSize: typography.fontSize.sm,
+    fontWeight: typography.fontWeight.semiBold,
+    color: colors.secondary,
   },
   matchCardGradient: {
     ...StyleSheet.absoluteFillObject,

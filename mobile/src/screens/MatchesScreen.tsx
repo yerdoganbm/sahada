@@ -130,6 +130,9 @@ export default function MatchesScreen() {
             <Text style={styles.emptyText}>
               {filter === 'upcoming' ? 'Yaklaşan maç yok' : 'Geçmiş maç yok'}
             </Text>
+            <TouchableOpacity style={styles.retryButton} onPress={onRefresh}>
+              <Text style={styles.retryButtonText}>Yeniden dene</Text>
+            </TouchableOpacity>
           </View>
         }
         renderItem={({ item }) => (
@@ -237,6 +240,18 @@ const styles = StyleSheet.create({
     marginTop: spacing.md,
     fontSize: typography.fontSize.md,
     color: colors.text.secondary,
+  },
+  retryButton: {
+    marginTop: spacing.lg,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.lg,
+    borderRadius: borderRadius.lg,
+    backgroundColor: colors.primary,
+  },
+  retryButtonText: {
+    fontSize: typography.fontSize.sm,
+    fontWeight: typography.fontWeight.semiBold,
+    color: colors.secondary,
   },
   matchCard: {
     backgroundColor: colors.surface,
