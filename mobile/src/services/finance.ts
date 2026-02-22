@@ -10,8 +10,10 @@ import {
   createReservation as createReservationInFirestore,
   addPayment as addPaymentInFirestore,
   addTransaction as addTransactionInFirestore,
+  updatePaymentProof as updatePaymentProofInFirestore,
   type Reservation,
 } from './firestore';
+import { uploadProofImage as uploadProofImageToStorage } from './storage';
 
 export type { Reservation };
 
@@ -65,4 +67,19 @@ export async function addTransaction(
   data: Parameters<typeof addTransactionInFirestore>[0]
 ): Promise<import('../types').Transaction> {
   return addTransactionInFirestore(data);
+}
+
+/** Dekont görselini yükleyip ödemeye bağlar. */
+export async function uploadAndSetPaymentProof(
+  paymentId: string,
+  localImageUri: string
+): Promise<string> {
+  const url = await uploadProofImageToStorage(paymentId, localImageUri);
+  await updatePaymentProofInFirestore(paymentId, url);
+  return url;
+}
+
+/** Ödeme dekont URL'ini günceller (Firestore). */
+export async function updatePaymentProof(paymentId: string, proofUrl: string): Promise<void> {
+  return updatePaymentProofInFirestore(paymentId, proofUrl);
 }

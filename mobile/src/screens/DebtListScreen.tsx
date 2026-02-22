@@ -11,14 +11,18 @@ import {
   TouchableOpacity,
   RefreshControl,
   ActivityIndicator,
+  Alert,
+  Linking,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
+import { launchImageLibrary } from 'react-native-image-picker';
 import { useAuth } from '../contexts/AuthContext';
-import { getPayments } from '../services/finance';
+import { getPayments, uploadAndSetPaymentProof } from '../services/finance';
 import { getTeamIdForUser } from '../services/players';
 import { RootStackParamList } from '../types';
+import type { Payment } from '../types';
 import { colors, spacing, borderRadius, typography } from '../theme';
 
 type NavProp = StackNavigationProp<RootStackParamList, 'DebtList'>;
@@ -26,7 +30,8 @@ type NavProp = StackNavigationProp<RootStackParamList, 'DebtList'>;
 export default function DebtListScreen() {
   const navigation = useNavigation<NavProp>();
   const { user } = useAuth();
-  const [debts, setDebts] = useState<Array<{ id: string; playerName: string; amount: number; month: string; dueDate?: string }>>([]);
+  const [debts, setDebts] = useState<Payment[]>([]);
+  const [uploadingId, setUploadingId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -48,6 +53,33 @@ export default function DebtListScreen() {
     await fetchData();
     setRefreshing(false);
   }, [fetchData]);
+
+  const handleUploadProof = useCallback(
+    async (payment: Payment) => {
+      if (payment.playerId !== user?.id) return;
+      const result = await launchImageLibrary({
+        mediaType: 'photo',
+        quality: 0.8,
+        maxWidth: 1200,
+      });
+      if (result.didCancel || result.errorCode || !result.assets?.[0]?.uri) return;
+      const uri = result.assets[0].uri;
+      setUploadingId(payment.id);
+      try {
+        await uploadAndSetPaymentProof(payment.id, uri);
+        await fetchData();
+      } catch (e) {
+        Alert.alert('Hata', e instanceof Error ? e.message : 'Dekont yüklenemedi');
+      } finally {
+        setUploadingId(null);
+      }
+    },
+    [user?.id, fetchData]
+  );
+
+  const handleViewProof = useCallback((url: string) => {
+    Linking.openURL(url).catch(() => Alert.alert('Hata', 'Dekont açılamadı'));
+  }, []);
 
   const totalDebt = debts.reduce((s, d) => s + d.amount, 0);
 
@@ -103,6 +135,32 @@ export default function DebtListScreen() {
                   {d.month || d.dueDate || '-'}
                   {d.dueDate ? ` • Vade: ${d.dueDate}` : ''}
                 </Text>
+                <View style={styles.proofRow}>
+                  {d.proofUrl ? (
+                    <TouchableOpacity
+                      style={styles.proofBtn}
+                      onPress={() => handleViewProof(d.proofUrl!)}
+                    >
+                      <Icon name="file-image" size={16} color={colors.primary} />
+                      <Text style={styles.proofBtnText}>Dekont Görüntüle</Text>
+                    </TouchableOpacity>
+                  ) : d.playerId === user?.id ? (
+                    <TouchableOpacity
+                      style={[styles.proofBtn, uploadingId === d.id && styles.proofBtnDisabled]}
+                      onPress={() => handleUploadProof(d)}
+                      disabled={!!uploadingId}
+                    >
+                      {uploadingId === d.id ? (
+                        <ActivityIndicator size="small" color={colors.primary} />
+                      ) : (
+                        <>
+                          <Icon name="camera-plus" size={16} color={colors.primary} />
+                          <Text style={styles.proofBtnText}>Dekont Yükle</Text>
+                        </>
+                      )}
+                    </TouchableOpacity>
+                  ) : null}
+                </View>
               </View>
               <Text style={styles.cardAmount}>₺{d.amount.toLocaleString('tr-TR')}</Text>
             </View>
@@ -181,4 +239,13 @@ const styles = StyleSheet.create({
   cardName: { fontSize: typography.fontSize.md, fontWeight: '600', color: colors.text.primary },
   cardMonth: { fontSize: typography.fontSize.xs, color: colors.text.tertiary, marginTop: 2 },
   cardAmount: { fontSize: typography.fontSize.lg, fontWeight: '700', color: colors.warning },
+  proofRow: { marginTop: spacing.sm },
+  proofBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    alignSelf: 'flex-start',
+  },
+  proofBtnDisabled: { opacity: 0.6 },
+  proofBtnText: { fontSize: typography.fontSize.xs, color: colors.primary, fontWeight: '600' },
 });

@@ -13,12 +13,14 @@ import {
   ActivityIndicator,
   TextInput,
   Alert,
+  Linking,
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
+import { launchImageLibrary } from 'react-native-image-picker';
 import { useAuth } from '../contexts/AuthContext';
-import { getPayments, addPayment } from '../services/finance';
+import { getPayments, addPayment, uploadAndSetPaymentProof } from '../services/finance';
 import { getTeamIdForUser, getPlayers } from '../services/players';
 import { canAccessAdminPanel } from '../utils/permissions';
 import { RootStackParamList } from '../types';
@@ -55,6 +57,7 @@ export default function PaymentLedgerScreen() {
   const [addStatus, setAddStatus] = useState<'PAID' | 'PENDING'>('PENDING');
   const [addMonth, setAddMonth] = useState(new Date().toISOString().slice(0, 7));
   const [addSubmitting, setAddSubmitting] = useState(false);
+  const [uploadingId, setUploadingId] = useState<string | null>(null);
   const canAdd = canAccessAdminPanel(user);
 
   const fetchData = useCallback(async () => {
@@ -114,6 +117,33 @@ export default function PaymentLedgerScreen() {
       setAddSubmitting(false);
     }
   };
+
+  const handleUploadProof = useCallback(
+    async (payment: Payment) => {
+      if (payment.playerId !== user?.id) return;
+      const result = await launchImageLibrary({
+        mediaType: 'photo',
+        quality: 0.8,
+        maxWidth: 1200,
+      });
+      if (result.didCancel || result.errorCode || !result.assets?.[0]?.uri) return;
+      const uri = result.assets[0].uri;
+      setUploadingId(payment.id);
+      try {
+        await uploadAndSetPaymentProof(payment.id, uri);
+        await fetchData();
+      } catch (e) {
+        Alert.alert('Hata', e instanceof Error ? e.message : 'Dekont yüklenemedi');
+      } finally {
+        setUploadingId(null);
+      }
+    },
+    [user?.id, fetchData]
+  );
+
+  const handleViewProof = useCallback((url: string) => {
+    Linking.openURL(url).catch(() => Alert.alert('Hata', 'Dekont açılamadı'));
+  }, []);
 
   const paidTotal = payments.filter((p) => p.status === 'PAID').reduce((s, p) => s + p.amount, 0);
   const pendingTotal = payments.filter((p) => p.status === 'PENDING').reduce((s, p) => s + p.amount, 0);
@@ -244,6 +274,31 @@ export default function PaymentLedgerScreen() {
                     {STATUS_LABELS[p.status] || p.status}
                   </Text>
                 </View>
+                {(p.proofUrl || (p.status === 'PENDING' && p.playerId === user?.id)) && (
+                  <View style={styles.proofRow}>
+                    {p.proofUrl ? (
+                      <TouchableOpacity style={styles.proofBtn} onPress={() => handleViewProof(p.proofUrl!)}>
+                        <Icon name="file-image" size={14} color={colors.primary} />
+                        <Text style={styles.proofBtnText}>Dekont</Text>
+                      </TouchableOpacity>
+                    ) : (
+                      <TouchableOpacity
+                        style={[styles.proofBtn, uploadingId === p.id && styles.proofBtnDisabled]}
+                        onPress={() => handleUploadProof(p)}
+                        disabled={!!uploadingId}
+                      >
+                        {uploadingId === p.id ? (
+                          <ActivityIndicator size="small" color={colors.primary} />
+                        ) : (
+                          <>
+                            <Icon name="camera-plus" size={14} color={colors.primary} />
+                            <Text style={styles.proofBtnText}>Dekont Yükle</Text>
+                          </>
+                        )}
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                )}
               </View>
             </View>
           ))
@@ -354,4 +409,8 @@ const styles = StyleSheet.create({
   addSubmitBtn: { backgroundColor: colors.primary, paddingVertical: spacing.md, borderRadius: borderRadius.lg, alignItems: 'center' },
   addSubmitDisabled: { opacity: 0.7 },
   addSubmitText: { fontSize: typography.fontSize.md, fontWeight: '700', color: colors.secondary },
+  proofRow: { marginTop: 4 },
+  proofBtn: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  proofBtnDisabled: { opacity: 0.6 },
+  proofBtnText: { fontSize: typography.fontSize.xs, color: colors.primary, fontWeight: '600' },
 });

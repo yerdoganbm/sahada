@@ -11,9 +11,39 @@ import { StatusBar } from 'react-native';
 
 import RootNavigator from './navigation/RootNavigator';
 import { AuthProvider } from './contexts/AuthContext';
-import { ThemeProvider } from './contexts/ThemeContext';
+import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { linking } from './navigation/linking';
+
+function AppContent(): React.JSX.Element {
+  const { mode, colors } = useTheme();
+  const isDark = mode === 'dark';
+  return (
+    <>
+      <StatusBar
+        barStyle={isDark ? 'light-content' : 'dark-content'}
+        backgroundColor={colors.background.primary}
+        translucent
+      />
+      <NavigationContainer
+        linking={linking}
+        theme={{
+          dark: isDark,
+          colors: {
+            primary: colors.primary,
+            background: colors.background.primary,
+            card: colors.background.secondary,
+            text: colors.text.primary,
+            border: colors.border?.light ?? 'rgba(255,255,255,0.1)',
+            notification: colors.primary,
+          },
+        }}
+      >
+        <RootNavigator />
+      </NavigationContainer>
+    </>
+  );
+}
 
 function App(): React.JSX.Element {
   return (
@@ -22,14 +52,7 @@ function App(): React.JSX.Element {
         <ThemeProvider>
           <ErrorBoundary>
             <AuthProvider>
-              <StatusBar
-                barStyle="light-content"
-                backgroundColor="#0B0F1A"
-                translucent
-              />
-              <NavigationContainer linking={linking}>
-                <RootNavigator />
-              </NavigationContainer>
+              <AppContent />
             </AuthProvider>
           </ErrorBoundary>
         </ThemeProvider>

@@ -3,41 +3,64 @@
  * Design tokens and styling constants
  */
 
-export const colors = {
-  primary: '#10B981',      // Emerald-500
-  secondary: '#0B0F1A',    // Deep Navy
-  surface: '#151e32',      // Card background
-  alert: '#F59E0B',        // Warning Orange
-  
-  // Status colors
+export const colorsDark = {
+  primary: '#10B981',
+  secondary: '#0B0F1A',
+  surface: '#151e32',
+  alert: '#F59E0B',
   success: '#10B981',
   error: '#EF4444',
   warning: '#F59E0B',
   info: '#3B82F6',
-  
-  // Text colors
   text: {
     primary: '#FFFFFF',
     secondary: '#94A3B8',
     tertiary: '#64748B',
     disabled: '#475569',
   },
-  
-  // Background colors
   background: {
     primary: '#0B0F1A',
     secondary: '#151e32',
     tertiary: '#1E293B',
     overlay: 'rgba(0, 0, 0, 0.7)',
   },
-  
-  // Border colors
   border: {
     light: 'rgba(255, 255, 255, 0.1)',
     medium: 'rgba(255, 255, 255, 0.2)',
     dark: 'rgba(0, 0, 0, 0.2)',
   },
 };
+
+export const colorsLight = {
+  primary: '#059669',
+  secondary: '#FFFFFF',
+  surface: '#F1F5F9',
+  alert: '#F59E0B',
+  success: '#10B981',
+  error: '#EF4444',
+  warning: '#F59E0B',
+  info: '#3B82F6',
+  text: {
+    primary: '#0F172A',
+    secondary: '#475569',
+    tertiary: '#64748B',
+    disabled: '#94A3B8',
+  },
+  background: {
+    primary: '#FFFFFF',
+    secondary: '#F8FAFC',
+    tertiary: '#F1F5F9',
+    overlay: 'rgba(0, 0, 0, 0.5)',
+  },
+  border: {
+    light: 'rgba(0, 0, 0, 0.08)',
+    medium: 'rgba(0, 0, 0, 0.15)',
+    dark: 'rgba(0, 0, 0, 0.2)',
+  },
+};
+
+/** @deprecated Use useTheme().colors for dynamic theme */
+export const colors = colorsDark;
 
 export const spacing = {
   xs: 4,
@@ -131,7 +154,7 @@ export const shadows = {
     elevation: 8,
   },
   glow: {
-    shadowColor: colors.primary,
+    shadowColor: colorsDark.primary,
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.3,
     shadowRadius: 10,
@@ -140,7 +163,7 @@ export const shadows = {
 };
 
 export const theme = {
-  colors,
+  colors: colorsDark,
   spacing,
   borderRadius,
   typography,

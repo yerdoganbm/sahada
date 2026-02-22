@@ -21,6 +21,7 @@ const COLLECTIONS = {
   tournament_teams: 'tournament_teams',
   bracket_matches: 'bracket_matches',
   subscription_plans: 'subscription_plans',
+  join_requests: 'join_requests',
 } as const;
 
 export interface NotificationItem {
@@ -742,6 +743,14 @@ export async function getBracketMatches(): Promise<BracketMatch[]> {
   });
 }
 
+/** Ödeme dekont URL'ini günceller. */
+export async function updatePaymentProof(paymentId: string, proofUrl: string): Promise<void> {
+  await firestore().collection(COLLECTIONS.payments).doc(paymentId).update({
+    proofUrl,
+    proofUpdatedAt: firestore.FieldValue.serverTimestamp(),
+  });
+}
+
 /** Ödeme ekler. */
 export async function addPayment(data: {
   playerId: string;
@@ -799,6 +808,102 @@ export async function addTransaction(data: {
     date: data.date,
     description: data.description ?? '',
     teamId: data.teamId,
+  };
+}
+
+export interface JoinRequestItem {
+  id: string;
+  teamId: string;
+  name: string;
+  phone: string;
+  position: 'GK' | 'DEF' | 'MID' | 'FWD';
+  avatar?: string;
+  status: 'pending' | 'approved' | 'rejected';
+  createdAt?: unknown;
+}
+
+/** Takımın katılım isteklerini getirir. */
+export async function getJoinRequests(teamId: string): Promise<JoinRequestItem[]> {
+  const snap = await firestore()
+    .collection(COLLECTIONS.join_requests)
+    .where('teamId', '==', teamId)
+    .limit(50)
+    .get();
+  const list = snap.docs.map((doc) => {
+    const d = (doc.data() || {}) as Record<string, unknown>;
+    return {
+      id: doc.id,
+      teamId: (d.teamId as string) ?? '',
+      name: (d.name as string) ?? '',
+      phone: (d.phone as string) ?? '',
+      position: (d.position as JoinRequestItem['position']) ?? 'MID',
+      avatar: (d.avatar as string) || `https://i.pravatar.cc/150?u=${doc.id}`,
+      status: ((d.status as string) ?? 'pending') as JoinRequestItem['status'],
+      createdAt: d.createdAt,
+    };
+  });
+  return list.filter((r) => r.status === 'pending');
+}
+
+/** Katılım isteğini onaylar – users'a ekler ve status günceller. */
+export async function approveJoinRequest(requestId: string): Promise<void> {
+  const ref = firestore().collection(COLLECTIONS.join_requests).doc(requestId);
+  const doc = await ref.get();
+  if (!doc.exists) throw new Error('Katılım isteği bulunamadı');
+  const d = doc.data() || {};
+  const teamId = d.teamId as string;
+  const name = (d.name as string) ?? '';
+  const phone = (d.phone as string) ?? '';
+  const position = (d.position as string) ?? 'MID';
+  const avatar = (d.avatar as string) || `https://i.pravatar.cc/150?u=${requestId}`;
+
+  await firestore().collection(COLLECTIONS.users).add({
+    teamId,
+    name,
+    phone: phone || null,
+    position,
+    role: 'member',
+    rating: 6,
+    reliability: 100,
+    avatar,
+    createdAt: firestore.FieldValue.serverTimestamp(),
+  });
+  await ref.update({ status: 'approved' });
+}
+
+/** Katılım isteğini reddeder. */
+export async function rejectJoinRequest(requestId: string): Promise<void> {
+  await firestore().collection(COLLECTIONS.join_requests).doc(requestId).update({ status: 'rejected' });
+}
+
+/** Yeni katılım isteği oluşturur (oyuncu önerisi). */
+export async function createJoinRequest(data: {
+  teamId: string;
+  name: string;
+  phone: string;
+  position: 'GK' | 'DEF' | 'MID' | 'FWD';
+  referrerId?: string;
+}): Promise<JoinRequestItem> {
+  const ref = await firestore().collection(COLLECTIONS.join_requests).add({
+    teamId: data.teamId,
+    name: data.name.trim(),
+    phone: data.phone.trim(),
+    position: data.position,
+    status: 'pending',
+    referrerId: data.referrerId ?? null,
+    createdAt: firestore.FieldValue.serverTimestamp(),
+  });
+  const doc = await ref.get();
+  const d = (doc.data() || {}) as Record<string, unknown>;
+  return {
+    id: ref.id,
+    teamId: (d.teamId as string) ?? '',
+    name: (d.name as string) ?? '',
+    phone: (d.phone as string) ?? '',
+    position: (d.position as JoinRequestItem['position']) ?? 'MID',
+    avatar: (d.avatar as string) || `https://i.pravatar.cc/150?u=${ref.id}`,
+    status: 'pending',
+    createdAt: d.createdAt,
   };
 }
 

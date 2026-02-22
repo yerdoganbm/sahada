@@ -30,8 +30,10 @@ import {
   addManualPlayer,
   getTeamIdForUser,
 } from '../services/players';
+import { getJoinRequests, approveJoinRequest, rejectJoinRequest, createJoinRequest } from '../services/joinRequests';
+import type { JoinRequestItem } from '../services/joinRequests';
 import { colors, spacing, borderRadius, typography } from '../theme';
-import type { Player, JoinRequest } from '../types';
+import type { Player } from '../types';
 
 const POS_LABEL: Record<string, string> = { GK: 'Kaleci', DEF: 'Defans', MID: 'Orta Saha', FWD: 'Forvet' };
 const POSITIONS: Array<'GK' | 'DEF' | 'MID' | 'FWD'> = ['GK', 'DEF', 'MID', 'FWD'];
@@ -43,7 +45,7 @@ export default function MemberManagementScreen() {
 
   const [activeTab, setActiveTab] = useState<'members' | 'requests'>('members');
   const [players, setPlayers] = useState<Player[]>([]);
-  const [joinRequests, setJoinRequests] = useState<JoinRequest[]>([]);
+  const [joinRequests, setJoinRequests] = useState<JoinRequestItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -53,6 +55,7 @@ export default function MemberManagementScreen() {
   const [newPlayerName, setNewPlayerName] = useState('');
   const [newPlayerPos, setNewPlayerPos] = useState<'GK' | 'DEF' | 'MID' | 'FWD'>('MID');
   const [addingPlayer, setAddingPlayer] = useState(false);
+  const [requestActionId, setRequestActionId] = useState<string | null>(null);
 
   const [selectedMember, setSelectedMember] = useState<Player | null>(null);
   const [showProposeModal, setShowProposeModal] = useState(false);
@@ -61,14 +64,19 @@ export default function MemberManagementScreen() {
     position: 'MID' as 'GK' | 'DEF' | 'MID' | 'FWD',
     contactNumber: '',
   });
+  const [proposingPlayer, setProposingPlayer] = useState(false);
 
   const fetchData = useCallback(async () => {
-    const [list, code] = await Promise.all([
-      getPlayers(),
-      user?.id ? getTeamInviteCode(user.id) : Promise.resolve(null),
+    if (!user?.id) return;
+    const teamId = await getTeamIdForUser(user.id);
+    const [list, code, requests] = await Promise.all([
+      getPlayers(teamId ? { teamId } : undefined),
+      getTeamInviteCode(user.id),
+      teamId ? getJoinRequests(teamId) : Promise.resolve([]),
     ]);
     setPlayers(list);
     setInviteCode(code ?? 'SAHADA-2024');
+    setJoinRequests(requests);
   }, [user?.id]);
 
   useEffect(() => {
@@ -146,14 +154,63 @@ export default function MemberManagementScreen() {
     }
   };
 
-  const handleProposePlayer = () => {
+  const handleApproveRequest = async (req: JoinRequestItem) => {
+    if (!canManage) return;
+    setRequestActionId(req.id);
+    try {
+      await approveJoinRequest(req.id);
+      setJoinRequests((prev) => prev.filter((r) => r.id !== req.id));
+      await fetchData(); // refresh players to show newly added member
+      Alert.alert('Başarılı', `${req.name} takıma eklendi.`);
+    } catch (e) {
+      Alert.alert('Hata', 'İstek onaylanamadı.');
+    } finally {
+      setRequestActionId(null);
+    }
+  };
+
+  const handleRejectRequest = async (req: JoinRequestItem) => {
+    if (!canManage) return;
+    setRequestActionId(req.id);
+    try {
+      await rejectJoinRequest(req.id);
+      setJoinRequests((prev) => prev.filter((r) => r.id !== req.id));
+      Alert.alert('Reddedildi', `${req.name} isteği reddedildi.`);
+    } catch (e) {
+      Alert.alert('Hata', 'İstek reddedilemedi.');
+    } finally {
+      setRequestActionId(null);
+    }
+  };
+
+  const handleProposePlayer = async () => {
     if (!proposeForm.name.trim() || !proposeForm.contactNumber.trim()) {
       Alert.alert('Uyarı', 'İsim ve telefon gerekli.');
       return;
     }
-    Alert.alert('Bilgi', 'Oyuncu önerisi yakında eklenecek.');
-    setProposeForm({ name: '', position: 'MID', contactNumber: '' });
-    setShowProposeModal(false);
+    const teamId = user?.id ? await getTeamIdForUser(user.id) : null;
+    if (!teamId) {
+      Alert.alert('Hata', 'Takım bilgisi bulunamadı.');
+      return;
+    }
+    setProposingPlayer(true);
+    try {
+      await createJoinRequest({
+        teamId,
+        name: proposeForm.name.trim(),
+        phone: proposeForm.contactNumber.trim(),
+        position: proposeForm.position,
+        referrerId: user?.id,
+      });
+      setProposeForm({ name: '', position: 'MID', contactNumber: '' });
+      setShowProposeModal(false);
+      Alert.alert('Başarılı', 'Oyuncu önerisi gönderildi. Admin onaylayacak.');
+      await fetchData();
+    } catch (e) {
+      Alert.alert('Hata', 'Öneri gönderilemedi.');
+    } finally {
+      setProposingPlayer(false);
+    }
   };
 
   const renderRoleBadge = (p: Player) => {
@@ -300,16 +357,22 @@ export default function MemberManagementScreen() {
                   </View>
                   <View style={styles.requestActions}>
                     <TouchableOpacity
-                      style={styles.rejectBtn}
-                      onPress={() => setJoinRequests((prev) => prev.filter((r) => r.id !== req.id))}
+                      style={[styles.rejectBtn, requestActionId === req.id && styles.btnDisabled]}
+                      onPress={() => handleRejectRequest(req)}
+                      disabled={!!requestActionId || !canManage}
                     >
-                      <Text style={styles.rejectBtnText}>Reddet</Text>
+                      <Text style={styles.rejectBtnText}>
+                        {requestActionId === req.id ? '...' : 'Reddet'}
+                      </Text>
                     </TouchableOpacity>
                     <TouchableOpacity
-                      style={styles.approveBtn}
-                      onPress={() => setJoinRequests((prev) => prev.filter((r) => r.id !== req.id))}
+                      style={[styles.approveBtn, requestActionId === req.id && styles.btnDisabled]}
+                      onPress={() => handleApproveRequest(req)}
+                      disabled={!!requestActionId || !canManage}
                     >
-                      <Text style={styles.approveBtnText}>Onayla</Text>
+                      <Text style={styles.approveBtnText}>
+                        {requestActionId === req.id ? '...' : 'Onayla'}
+                      </Text>
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -521,8 +584,12 @@ export default function MemberManagementScreen() {
               >
                 <Text style={styles.cancelModalBtnText}>İptal</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.primaryModalBtn} onPress={handleProposePlayer}>
-                <Text style={styles.primaryModalBtnText}>Öner</Text>
+              <TouchableOpacity
+                style={[styles.primaryModalBtn, proposingPlayer && styles.btnDisabled]}
+                onPress={handleProposePlayer}
+                disabled={proposingPlayer}
+              >
+                <Text style={styles.primaryModalBtnText}>{proposingPlayer ? 'Gönderiliyor...' : 'Öner'}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -701,6 +768,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   approveBtnText: { fontSize: typography.fontSize.sm, fontWeight: '600', color: colors.secondary },
+  btnDisabled: { opacity: 0.6 },
 
   modalOverlay: {
     flex: 1,

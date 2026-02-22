@@ -7,8 +7,8 @@ import React from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
 import { ActivityIndicator, View } from 'react-native';
 import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
 import { RootStackParamList } from '../types';
-import { colors } from '../theme';
 
 // Auth Screens
 import WelcomeScreen from '../screens/WelcomeScreen';
@@ -60,6 +60,7 @@ const Stack = createStackNavigator<RootStackParamList>();
 
 export default function RootNavigator() {
   const { user, isLoading } = useAuth();
+  const { colors } = useTheme();
 
   if (isLoading) {
     return (
@@ -68,7 +69,7 @@ export default function RootNavigator() {
           flex: 1,
           alignItems: 'center',
           justifyContent: 'center',
-          backgroundColor: '#0B0F1A',
+          backgroundColor: colors.background.primary,
         }}
       >
         <ActivityIndicator size="large" color={colors.primary} />
@@ -80,7 +81,7 @@ export default function RootNavigator() {
     <Stack.Navigator
       screenOptions={{
         headerShown: false,
-        cardStyle: { backgroundColor: '#0B0F1A' },
+        cardStyle: { backgroundColor: colors.background.primary },
         presentation: 'card',
         animationEnabled: true,
       }}
