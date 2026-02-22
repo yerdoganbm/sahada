@@ -14,10 +14,11 @@ const path = require('path');
 const fs = require('fs');
 const credPath = process.env.GOOGLE_APPLICATION_CREDENTIALS ||
   path.join(__dirname, '..', 'service-account.json');
-const projectId = process.env.FIREBASE_PROJECT_ID || 'sahada-16b0d';
+let projectId = process.env.FIREBASE_PROJECT_ID || 'sahada-16b2d';
 
 if (fs.existsSync(credPath)) {
   const serviceAccount = require(credPath);
+  projectId = serviceAccount.project_id || projectId;
   admin.initializeApp({ credential: admin.credential.cert(serviceAccount), projectId });
 } else {
   admin.initializeApp({ projectId });
