@@ -13,35 +13,40 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
-  Alert,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import ReactNativeBiometrics from 'react-native-biometrics';
 import { useAuth } from '../contexts/AuthContext';
 import { RootStackParamList } from '../types';
 import { colors, spacing, borderRadius, typography } from '../theme';
 import { hapticLight } from '../utils/haptic';
+import AlertModal from '../components/AlertModal';
 
 const BIOMETRIC_USER_KEY = '@sahada_biometric_user';
 
 type LoginScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Login'>;
 
-const rnBiometrics = new ReactNativeBiometrics();
+// react-native-biometrics sadece native'de; web'de yok
+const getBiometrics = () =>
+  Platform.OS === 'web' ? null : require('react-native-biometrics').default;
 
 export default function LoginScreen() {
   const navigation = useNavigation<LoginScreenNavigationProp>();
-  const { login } = useAuth();
+  const { login, loginWithCredentials, restoreSession } = useAuth();
   
   const [phone, setPhone] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [alert, setAlert] = useState<{ title: string; message: string; type?: 'info' | 'error' | 'warning' | 'success' } | null>(null);
   const [biometricAvailable, setBiometricAvailable] = useState(false);
   const [savedUserId, setSavedUserId] = useState<string | null>(null);
 
   useEffect(() => {
+    const Biometrics = getBiometrics();
+    if (!Biometrics) return;
     let cancelled = false;
+    const rnBiometrics = new Biometrics();
     (async () => {
       try {
         const [sensor, userId] = await Promise.all([
@@ -62,28 +67,20 @@ export default function LoginScreen() {
   const handleLogin = async () => {
     hapticLight();
     if (!phone.trim()) {
-      Alert.alert('Hata', 'Lütfen telefon numaranızı giriniz.');
+      setAlert({ title: 'Hata', message: 'Lütfen telefon numaranızı giriniz.', type: 'warning' });
       return;
     }
 
     setIsLoading(true);
-    
     try {
-      // Mock authentication logic
-      let userId = phone;
-      
-      if (phone.includes('admin') || phone === '1') {
-        userId = '1'; // Admin
-      } else if (phone.includes('kaptan') || phone === '7') {
-        userId = '7'; // Captain
-      } else if (phone === '2') {
-        userId = '2'; // Member
-      }
-      
-      await login(userId);
-      // Navigation handled by RootNavigator based on auth state
-    } catch (error) {
-      Alert.alert('Hata', 'Giriş yapılamadı. Lütfen tekrar deneyin.');
+      await loginWithCredentials({ phone: phone.trim() });
+    } catch (err) {
+      console.error('Login error:', err);
+      setAlert({
+        title: 'Giriş Yapılamadı',
+        message: 'Bu telefon numarasıyla kayıtlı kullanıcı bulunamadı. Takım kurulumu ile yeni hesap oluşturabilirsiniz.',
+        type: 'error',
+      });
     } finally {
       setIsLoading(false);
     }
@@ -92,29 +89,41 @@ export default function LoginScreen() {
   const handleBiometricLogin = async () => {
     hapticLight();
     if (!savedUserId) return;
+    const Biometrics = getBiometrics();
+    if (!Biometrics) return;
     setIsLoading(true);
     try {
+      const rnBiometrics = new Biometrics();
       const { success } = await rnBiometrics.simplePrompt({
         promptMessage: 'Sahada ile giriş yap',
         cancelButtonText: 'İptal',
       });
       if (success) {
-        await login(savedUserId);
+        await restoreSession(savedUserId);
       }
-    } catch (error) {
-      Alert.alert('Hata', 'Biyometrik doğrulama başarısız.');
+    } catch {
+      setAlert({ title: 'Hata', message: 'Biyometrik doğrulama başarısız.', type: 'error' });
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
+    <>
+    <AlertModal
+      visible={!!alert}
+      title={alert?.title ?? ''}
+      message={alert?.message ?? ''}
+      type={alert?.type ?? 'info'}
+      confirmText="Tamam"
+      onConfirm={() => setAlert(null)}
+    />
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <View style={styles.content}>
-        {/* Back Button */}
+      {/* Üst bar - geri butonu (logo ile çakışmayı önler) */}
+      <View style={styles.header}>
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
@@ -123,8 +132,11 @@ export default function LoginScreen() {
           accessibilityRole="button"
         >
           <Icon name="arrow-left" size={24} color={colors.text.primary} />
+          <Text style={styles.backButtonText}>Geri</Text>
         </TouchableOpacity>
+      </View>
 
+      <View style={styles.content}>
         {/* Logo */}
         <View style={styles.logoContainer}>
           <Icon name="soccer" size={56} color={colors.primary} />
@@ -159,7 +171,7 @@ export default function LoginScreen() {
           onPress={handleLogin}
           disabled={isLoading}
           activeOpacity={0.8}
-          accessibilityLabel="Giriş yap"
+          accessibilityLabel="Devam Et"
           accessibilityRole="button"
         >
           {isLoading ? (
@@ -212,6 +224,7 @@ export default function LoginScreen() {
         </View>
       </View>
     </KeyboardAvoidingView>
+    </>
   );
 }
 
@@ -220,22 +233,33 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background.primary,
   },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.lg,
+    paddingTop: Platform.OS === 'web' ? 24 : 60,
+    paddingBottom: spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border.light,
+  },
   content: {
     flex: 1,
     padding: spacing.lg,
     justifyContent: 'center',
   },
   backButton: {
-    position: 'absolute',
-    top: 60,
-    left: spacing.lg,
-    width: 40,
-    height: 40,
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.surface,
-    justifyContent: 'center',
+    flexDirection: 'row',
     alignItems: 'center',
-    zIndex: 1,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: borderRadius.lg,
+    backgroundColor: colors.surface,
+    gap: spacing.sm,
+  },
+  backButtonText: {
+    color: colors.text.primary,
+    fontSize: typography.fontSize.md,
+    fontWeight: typography.fontWeight.semiBold,
   },
   logoContainer: {
     width: 80,
@@ -307,6 +331,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 4,
+    ...(Platform.OS === 'web' && { cursor: 'pointer' }),
   },
   loginButtonDisabled: {
     opacity: 0.7,

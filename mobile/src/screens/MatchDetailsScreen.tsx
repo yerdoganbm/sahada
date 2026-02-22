@@ -14,7 +14,7 @@ import {
   Share,
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import { RootStackParamList } from '../types';
 import { colors, spacing, borderRadius, typography } from '../theme';

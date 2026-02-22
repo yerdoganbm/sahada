@@ -1,14 +1,13 @@
 /**
- * Saha API servisi - web API ile uyumlu
+ * Saha – Firestore ile (mock/API yok)
  */
 
-import api from './api';
 import type { Venue } from '../types';
+import { getVenues as getVenuesFromFirestore, getVenue as getVenueFromFirestore } from './firestore';
 
 export async function getVenues(): Promise<Venue[]> {
   try {
-    const { data } = await api.get<Venue[]>('/venues');
-    return Array.isArray(data) ? data : [];
+    return await getVenuesFromFirestore();
   } catch (e) {
     console.warn('getVenues failed', e);
     return [];
@@ -17,8 +16,7 @@ export async function getVenues(): Promise<Venue[]> {
 
 export async function getVenue(id: string): Promise<Venue | null> {
   try {
-    const { data } = await api.get<Venue>(`/venues/${id}`);
-    return data ?? null;
+    return await getVenueFromFirestore(id);
   } catch (e) {
     console.warn('getVenue failed', e);
     return null;

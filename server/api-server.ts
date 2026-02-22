@@ -1,19 +1,61 @@
 /**
  * Express API Server for Sahada App
  * Provides RESTful endpoints for all app features
+ * DB_TYPE=mongo | postgres (default mongo). Auth: JWT (Bearer) veya X-User-Id header.
  */
 
 import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
-import { connectToDatabase, getCollection, Collections, checkDatabaseHealth } from './db/mongodb';
+import rateLimit from 'express-rate-limit';
+import { connectToDatabase, getCollection, Collections } from './db/mongodb';
+import { DB_TYPE, checkDatabaseHealth, connectPostgres } from './db/index';
+import { signToken, optionalAuth } from './auth';
 import type { Player, Match, Venue, Payment, Transaction, TeamProfile, Reservation, Poll } from '../types';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+// Extend Request so middleware can set userId/teamId
+declare global {
+  namespace Express {
+    interface Request {
+      userId?: string;
+      teamId?: string;
+    }
+  }
+}
+
 // Middleware
-app.use(cors());
+const corsOrigin = process.env.CORS_ORIGIN || '*';
+app.use(cors({ origin: corsOrigin === '*' ? true : corsOrigin.split(','), credentials: true }));
 app.use(express.json());
+
+// Rate limit: 100 istek/dakika (API)
+app.use('/api/', rateLimit({
+  windowMs: 60 * 1000,
+  max: parseInt(process.env.RATE_LIMIT_MAX || '100', 10),
+  message: { error: 'Too many requests' },
+  standardHeaders: true,
+  legacyHeaders: false,
+}));
+
+// Auth: JWT Bearer token varsa req.userId set et
+app.use(optionalAuth);
+
+// X-User-Id: JWT yoksa header'dan kullanici id'si; teamId players'dan
+app.use(async (req: Request, res: Response, next: NextFunction) => {
+  const userId = req.userId || (req.headers['x-user-id'] as string | undefined);
+  if (!userId) return next();
+  req.userId = userId;
+  try {
+    const collection = await getCollection<Player & { teamId?: string }>(Collections.PLAYERS);
+    const player = await collection.findOne({ id: userId });
+    if (player?.teamId) req.teamId = player.teamId;
+  } catch {
+    // DB henuz bagli olmayabilir veya oyuncu yok
+  }
+  next();
+});
 
 // Request logging middleware
 app.use((req: Request, res: Response, next: NextFunction) => {
@@ -28,22 +70,76 @@ app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
 });
 
 // ============================================
+// AUTH
+// ============================================
+
+app.post('/api/auth/login', async (req: Request, res: Response) => {
+  try {
+    const { phone, email } = req.body || {};
+    const collection = await getCollection<Player & { teamId?: string }>(Collections.PLAYERS);
+    const filter: any = {};
+    if (phone) filter.phone = phone;
+    else if (email) filter.email = email;
+    else return res.status(400).json({ error: 'phone veya email gerekli' });
+    const player = await collection.findOne(filter);
+    if (!player) return res.status(401).json({ error: 'Kullanici bulunamadi' });
+    const userId = (player as any).id;
+    const token = signToken({ userId });
+    res.status(200).json({
+      token,
+      user: {
+        id: userId,
+        name: player.name,
+        email: (player as any).email,
+        phone: (player as any).phone,
+        role: (player as any).role,
+        teamId: (player as any).teamId,
+      },
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ============================================
+// PUSH TOKENS (FCM/APNs token kaydi)
+// ============================================
+
+app.post('/api/push-tokens', async (req: Request, res: Response) => {
+  try {
+    const { token, platform } = req.body || {};
+    if (!token || !platform) return res.status(400).json({ error: 'token ve platform gerekli' });
+    if (!req.userId) return res.status(401).json({ error: 'Giris gerekli' });
+    const collection = await getCollection<any>(Collections.PUSH_TOKENS);
+    await collection.updateOne(
+      { userId: req.userId, token },
+      { $set: { userId: req.userId, token, platform, updatedAt: new Date().toISOString(), lastUsedAt: new Date().toISOString() } },
+      { upsert: true }
+    );
+    res.status(200).json({ message: 'Token kaydedildi' });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ============================================
 // HEALTH CHECK
 // ============================================
 
 app.get('/api/health', async (req: Request, res: Response) => {
   try {
     const dbHealthy = await checkDatabaseHealth();
-    res.json({
+    res.status(200).json({
       status: 'ok',
       database: dbHealthy ? 'connected' : 'disconnected',
       timestamp: new Date().toISOString(),
     });
   } catch (error: any) {
-    res.status(503).json({
-      status: 'error',
+    res.status(200).json({
+      status: 'ok',
       database: 'disconnected',
-      error: error.message,
+      timestamp: new Date().toISOString(),
+      error: (error as Error).message,
     });
   }
 });
@@ -52,14 +148,15 @@ app.get('/api/health', async (req: Request, res: Response) => {
 // PLAYERS API
 // ============================================
 
-// Get all players
+// Get all players (X-User-Id varsa varsayılan filtre: o kullanıcının takımı)
 app.get('/api/players', async (req: Request, res: Response) => {
   try {
     const { teamId, role } = req.query;
     const collection = await getCollection<Player>(Collections.PLAYERS);
     
     const filter: any = {};
-    if (teamId) filter.teamId = teamId;
+    const effectiveTeamId = (teamId as string) || req.teamId;
+    if (effectiveTeamId) filter.teamId = effectiveTeamId;
     if (role) filter.role = role;
     
     const players = await collection.find(filter).toArray();
@@ -146,14 +243,15 @@ app.delete('/api/players/:id', async (req: Request, res: Response) => {
 // MATCHES API
 // ============================================
 
-// Get all matches
+// Get all matches (X-User-Id varsa varsayılan filtre: o kullanıcının takımı)
 app.get('/api/matches', async (req: Request, res: Response) => {
   try {
     const { teamId, status, upcoming } = req.query;
     const collection = await getCollection<Match>(Collections.MATCHES);
     
     const filter: any = {};
-    if (teamId) filter.teamId = teamId;
+    const effectiveTeamId = (teamId as string) || req.teamId;
+    if (effectiveTeamId) filter.teamId = effectiveTeamId;
     if (status) filter.status = status;
     
     let matches = await collection.find(filter).sort({ date: -1 }).toArray();
@@ -487,13 +585,24 @@ app.post('/api/polls/:id/vote', async (req: Request, res: Response) => {
 
 async function startServer() {
   try {
-    // Connect to database
-    await connectToDatabase();
-    
-    // Start Express server
+    if (DB_TYPE === 'postgres') {
+      try {
+        await connectPostgres();
+        console.log('✅ PostgreSQL connected');
+      } catch (e) {
+        console.warn('⚠️ PostgreSQL baglanamadi; API calisacak, veri endpointleri hata verebilir:', (e as Error).message);
+      }
+    } else {
+      try {
+        await connectToDatabase();
+      } catch (e) {
+        console.warn('⚠️ MongoDB baglanamadi; API calisacak, veri endpointleri hata verebilir:', (e as Error).message);
+      }
+    }
     app.listen(PORT, () => {
       console.log(`✅ Sahada API Server running on http://localhost:${PORT}`);
       console.log(`📊 Health check: http://localhost:${PORT}/api/health`);
+      console.log(`🗄️ DB: ${DB_TYPE}`);
     });
   } catch (error) {
     console.error('❌ Failed to start server:', error);

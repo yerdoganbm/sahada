@@ -1,21 +1,19 @@
 /**
- * Oyuncu/Kadro API servisi - web API ile uyumlu
+ * Oyuncu/Kadro – Firestore ile (mock/API yok)
  */
 
-import api from './api';
 import type { Player } from '../types';
+import {
+  getPlayers as getPlayersFromFirestore,
+  getPlayer as getPlayerFromFirestore,
+} from './firestore';
 
 export async function getPlayers(params?: {
   teamId?: string;
   role?: string;
 }): Promise<Player[]> {
   try {
-    const searchParams = new URLSearchParams();
-    if (params?.teamId) searchParams.set('teamId', params.teamId);
-    if (params?.role) searchParams.set('role', params.role);
-    const qs = searchParams.toString();
-    const { data } = await api.get<Player[]>(`/players${qs ? `?${qs}` : ''}`);
-    return Array.isArray(data) ? data : [];
+    return await getPlayersFromFirestore(params?.teamId, params?.role);
   } catch (e) {
     console.warn('getPlayers failed', e);
     return [];
@@ -24,8 +22,7 @@ export async function getPlayers(params?: {
 
 export async function getPlayer(id: string): Promise<Player | null> {
   try {
-    const { data } = await api.get<Player>(`/players/${id}`);
-    return data ?? null;
+    return await getPlayerFromFirestore(id);
   } catch (e) {
     console.warn('getPlayer failed', e);
     return null;

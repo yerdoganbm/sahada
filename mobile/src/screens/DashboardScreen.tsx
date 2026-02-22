@@ -18,7 +18,7 @@ import {
 } from 'react-native';
 import { CommonActions, useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import { RootStackParamList } from '../types';
 import { colors, spacing, borderRadius, typography, shadows } from '../theme';
@@ -103,8 +103,10 @@ export default function DashboardScreen() {
           >
             <Icon name="cog" size={20} color={colors.text.secondary} />
           </TouchableOpacity>
-          
-          <TouchableOpacity style={styles.iconButton}>
+          <TouchableOpacity
+            style={styles.iconButton}
+            onPress={() => navigation.navigate('Notifications')}
+          >
             <Icon name="bell" size={20} color={colors.text.secondary} />
             <View style={styles.notificationBadge} />
           </TouchableOpacity>
@@ -193,7 +195,7 @@ export default function DashboardScreen() {
                 <QuickActionButton
                   icon="shield-account"
                   label="Yönetim"
-                  color={colors.secondary}
+                  color="#6366F1"
                   onPress={() => navigation.navigate('Admin')}
                 />
                 <QuickActionButton
@@ -205,6 +207,12 @@ export default function DashboardScreen() {
                       CommonActions.navigate('MainTabs', { screen: 'Team' })
                     )
                   }
+                />
+                <QuickActionButton
+                  icon="plus-circle"
+                  label="Maç Oluştur"
+                  color="#EC4899"
+                  onPress={() => navigation.navigate('MatchCreate')}
                 />
               </>
             )}
@@ -219,16 +227,16 @@ export default function DashboardScreen() {
               }
             />
             <QuickActionButton
+              icon="map-marker"
+              label="Sahalar"
+              color="#14B8A6"
+              onPress={() => navigation.navigate('VenueList')}
+            />
+            <QuickActionButton
               icon="poll"
               label="Anketler"
               color="#F59E0B"
-              onPress={() =>
-                Alert.alert(
-                  'Anketler',
-                  'Maç ve kadro anketleri yakında eklenecek.',
-                  [{ text: 'Tamam' }]
-                )
-              }
+              onPress={() => navigation.navigate('Polls')}
             />
           </View>
         </View>

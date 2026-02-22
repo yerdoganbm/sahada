@@ -1,4 +1,17 @@
 {
   "name": "SahadaMobile",
-  "displayName": "Sahada"
+  "displayName": "Sahada",
+  "version": "1.0.0",
+  "slug": "sahada-mobile",
+  "expo": {
+    "web": {
+      "bundler": "metro"
+    }
+  },
+  "ios": {
+    "bundleIdentifier": "com.sahada.mobile"
+  },
+  "android": {
+    "package": "com.sahada.mobile"
+  }
 }

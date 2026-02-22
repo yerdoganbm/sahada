@@ -14,7 +14,8 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
+import { useAuth } from '../contexts/AuthContext';
 import { RootStackParamList } from '../types';
 import { colors, spacing, borderRadius, typography } from '../theme';
 import { getMatches } from '../services/matches';
@@ -41,6 +42,8 @@ function isUpcoming(m: Match): boolean {
 
 export default function MatchesScreen() {
   const navigation = useNavigation<MatchesNavigationProp>();
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin' || user?.isCaptain;
   const [matches, setMatches] = useState<Match[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -92,6 +95,15 @@ export default function MatchesScreen() {
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>Maçlar</Text>
+        {isAdmin && (
+          <TouchableOpacity
+            style={styles.addButton}
+            onPress={() => navigation.navigate('MatchCreate')}
+          >
+            <Icon name="plus" size={20} color={colors.primary} />
+            <Text style={styles.addButtonText}>Maç Oluştur</Text>
+          </TouchableOpacity>
+        )}
         <View style={styles.filterRow}>
           <TouchableOpacity
             style={[styles.filterPill, filter === 'upcoming' && styles.filterPillActive]}
@@ -168,6 +180,24 @@ const styles = StyleSheet.create({
     paddingTop: 60,
     paddingHorizontal: spacing.lg,
     paddingBottom: spacing.md,
+  },
+  addButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: borderRadius.lg,
+    backgroundColor: `${colors.primary}20`,
+    borderWidth: 1,
+    borderColor: colors.primary,
+    marginBottom: spacing.sm,
+  },
+  addButtonText: {
+    fontSize: typography.fontSize.sm,
+    fontWeight: typography.fontWeight.bold,
+    color: colors.primary,
+    marginLeft: spacing.xs,
   },
   filterRow: {
     flexDirection: 'row',

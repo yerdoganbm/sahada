@@ -23,8 +23,11 @@ import SettingsScreen from '../screens/SettingsScreen';
 import TeamSetupScreen from '../screens/TeamSetupScreen';
 import MatchDetailsScreen from '../screens/MatchDetailsScreen';
 import VenueDetailsScreen from '../screens/VenueDetailsScreen';
+import VenueListScreen from '../screens/VenueListScreen';
 import MatchCreateScreen from '../screens/MatchCreateScreen';
 import AdminDashboardScreen from '../screens/AdminDashboardScreen';
+import NotificationsScreen from '../screens/NotificationsScreen';
+import PollsScreen from '../screens/PollsScreen';
 
 const Stack = createStackNavigator<RootStackParamList>();
 
@@ -75,7 +78,10 @@ export default function RootNavigator() {
             }}
           />
           <Stack.Screen name="VenueDetails" component={VenueDetailsScreen} />
+          <Stack.Screen name="VenueList" component={VenueListScreen} />
           <Stack.Screen name="ProfileDetails" component={ProfileScreen} />
+          <Stack.Screen name="Notifications" component={NotificationsScreen} />
+          <Stack.Screen name="Polls" component={PollsScreen} />
           <Stack.Screen name="Settings" component={SettingsScreen} />
           <Stack.Screen name="MatchCreate" component={MatchCreateScreen} />
           <Stack.Screen name="Admin" component={AdminDashboardScreen} />

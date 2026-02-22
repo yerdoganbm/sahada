@@ -1,20 +1,35 @@
 /**
  * Authentication Context
- * Manages user authentication state
+ * Manages user authentication state, JWT token storage, and push token registration
  */
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Player, TeamProfile } from '../types';
-import { setApiAuthUserId } from '../services/api';
+import {
+  setApiAuthUserId,
+  setApiAuthToken,
+  clearApiAuth,
+  setApiOnUnauthorized,
+} from '../services/api';
+import { registerPushTokenIfAvailable } from '../services/push';
+import {
+  getUserByPhoneOrEmail,
+  getUserById,
+  createTeamAndUser,
+} from '../services/firestore';
 
 const TEAM_STORAGE_KEY = '@sahada_team';
 const BIOMETRIC_USER_KEY = '@sahada_biometric_user';
+const STORAGE_KEY = '@sahada_user';
+const TOKEN_STORAGE_KEY = '@sahada_token';
 
 interface AuthContextType {
   user: Player | null;
   isLoading: boolean;
   login: (userId: string) => Promise<void>;
+  loginWithCredentials: (opts: { phone?: string; email?: string }) => Promise<void>;
+  restoreSession: (userId: string) => Promise<void>;
   logout: () => Promise<void>;
   updateUser: (updates: Partial<Player>) => Promise<void>;
   createTeamAndLogin: (team: TeamProfile, founderName: string, founderEmail?: string) => Promise<void>;
@@ -22,65 +37,53 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const STORAGE_KEY = '@sahada_user';
-
-// Mock players for testing (same as web app)
-const MOCK_PLAYERS: Player[] = [
-  {
-    id: '1',
-    name: 'Ahmet Yılmaz',
-    position: 'MID',
-    rating: 8.5,
-    reliability: 95,
-    avatar: 'https://i.pravatar.cc/150?u=1',
-    role: 'admin',
-    tier: 'partner',
-    isCaptain: true,
-    phone: '0532 123 45 67',
-  },
-  {
-    id: '7',
-    name: 'Burak Yılmaz',
-    position: 'FWD',
-    rating: 8.0,
-    reliability: 90,
-    avatar: 'https://i.pravatar.cc/150?u=7',
-    role: 'member',
-    tier: 'premium',
-    isCaptain: true,
-    phone: '0532 765 43 21',
-  },
-  {
-    id: '2',
-    name: 'Mehmet Demir',
-    position: 'DEF',
-    rating: 7.2,
-    reliability: 88,
-    avatar: 'https://i.pravatar.cc/150?u=2',
-    role: 'member',
-    tier: 'free',
-    phone: '0532 111 22 33',
-  },
-];
-
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<Player | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Load saved user on mount
+  const logout = useCallback(async () => {
+    try {
+      setUser(null);
+      clearApiAuth();
+      await AsyncStorage.removeItem(STORAGE_KEY);
+      await AsyncStorage.removeItem(TOKEN_STORAGE_KEY);
+      await AsyncStorage.removeItem(TEAM_STORAGE_KEY);
+      await AsyncStorage.removeItem(BIOMETRIC_USER_KEY);
+      console.log('✅ Logged out');
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+  }, []);
+
+  useEffect(() => {
+    setApiOnUnauthorized(logout);
+    return () => setApiOnUnauthorized(null);
+  }, [logout]);
+
+  // Load saved user and token on mount
   useEffect(() => {
     loadUser();
   }, []);
 
   const loadUser = async () => {
     try {
-      const savedUser = await AsyncStorage.getItem(STORAGE_KEY);
+      const [savedUser, savedToken] = await Promise.all([
+        AsyncStorage.getItem(STORAGE_KEY),
+        AsyncStorage.getItem(TOKEN_STORAGE_KEY),
+      ]);
       if (savedUser) {
-        const parsed = JSON.parse(savedUser);
+        const parsed = JSON.parse(savedUser) as Player;
         setUser(parsed);
-        setApiAuthUserId(parsed.id ?? null);
+        setApiAuthUserId(parsed.id);
+        if (savedToken) {
+          setApiAuthToken(savedToken);
+          registerPushTokenIfAvailable();
+        } else {
+          setApiAuthToken(null);
+        }
       } else {
         setApiAuthUserId(null);
+        setApiAuthToken(null);
       }
     } catch (error) {
       console.error('Error loading user:', error);
@@ -89,37 +92,52 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const loginWithCredentials = async (opts: { phone?: string; email?: string }) => {
+    const { phone, email } = opts;
+    if (!phone && !email) throw new Error('Telefon veya e-posta gerekli');
+    const player = await getUserByPhoneOrEmail(phone, email);
+    if (!player) throw new Error('Kullanıcı bulunamadı');
+    setUser(player);
+    setApiAuthUserId(player.id);
+    setApiAuthToken(null);
+    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(player));
+    await AsyncStorage.removeItem(TOKEN_STORAGE_KEY);
+    await AsyncStorage.setItem(BIOMETRIC_USER_KEY, player.id);
+    registerPushTokenIfAvailable();
+    console.log('✅ Logged in (Firestore):', player.name);
+  };
+
   const login = async (userId: string) => {
-    try {
-      // Mock login - find user from MOCK_PLAYERS
-      const foundUser = MOCK_PLAYERS.find(p => p.id === userId);
-      
-      if (foundUser) {
-        setUser(foundUser);
-        setApiAuthUserId(foundUser.id);
-        await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(foundUser));
-        await AsyncStorage.setItem(BIOMETRIC_USER_KEY, foundUser.id);
-        console.log('✅ Logged in as:', foundUser.name);
-      } else {
-        throw new Error('User not found');
-      }
-    } catch (error) {
-      console.error('Login error:', error);
-      throw error;
+    const foundUser = await getUserById(userId);
+    if (!foundUser) throw new Error('Kullanıcı bulunamadı');
+    setUser(foundUser);
+    setApiAuthUserId(foundUser.id);
+    setApiAuthToken(null);
+    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(foundUser));
+    await AsyncStorage.removeItem(TOKEN_STORAGE_KEY);
+    await AsyncStorage.setItem(BIOMETRIC_USER_KEY, foundUser.id);
+    console.log('✅ Logged in (Firestore):', foundUser.name);
+  };
+
+  const restoreSession = async (userId: string) => {
+    const [savedUser, savedToken] = await Promise.all([
+      AsyncStorage.getItem(STORAGE_KEY),
+      AsyncStorage.getItem(TOKEN_STORAGE_KEY),
+    ]);
+    const parsed = savedUser ? (JSON.parse(savedUser) as Player) : null;
+    if (parsed && parsed.id === userId) {
+      setUser(parsed);
+      setApiAuthUserId(parsed.id);
+      setApiAuthToken(savedToken || null);
+      registerPushTokenIfAvailable();
+      console.log('✅ Session restored:', parsed.name);
+    } else {
+      await login(userId);
     }
   };
 
-  const logout = async () => {
-    try {
-      setUser(null);
-      setApiAuthUserId(null);
-      await AsyncStorage.removeItem(STORAGE_KEY);
-      await AsyncStorage.removeItem(TEAM_STORAGE_KEY);
-      await AsyncStorage.removeItem(BIOMETRIC_USER_KEY);
-      console.log('✅ Logged out');
-    } catch (error) {
-      console.error('Logout error:', error);
-    }
+  const logoutAsync = async () => {
+    await logout();
   };
 
   const createTeamAndLogin = async (
@@ -127,29 +145,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     founderName: string,
     founderEmail?: string
   ) => {
-    const newUser: Player = {
-      id: `new_admin_${Date.now()}`,
-      name: founderName,
-      position: 'MID',
-      rating: 7,
-      reliability: 100,
-      avatar: `https://i.pravatar.cc/150?u=${Date.now()}`,
-      role: 'admin',
-      isCaptain: true,
-      tier: 'free',
-      email: founderEmail,
-    };
-    await AsyncStorage.setItem(TEAM_STORAGE_KEY, JSON.stringify(team));
+    const { teamId, user: newUser } = await createTeamAndUser(
+      {
+        name: team.name,
+        shortName: team.shortName,
+        inviteCode: team.inviteCode ?? `${team.name.slice(0, 3).toUpperCase()}${Date.now().toString(36)}`,
+        colors: team.colors,
+      },
+      founderName,
+      founderEmail
+    );
+    const teamWithId = { ...team, id: teamId };
+    await AsyncStorage.setItem(TEAM_STORAGE_KEY, JSON.stringify(teamWithId));
     setUser(newUser);
     setApiAuthUserId(newUser.id);
+    setApiAuthToken(null);
     await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(newUser));
+    await AsyncStorage.removeItem(TOKEN_STORAGE_KEY);
     await AsyncStorage.setItem(BIOMETRIC_USER_KEY, newUser.id);
-    console.log('✅ Takım kuruldu ve giriş yapıldı:', founderName);
+    registerPushTokenIfAvailable();
+    console.log('✅ Takım kuruldu ve giriş yapıldı (Firestore):', founderName);
   };
 
   const updateUser = async (updates: Partial<Player>) => {
     if (!user) return;
-    
     try {
       const updatedUser = { ...user, ...updates };
       setUser(updatedUser);
@@ -161,7 +180,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, logout, updateUser, createTeamAndLogin }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        isLoading,
+        login,
+        loginWithCredentials,
+        restoreSession,
+        logout: logoutAsync,
+        updateUser,
+        createTeamAndLogin,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

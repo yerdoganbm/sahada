@@ -148,11 +148,14 @@ export type RootStackParamList = {
   MainTabs: NavigatorScreenParams<MainTabParamList> | undefined;
   MatchDetails: { matchId: string };
   VenueDetails: { venueId: string };
+  VenueList: undefined;
   ProfileDetails: { userId: string };
   Settings: undefined;
   TeamSetup: undefined;
   MatchCreate: undefined;
   Admin: undefined;
+  Notifications: undefined;
+  Polls: undefined;
 };
 
 export type MainTabParamList = {

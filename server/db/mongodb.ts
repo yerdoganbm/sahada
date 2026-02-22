@@ -184,4 +184,5 @@ export enum Collections {
   TALENT_POOL = 'talentPool',
   NOTIFICATIONS = 'notifications',
   JOIN_REQUESTS = 'joinRequests',
+  PUSH_TOKENS = 'push_tokens',
 }
