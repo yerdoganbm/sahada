@@ -30,6 +30,54 @@ if (fs.existsSync(credPath)) {
 const db = admin.firestore();
 const ts = () => admin.firestore.FieldValue.serverTimestamp();
 
+const COLLECTIONS = [
+  'bracket_matches',
+  'tournament_teams',
+  'scout_reports',
+  'talent_pool',
+  'reservations',
+  'polls',
+  'transactions',
+  'payments',
+  'notifications',
+  'join_requests',
+  'matches',
+  'users',
+  'venues',
+  'teams',
+];
+
+/** Koleksiyondaki tüm dokümanları siler (Firestore batch limit: 500) */
+async function deleteCollection(colName) {
+  const col = db.collection(colName);
+  let deleted = 0;
+  const BATCH_SIZE = 500;
+  let snap = await col.limit(BATCH_SIZE).get();
+  while (!snap.empty) {
+    const batch = db.batch();
+    snap.docs.forEach((doc) => batch.delete(doc.ref));
+    await batch.commit();
+    deleted += snap.docs.length;
+    snap = await col.limit(BATCH_SIZE).get();
+  }
+  return deleted;
+}
+
+/** Tüm mevcut veriyi siler */
+async function clearAll() {
+  console.log('🗑️  Mevcut veri siliniyor...');
+  let total = 0;
+  for (const name of COLLECTIONS) {
+    const n = await deleteCollection(name);
+    if (n > 0) {
+      console.log(`   ${name}: ${n} doküman silindi`);
+      total += n;
+    }
+  }
+  if (total > 0) console.log(`   Toplam ${total} doküman silindi.\n`);
+  else console.log('   (Veri yoktu)\n');
+}
+
 function addDays(d, n) {
   const x = new Date(d);
   x.setDate(x.getDate() + n);
@@ -38,6 +86,8 @@ function addDays(d, n) {
 
 async function seed() {
   console.log('🌱 Firestore seed başlıyor...\n');
+
+  await clearAll();
 
   // --- TEAMS (2 takım) ---
   const team1Ref = await db.collection('teams').add({
