@@ -1,0 +1,22 @@
+diff --git a/node_modules/@react-native-community/cli-platform-ios/native_modules.rb b/node_modules/@react-native-community/cli-platform-ios/native_modules.rb
+index 82f537c..e4e3ffe 100644
+--- a/node_modules/@react-native-community/cli-platform-ios/native_modules.rb
++++ b/node_modules/@react-native-community/cli-platform-ios/native_modules.rb
+@@ -21,6 +21,17 @@ def use_native_modules!(config = nil)
+     config = nil;
+   end
+ 
++  # Expo passes config_command as Array - run it and parse JSON
++  if (config.is_a? Array)
++    json = []
++    IO.popen(config) do |data|
++      while line = data.gets
++        json << line
++      end
++    end
++    config = JSON.parse(json.join("\n"))
++  end
++
+   # Resolving the path the RN CLI. The `@react-native-community/cli` module may not be there for certain package managers, so we fall back to resolving it through `react-native` package, that's always present in RN projects
+   cli_resolve_script = "try {console.log(require('@react-native-community/cli').bin);} catch (e) {console.log(require('react-native/cli').bin);}"
+   cli_bin = Pod::Executable.execute_command("node", ["-e", cli_resolve_script], true).strip
