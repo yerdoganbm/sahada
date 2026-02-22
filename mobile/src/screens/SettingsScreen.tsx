@@ -19,7 +19,7 @@ import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { RootStackParamList } from '../types';
-import { spacing, borderRadius, typography, colorsDark } from '../theme';
+import { spacing, borderRadius, typography, colorsDark, colors } from '../theme';
 import { hapticLight } from '../utils/haptic';
 
 const NOTIF_STORAGE_KEY = '@sahada_notif_prefs';
