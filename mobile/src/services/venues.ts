@@ -3,7 +3,12 @@
  */
 
 import type { Venue } from '../types';
-import { getVenues as getVenuesFromFirestore, getVenue as getVenueFromFirestore } from './firestore';
+import {
+  getVenues as getVenuesFromFirestore,
+  getVenue as getVenueFromFirestore,
+  createVenue as createVenueInFirestore,
+} from './firestore';
+import type { CreateVenuePayload } from './firestore';
 
 export async function getVenues(): Promise<Venue[]> {
   try {
@@ -21,4 +26,8 @@ export async function getVenue(id: string): Promise<Venue | null> {
     console.warn('getVenue failed', e);
     return null;
   }
+}
+
+export async function createVenue(data: CreateVenuePayload): Promise<Venue> {
+  return createVenueInFirestore(data);
 }

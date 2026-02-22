@@ -20,6 +20,7 @@ const COLLECTIONS = {
   scout_reports: 'scout_reports',
   tournament_teams: 'tournament_teams',
   bracket_matches: 'bracket_matches',
+  subscription_plans: 'subscription_plans',
 } as const;
 
 export interface NotificationItem {
@@ -39,6 +40,7 @@ function docToUser(doc: DocSnap): Player {
   return {
     id: doc.id,
     name: d.name ?? '',
+    teamId: d.teamId as string | undefined,
     position: (d.position as Player['position']) ?? 'MID',
     rating: typeof d.rating === 'number' ? d.rating : 7,
     reliability: typeof d.reliability === 'number' ? d.reliability : 100,
@@ -49,6 +51,7 @@ function docToUser(doc: DocSnap): Player {
     tier: d.tier,
     isCaptain: d.isCaptain,
     shirtNumber: d.shirtNumber,
+    whatsappEnabled: d.whatsappEnabled === true,
   };
 }
 
@@ -165,6 +168,35 @@ export async function getVenue(id: string): Promise<Venue | null> {
   return docToVenue(doc);
 }
 
+export interface CreateVenuePayload {
+  name: string;
+  location: string;
+  address?: string;
+  pricePerHour: number;
+  rating?: number;
+  image?: string;
+  features?: string[];
+  ownerId?: string;
+}
+
+export async function createVenue(data: CreateVenuePayload): Promise<Venue> {
+  const ref = await firestore().collection(COLLECTIONS.venues).add({
+    name: data.name.trim(),
+    location: data.location.trim(),
+    address: data.address?.trim() ?? data.location.trim(),
+    pricePerHour: data.pricePerHour,
+    rating: data.rating ?? 0,
+    primaryImageUrl: data.image ?? '',
+    image: data.image ?? '',
+    features: Array.isArray(data.features) ? data.features : [],
+    ownerId: data.ownerId ?? null,
+    createdAt: firestore.FieldValue.serverTimestamp(),
+  });
+  const venue = await getVenue(ref.id);
+  if (!venue) throw new Error('Venue creation failed');
+  return venue;
+}
+
 export interface CreateMatchPayload {
   date: string;
   time: string;
@@ -257,6 +289,58 @@ export async function updateUserRole(userId: string, role: 'admin' | 'member'): 
   await firestore().collection(COLLECTIONS.users).doc(userId).update({ role });
 }
 
+export interface TeamBasic {
+  id: string;
+  name: string;
+  shortName?: string;
+  inviteCode: string;
+  primaryColor?: string;
+  secondaryColor?: string;
+}
+
+/** Davet kodu ile takım bulur. */
+export async function getTeamByInviteCode(inviteCode: string): Promise<TeamBasic | null> {
+  const trimmed = inviteCode.trim().toUpperCase();
+  if (!trimmed) return null;
+  const snap = await firestore()
+    .collection(COLLECTIONS.teams)
+    .where('inviteCode', '==', trimmed)
+    .limit(1)
+    .get();
+  if (snap.empty) return null;
+  const doc = snap.docs[0];
+  const d = doc.data() || {};
+  return {
+    id: doc.id,
+    name: (d.name as string) ?? '',
+    shortName: d.shortName as string | undefined,
+    inviteCode: (d.inviteCode as string) ?? '',
+    primaryColor: d.primaryColor as string | undefined,
+    secondaryColor: d.secondaryColor as string | undefined,
+  };
+}
+
+/** Kullanıcının teamId'sini Firestore'da günceller. */
+export async function updateUserTeamId(userId: string, teamId: string): Promise<void> {
+  await firestore().collection(COLLECTIONS.users).doc(userId).update({ teamId });
+}
+
+/** Kullanıcı profil alanlarını Firestore'da günceller. */
+export async function updateUserInFirestore(
+  userId: string,
+  updates: Partial<Pick<Player, 'name' | 'position' | 'email' | 'phone' | 'avatar' | 'shirtNumber' | 'whatsappEnabled'>>
+): Promise<void> {
+  const filtered: Record<string, unknown> = {};
+  const allowed = ['name', 'position', 'email', 'phone', 'avatar', 'shirtNumber', 'whatsappEnabled'];
+  for (const k of allowed) {
+    if (k in updates && (updates as Record<string, unknown>)[k] !== undefined) {
+      filtered[k] = (updates as Record<string, unknown>)[k];
+    }
+  }
+  if (Object.keys(filtered).length === 0) return;
+  await firestore().collection(COLLECTIONS.users).doc(userId).update(filtered);
+}
+
 /** Kullaniciya ait takimin inviteCode'unu dondurur. */
 export async function getTeamInviteCode(userId: string): Promise<string | null> {
   const userDoc = await firestore().collection(COLLECTIONS.users).doc(userId).get();
@@ -266,6 +350,35 @@ export async function getTeamInviteCode(userId: string): Promise<string | null> 
   const teamDoc = await firestore().collection(COLLECTIONS.teams).doc(teamId).get();
   if (!teamDoc.exists) return null;
   return (teamDoc.data()?.inviteCode as string) ?? null;
+}
+
+/** Abonelik planlarını getirir. */
+export interface SubscriptionPlan {
+  id: string;
+  name: string;
+  tier: string;
+  price?: number;
+  features?: string[];
+  description?: string;
+}
+
+export async function getSubscriptionPlans(): Promise<SubscriptionPlan[]> {
+  try {
+    const snap = await firestore().collection(COLLECTIONS.subscription_plans).orderBy('price').get();
+    return snap.docs.map((doc) => {
+      const d = (doc.data() || {}) as Record<string, unknown>;
+      return {
+        id: doc.id,
+        name: (d.name as string) ?? '',
+        tier: (d.tier as string) ?? 'free',
+        price: d.price as number | undefined,
+        features: (d.features as string[]) ?? [],
+        description: d.description as string | undefined,
+      };
+    });
+  } catch {
+    return [];
+  }
 }
 
 /** Kullanicinin teamId'sini dondurur. */
@@ -373,6 +486,34 @@ export interface Reservation {
   price: number;
   status: 'pending' | 'confirmed' | 'completed' | 'cancelled';
   participants?: number;
+}
+
+/** Rezervasyonu ID ile getirir. */
+export async function getReservationById(id: string): Promise<Reservation | null> {
+  const doc = await firestore().collection(COLLECTIONS.reservations).doc(id).get();
+  if (!doc.exists) return null;
+  const d = (doc.data() || {}) as Record<string, unknown>;
+  return {
+    id: doc.id,
+    venueId: (d.venueId as string) ?? '',
+    venueName: (d.venueName as string) ?? '',
+    teamName: d.teamName as string | undefined,
+    date: (d.date as string) ?? '',
+    startTime: (d.startTime as string) ?? '',
+    endTime: (d.endTime as string) ?? '',
+    duration: d.duration as number | undefined,
+    price: typeof d.price === 'number' ? d.price : 0,
+    status: ((d.status as string) ?? 'pending') as Reservation['status'],
+    participants: d.participants as number | undefined,
+  };
+}
+
+/** Rezervasyon durumunu günceller (onay/iptal). */
+export async function updateReservationStatus(
+  id: string,
+  status: 'confirmed' | 'cancelled'
+): Promise<void> {
+  await firestore().collection(COLLECTIONS.reservations).doc(id).update({ status });
 }
 
 /** Rezervasyonları getirir (venueId ile filtre). */

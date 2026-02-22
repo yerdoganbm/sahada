@@ -17,6 +17,9 @@ import {
   getUserByPhoneOrEmail,
   getUserById,
   createTeamAndUser,
+  getTeamByInviteCode,
+  updateUserTeamId,
+  updateUserInFirestore,
 } from '../services/firestore';
 
 const TEAM_STORAGE_KEY = '@sahada_team';
@@ -33,6 +36,7 @@ interface AuthContextType {
   logout: () => Promise<void>;
   updateUser: (updates: Partial<Player>) => Promise<void>;
   createTeamAndLogin: (team: TeamProfile, founderName: string, founderEmail?: string) => Promise<void>;
+  joinTeam: (inviteCode: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -170,13 +174,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const updateUser = async (updates: Partial<Player>) => {
     if (!user) return;
     try {
+      await updateUserInFirestore(user.id, updates);
       const updatedUser = { ...user, ...updates };
       setUser(updatedUser);
       await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updatedUser));
       console.log('✅ User updated');
     } catch (error) {
       console.error('Update user error:', error);
+      throw error;
     }
+  };
+
+  const joinTeam = async (inviteCode: string) => {
+    if (!user) throw new Error('Giriş yapmanız gerekiyor');
+    const team = await getTeamByInviteCode(inviteCode);
+    if (!team) throw new Error('Geçersiz davet kodu');
+    await updateUserTeamId(user.id, team.id);
+    const updatedUser = { ...user, teamId: team.id };
+    setUser(updatedUser);
+    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updatedUser));
+    await AsyncStorage.setItem(TEAM_STORAGE_KEY, JSON.stringify({
+      id: team.id,
+      name: team.name,
+      shortName: team.shortName ?? team.name.slice(0, 3),
+      inviteCode: team.inviteCode,
+      colors: [team.primaryColor ?? '#10B981', team.secondaryColor ?? '#0B0F1A'],
+    }));
+    console.log('✅ Takıma katıldı:', team.name);
   };
 
   return (
@@ -190,6 +214,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         logout: logoutAsync,
         updateUser,
         createTeamAndLogin,
+        joinTeam,
       }}
     >
       {children}

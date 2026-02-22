@@ -20,6 +20,7 @@ export type MatchPaymentStatus = 'PAID' | 'PENDING' | 'REFUND';
 export interface Player {
   id: string;
   name: string;
+  teamId?: string;
   position: PlayerPosition;
   rating: number;
   reliability: number;
@@ -32,6 +33,7 @@ export interface Player {
   shirtNumber?: number;
   contactNumber?: string;
   referredBy?: string;
+  whatsappEnabled?: boolean;
   trialStatus?: 'pending_approval' | 'in_trial' | 'promoted' | 'rejected';
   attributes?: {
     pac: number;
