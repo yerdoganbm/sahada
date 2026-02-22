@@ -16,6 +16,7 @@
     },
     "ios": {
       "bundleIdentifier": "com.yerdogan.sahadamobile",
+      "googleServicesFile": "./GoogleService-Info.plist",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
