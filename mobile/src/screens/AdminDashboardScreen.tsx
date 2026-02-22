@@ -108,6 +108,9 @@ export default function AdminDashboardScreen() {
         <MenuRow icon="calendar-check" label="Rezervasyon Sistemi" onPress={() => navigation.navigate('ReserveSystem')} />
         <MenuRow icon="share-variant" label="Kadro Paylaşım" onPress={() => navigation.navigate('SquadShareWizard')} />
         <MenuRow icon="message-text" label="Mesaj Kayıtları" onPress={() => navigation.navigate('MessageLogs')} />
+        <MenuRow icon="account-plus" label="Profil Oluştur" onPress={() => navigation.navigate('CreateProfile')} />
+        <MenuRow icon="clipboard-check" label="Yoklama" onPress={() => navigation.navigate('Attendance')} />
+        <MenuRow icon="calendar-month" label="Takvim" onPress={() => navigation.navigate('VenueCalendar')} />
       </View>
     </ScrollView>
   );

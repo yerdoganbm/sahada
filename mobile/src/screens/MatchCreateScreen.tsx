@@ -20,12 +20,8 @@ import { canCreateMatch } from '../utils/permissions';
 import { colors, spacing, borderRadius, typography } from '../theme';
 import { getVenues } from '../services/venues';
 import { createMatch } from '../services/matches';
+import { getTeamIdForUser } from '../services/players';
 import type { Venue } from '../types';
-
-const MOCK_VENUES: Venue[] = [
-  { id: 'v1', name: 'Şehir Stadı', location: 'Merkez', pricePerHour: 800, rating: 4.5, image: '', features: [] },
-  { id: 'v2', name: 'Yeşil Sahalar', location: 'Kuzey', pricePerHour: 600, rating: 4.2, image: '', features: [] },
-];
 
 export default function MatchCreateScreen() {
   const navigation = useNavigation();
@@ -39,15 +35,13 @@ export default function MatchCreateScreen() {
   const [submitting, setSubmitting] = useState(false);
 
   const canCreate = canCreateMatch(user);
-  const venueList = venues.length > 0 ? venues : MOCK_VENUES;
 
   useEffect(() => {
     let cancelled = false;
     getVenues().then((list) => {
       if (!cancelled) {
         setVenues(list);
-        const listToUse = list.length > 0 ? list : MOCK_VENUES;
-        if (listToUse.length > 0) setSelectedVenueId(listToUse[0].id);
+        if (list.length > 0) setSelectedVenueId(list[0].id);
       }
     }).finally(() => { if (!cancelled) setLoadingVenues(false); });
     return () => { cancelled = true; };
@@ -63,12 +57,14 @@ export default function MatchCreateScreen() {
       return;
     }
     const priceNum = parseInt(price, 10) || 0;
+    const teamId = user?.id ? await getTeamIdForUser(user.id) : undefined;
     setSubmitting(true);
     try {
       await createMatch({
         date: date.trim(),
         time: time.trim() || '21:00',
         venueId: selectedVenueId,
+        teamId: teamId ?? undefined,
         pricePerPerson: priceNum || undefined,
       });
       Alert.alert('Başarılı', 'Maç oluşturuldu.');
@@ -132,9 +128,13 @@ export default function MatchCreateScreen() {
             <ActivityIndicator size="small" color={colors.primary} />
             <Text style={styles.venueLoaderText}>Sahalar yükleniyor...</Text>
           </View>
+        ) : venues.length === 0 ? (
+          <View style={styles.venueEmpty}>
+            <Text style={styles.venueEmptyText}>Henüz saha eklenmemiş. Firestore'da venues koleksiyonuna saha ekleyin.</Text>
+          </View>
         ) : (
           <View style={styles.venueList}>
-            {venueList.map((v) => (
+            {venues.map((v) => (
               <TouchableOpacity
                 key={v.id}
                 style={[styles.venueChip, selectedVenueId === v.id && styles.venueChipSelected]}
@@ -244,6 +244,14 @@ const styles = StyleSheet.create({
     marginLeft: spacing.sm,
     fontSize: typography.fontSize.sm,
     color: colors.text.secondary,
+  },
+  venueEmpty: {
+    padding: spacing.lg,
+    marginBottom: spacing.md,
+  },
+  venueEmptyText: {
+    fontSize: typography.fontSize.sm,
+    color: colors.text.tertiary,
   },
   venueList: {
     flexDirection: 'row',

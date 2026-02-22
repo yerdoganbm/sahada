@@ -1,5 +1,5 @@
 /**
- * Team Screen - Kadro listesi (API + fallback)
+ * Team Screen - Kadro listesi (Firestore)
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -16,38 +16,37 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
+import { useAuth } from '../contexts/AuthContext';
 import { colors, spacing, borderRadius, typography } from '../theme';
-import { getPlayers } from '../services/players';
+import { getPlayers, getTeamIdForUser } from '../services/players';
 import { RootStackParamList } from '../types';
 import type { Player } from '../types';
 
 type TeamNavigationProp = StackNavigationProp<RootStackParamList>;
 
-const FALLBACK_PLAYERS: Player[] = [
-  { id: '1', name: 'Ahmet Yılmaz', position: 'MID', rating: 8.5, reliability: 95, avatar: 'https://i.pravatar.cc/150?u=1', role: 'admin' },
-  { id: '2', name: 'Mehmet Demir', position: 'DEF', rating: 7.2, reliability: 88, avatar: 'https://i.pravatar.cc/150?u=2', role: 'member' },
-  { id: '7', name: 'Burak Yılmaz', position: 'FWD', rating: 8.0, reliability: 90, avatar: 'https://i.pravatar.cc/150?u=7', role: 'member' },
-];
-
 export default function TeamScreen() {
   const navigation = useNavigation<TeamNavigationProp>();
+  const { user } = useAuth();
   const [players, setPlayers] = useState<Player[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   const fetchPlayers = useCallback(async () => {
-    const list = await getPlayers();
-    setPlayers(list.length > 0 ? list : FALLBACK_PLAYERS);
-  }, []);
+    const teamId = user?.id ? await getTeamIdForUser(user.id) : null;
+    const list = await getPlayers(teamId ? { teamId } : undefined);
+    setPlayers(list);
+  }, [user?.id]);
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    getPlayers().then((list) => {
-      if (!cancelled) setPlayers(list.length > 0 ? list : FALLBACK_PLAYERS);
-    }).finally(() => { if (!cancelled) setLoading(false); });
+    (async () => {
+      const teamId = user?.id ? await getTeamIdForUser(user.id) : null;
+      const list = await getPlayers(teamId ? { teamId } : undefined);
+      if (!cancelled) setPlayers(list);
+    })().finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
-  }, []);
+  }, [user?.id]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -64,7 +63,7 @@ export default function TeamScreen() {
     );
   }
 
-  const list = players.length > 0 ? players : FALLBACK_PLAYERS;
+  const list = players;
 
   return (
     <View style={styles.container}>

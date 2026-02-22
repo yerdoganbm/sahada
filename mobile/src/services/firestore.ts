@@ -11,7 +11,18 @@ const COLLECTIONS = {
   teams: 'teams',
   matches: 'matches',
   venues: 'venues',
+  notifications: 'notifications',
 } as const;
+
+export interface NotificationItem {
+  id: string;
+  type: 'match' | 'payment' | 'squad' | 'social' | 'system';
+  title: string;
+  body: string;
+  read: boolean;
+  time?: string;
+  createdAt?: unknown;
+}
 
 type DocSnap = { id: string; data: () => Record<string, unknown> | undefined; exists: boolean };
 
@@ -254,6 +265,40 @@ export async function getTeamIdForUser(userId: string): Promise<string | null> {
   const userDoc = await firestore().collection(COLLECTIONS.users).doc(userId).get();
   if (!userDoc.exists) return null;
   return (userDoc.data()?.teamId as string) ?? null;
+}
+
+/** Kullanıcının bildirimlerini getirir. (userId/teamId ileride filtre için – şu an tüm bildirimler) */
+export async function getNotifications(
+  _userId?: string,
+  _teamId?: string
+): Promise<NotificationItem[]> {
+  const col = firestore().collection(COLLECTIONS.notifications);
+  const snap = await col.orderBy('createdAt', 'desc').limit(50).get();
+  return snap.docs.map((doc) => {
+    const d = (doc.data() || {}) as Record<string, unknown>;
+    const body = (d.message ?? d.body ?? '') as string;
+    const read = (d.isRead ?? d.read ?? false) as boolean;
+    let time = (d.time ?? '') as string;
+    if (!time && d.createdAt) {
+      const ts = (d.createdAt as { toDate?: () => Date })?.toDate?.();
+      if (ts) {
+        const diff = Date.now() - ts.getTime();
+        if (diff < 60000) time = 'Az önce';
+        else if (diff < 3600000) time = `${Math.floor(diff / 60000)} dk önce`;
+        else if (diff < 86400000) time = `${Math.floor(diff / 3600000)} saat önce`;
+        else time = `${Math.floor(diff / 86400000)} gün önce`;
+      }
+    }
+    return {
+      id: doc.id,
+      type: ((d.type as string) || 'system') as NotificationItem['type'],
+      title: (d.title as string) ?? '',
+      body,
+      read,
+      time,
+      createdAt: d.createdAt,
+    };
+  });
 }
 
 /** Manuel oyuncu ekler (uygulama kullanmayan biri). */

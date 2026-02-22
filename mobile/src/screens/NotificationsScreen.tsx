@@ -1,32 +1,52 @@
 /**
- * Notifications Screen – Bildirimler listesi
+ * Notifications Screen – Bildirimler listesi (Firestore)
  */
 
-import React from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  RefreshControl,
+  ActivityIndicator,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
+import { useAuth } from '../contexts/AuthContext';
+import { getNotifications } from '../services/notifications';
+import type { NotificationItem } from '../services/notifications';
 import { RootStackParamList } from '../types';
 import { colors, spacing, borderRadius, typography } from '../theme';
 
 type NotificationsNavProp = StackNavigationProp<RootStackParamList, 'Notifications'>;
 
-const MOCK_NOTIFICATIONS = [
-  { id: '1', type: 'match', title: 'Maç hatırlatması', body: 'Yarın 14:00 – Yeşil Saha maçına 2 saat kaldı.', time: '1 saat önce', read: false },
-  { id: '2', type: 'squad', title: 'Kadro açıklandı', body: 'Ahmet Kaptan kadroyu yayınladı. Katılımını belirt.', time: '3 saat önce', read: true },
-  { id: '3', type: 'payment', title: 'Ödeme hatırlatması', body: 'Bu ayın aidat ödemesi bekleniyor.', time: '1 gün önce', read: true },
-];
-
 export default function NotificationsScreen() {
   const navigation = useNavigation<NotificationsNavProp>();
-  const items = MOCK_NOTIFICATIONS;
+  const { user } = useAuth();
+  const [items, setItems] = useState<NotificationItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const fetchItems = useCallback(async () => {
+    const list = await getNotifications(user?.id);
+    setItems(list);
+  }, [user?.id]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    fetchItems().finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [fetchItems]);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await fetchItems();
+    setRefreshing(false);
+  }, [fetchItems]);
 
   const getIcon = (type: string) => {
     switch (type) {
@@ -47,8 +67,19 @@ export default function NotificationsScreen() {
         <View style={styles.placeholder} />
       </View>
 
-      <ScrollView style={styles.content} contentContainerStyle={styles.contentInner}>
-        {items.length === 0 ? (
+      <ScrollView
+        style={styles.content}
+        contentContainerStyle={styles.contentInner}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+      >
+        {loading && items.length === 0 ? (
+          <View style={styles.empty}>
+            <ActivityIndicator size="large" color={colors.primary} />
+            <Text style={styles.emptyText}>Bildirimler yükleniyor...</Text>
+          </View>
+        ) : items.length === 0 ? (
           <View style={styles.empty}>
             <Icon name="bell-off" size={48} color={colors.text.tertiary} />
             <Text style={styles.emptyText}>Henüz bildirim yok</Text>
@@ -57,7 +88,7 @@ export default function NotificationsScreen() {
           items.map((item) => (
             <TouchableOpacity
               key={item.id}
-              style={[styles.card, !item.read && styles.cardUnread]}
+              style={[styles.card, !(item.read ?? false) && styles.cardUnread]}
               activeOpacity={0.8}
             >
               <View style={styles.iconWrap}>
@@ -66,7 +97,7 @@ export default function NotificationsScreen() {
               <View style={styles.cardContent}>
                 <Text style={styles.cardTitle}>{item.title}</Text>
                 <Text style={styles.cardBody}>{item.body}</Text>
-                <Text style={styles.cardTime}>{item.time}</Text>
+                <Text style={styles.cardTime}>{item.time ?? ''}</Text>
               </View>
             </TouchableOpacity>
           ))

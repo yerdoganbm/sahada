@@ -21,39 +21,44 @@ import type { Venue } from '../types';
 
 type VenueDetailsRouteProp = RouteProp<RootStackParamList, 'VenueDetails'>;
 
-const FALLBACK_VENUE: Venue = {
-  id: 'v1',
-  name: 'Olimpik Halı Saha',
-  location: 'Kadıköy, İstanbul',
-  pricePerHour: 1200,
-  rating: 4.8,
-  image: 'https://images.unsplash.com/photo-1529900748604-07564a03e7a6?w=400',
-  features: [],
-};
-
 export default function VenueDetailsScreen() {
   const navigation = useNavigation();
   const { params } = useRoute<VenueDetailsRouteProp>();
-  const venueId = params?.venueId || 'v1';
+  const venueId = params?.venueId;
   const [venue, setVenue] = useState<Venue | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!venueId) return;
     let cancelled = false;
     setLoading(true);
     getVenue(venueId).then((v) => {
-      if (!cancelled) setVenue(v ?? { ...FALLBACK_VENUE, id: venueId });
+      if (!cancelled) setVenue(v ?? null);
     }).finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, [venueId]);
 
-  const displayVenue = venue ?? FALLBACK_VENUE;
+  if (!venueId) {
+    return (
+      <View style={[styles.container, styles.centered]}>
+        <Text style={styles.loadingText}>Saha ID bulunamadı</Text>
+      </View>
+    );
+  }
 
   if (loading && !venue) {
     return (
       <View style={[styles.container, styles.centered]}>
         <ActivityIndicator size="large" color={colors.primary} />
         <Text style={styles.loadingText}>Saha bilgisi yükleniyor...</Text>
+      </View>
+    );
+  }
+
+  if (!venue) {
+    return (
+      <View style={[styles.container, styles.centered]}>
+        <Text style={styles.loadingText}>Saha bulunamadı</Text>
       </View>
     );
   }
@@ -68,23 +73,23 @@ export default function VenueDetailsScreen() {
         <View style={styles.placeholder} />
       </View>
 
-      <Image source={{ uri: displayVenue.image || undefined }} style={styles.heroImage} />
+      <Image source={{ uri: venue.image || undefined }} style={styles.heroImage} />
       <View style={styles.heroOverlay} />
 
       <View style={styles.content}>
-        <Text style={styles.name}>{displayVenue.name}</Text>
+        <Text style={styles.name}>{venue.name}</Text>
         <View style={styles.metaRow}>
           <Icon name="map-marker" size={18} color={colors.primary} />
-          <Text style={styles.location}>{displayVenue.location}</Text>
+          <Text style={styles.location}>{venue.location}</Text>
         </View>
         <View style={styles.statsRow}>
           <View style={styles.stat}>
             <Icon name="star" size={18} color={colors.warning} />
-            <Text style={styles.statText}>{displayVenue.rating}</Text>
+            <Text style={styles.statText}>{venue.rating}</Text>
           </View>
           <View style={styles.stat}>
             <Icon name="cash" size={18} color={colors.primary} />
-            <Text style={styles.statText}>₺{displayVenue.pricePerHour}/saat</Text>
+            <Text style={styles.statText}>₺{venue.pricePerHour}/saat</Text>
           </View>
         </View>
 
