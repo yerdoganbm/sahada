@@ -15,7 +15,7 @@
     "build:ios": "cd ios && xcodebuild -workspace SahadaMobile.xcworkspace -scheme SahadaMobile -configuration Release"
   },
   "dependencies": {
-    "@expo/metro-runtime": "~6.1.2",
+    "@expo/metro-runtime": "~3.0.0",
     "@notifee/react-native": "^7.8.2",
     "@react-native-async-storage/async-storage": "^1.21.0",
     "@react-native-community/geolocation": "^3.2.1",
@@ -28,8 +28,8 @@
     "@react-navigation/stack": "^6.3.20",
     "axios": "^1.6.5",
     "date-fns": "^3.0.6",
-    "expo": "^54.0.33",
-    "expo-clipboard": "~8.0.8",
+    "expo": "~50.0.0",
+    "expo-clipboard": "~6.0.0",
     "firebase": "^12.9.0",
     "react": "18.2.0",
     "react-dom": "^18.3.1",
