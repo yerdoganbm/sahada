@@ -30,7 +30,8 @@
             "useFrameworks": "static"
           }
         }
-      ]
+      ],
+      "./plugins/withBoringSSLFix"
     ]
   },
   "ios": {
