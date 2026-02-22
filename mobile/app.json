@@ -2,11 +2,34 @@
   "name": "SahadaMobile",
   "displayName": "Sahada",
   "version": "1.0.0",
-  "slug": "sahada-mobile",
+  "slug": "sahadamobile",
+  "owner": "yerdogan",
   "icon": "./assets/icon.png",
   "expo": {
-    "web": { "bundler": "metro" }
+    "web": {
+      "bundler": "metro"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "916c86b4-56c3-4f8c-b150-78c4d8f23342"
+      }
+    },
+    "ios": {
+      "bundleIdentifier": "com.yerdogan.sahadamobile",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    }
   },
-  "ios": { "bundleIdentifier": "com.sahada.mobile" },
-  "android": { "package": "com.sahada.mobile" }
+  "ios": {
+    "bundleIdentifier": "com.sahada.mobile"
+  },
+  "android": {
+    "package": "com.sahada.mobile"
+  },
+  "extra": {
+    "eas": {
+      "projectId": "916c86b4-56c3-4f8c-b150-78c4d8f23342"
+    }
+  }
 }
