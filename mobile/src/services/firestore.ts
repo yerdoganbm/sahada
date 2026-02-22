@@ -4,7 +4,7 @@
  */
 
 import firestore from '@react-native-firebase/firestore';
-import type { Player, Match, Venue } from '../types';
+import type { Player, Match, Venue, Payment, Transaction, Poll } from '../types';
 
 const COLLECTIONS = {
   users: 'users',
@@ -12,6 +12,14 @@ const COLLECTIONS = {
   matches: 'matches',
   venues: 'venues',
   notifications: 'notifications',
+  payments: 'payments',
+  transactions: 'transactions',
+  reservations: 'reservations',
+  polls: 'polls',
+  talent_pool: 'talent_pool',
+  scout_reports: 'scout_reports',
+  tournament_teams: 'tournament_teams',
+  bracket_matches: 'bracket_matches',
 } as const;
 
 export interface NotificationItem {
@@ -299,6 +307,358 @@ export async function getNotifications(
       createdAt: d.createdAt,
     };
   });
+}
+
+/** Ödemeleri getirir (teamId, playerId veya status ile filtre). */
+export async function getPayments(params?: {
+  teamId?: string;
+  playerId?: string;
+  status?: 'PAID' | 'PENDING' | 'REFUND';
+}): Promise<Payment[]> {
+  let q = firestore().collection(COLLECTIONS.payments).limit(100);
+  if (params?.teamId) q = q.where('teamId', '==', params.teamId) as any;
+  if (params?.playerId) q = q.where('playerId', '==', params.playerId) as any;
+  if (params?.status) q = q.where('status', '==', params.status) as any;
+  const snap = await q.get();
+  const list = snap.docs.map((doc) => {
+    const d = (doc.data() || {}) as Record<string, unknown>;
+    return {
+      id: doc.id,
+      playerId: (d.playerId as string) ?? '',
+      playerName: (d.playerName as string) ?? '',
+      amount: typeof d.amount === 'number' ? d.amount : 0,
+      dueDate: (d.dueDate as string) ?? '',
+      status: ((d.status as string) ?? 'PENDING') as Payment['status'],
+      month: (d.month as string) ?? '',
+      proofUrl: d.proofUrl as string | undefined,
+      teamId: d.teamId as string | undefined,
+    };
+  });
+  return list.sort((a, b) => (b.month || '').localeCompare(a.month || ''));
+}
+
+/** Finansal işlemleri getirir (gelir/gider). */
+export async function getTransactions(params?: {
+  teamId?: string;
+  type?: 'income' | 'expense';
+}): Promise<Transaction[]> {
+  let q = firestore().collection(COLLECTIONS.transactions).limit(100);
+  if (params?.teamId) q = q.where('teamId', '==', params.teamId) as any;
+  if (params?.type) q = q.where('type', '==', params.type) as any;
+  const snap = await q.get();
+  const list = snap.docs.map((doc) => {
+    const d = (doc.data() || {}) as Record<string, unknown>;
+    return {
+      id: doc.id,
+      type: ((d.type as string) ?? 'income') as Transaction['type'],
+      category: ((d.category as string) ?? 'gelir') as Transaction['category'],
+      amount: typeof d.amount === 'number' ? d.amount : 0,
+      date: (d.date as string) ?? '',
+      description: (d.description as string) ?? (d.title as string) ?? '',
+      teamId: d.teamId as string | undefined,
+    };
+  });
+  return list.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+}
+
+export interface Reservation {
+  id: string;
+  venueId: string;
+  venueName: string;
+  teamName?: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  duration?: number;
+  price: number;
+  status: 'pending' | 'confirmed' | 'completed' | 'cancelled';
+  participants?: number;
+}
+
+/** Rezervasyonları getirir (venueId ile filtre). */
+export async function getReservations(params?: { venueId?: string }): Promise<Reservation[]> {
+  let q = firestore().collection(COLLECTIONS.reservations).limit(100);
+  if (params?.venueId) q = q.where('venueId', '==', params.venueId) as any;
+  const snap = await q.get();
+  const list = snap.docs.map((doc) => {
+    const d = (doc.data() || {}) as Record<string, unknown>;
+    return {
+      id: doc.id,
+      venueId: (d.venueId as string) ?? '',
+      venueName: (d.venueName as string) ?? '',
+      teamName: d.teamName as string | undefined,
+      date: (d.date as string) ?? '',
+      startTime: (d.startTime as string) ?? '',
+      endTime: (d.endTime as string) ?? '',
+      duration: d.duration as number | undefined,
+      price: typeof d.price === 'number' ? d.price : 0,
+      status: ((d.status as string) ?? 'pending') as Reservation['status'],
+      participants: d.participants as number | undefined,
+    };
+  });
+  return list.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+}
+
+/** Rezervasyon oluşturur. */
+export async function createReservation(data: {
+  venueId: string;
+  venueName?: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  duration?: number;
+  price?: number;
+  teamName?: string;
+  contactPerson?: string;
+  contactPhone?: string;
+}): Promise<Reservation> {
+  const ref = await firestore().collection(COLLECTIONS.reservations).add({
+    venueId: data.venueId,
+    venueName: data.venueName ?? '',
+    date: data.date,
+    startTime: data.startTime,
+    endTime: data.endTime,
+    duration: data.duration ?? 60,
+    price: data.price ?? 0,
+    status: 'pending',
+    teamName: data.teamName ?? null,
+    contactPerson: data.contactPerson ?? null,
+    contactPhone: data.contactPhone ?? null,
+    createdAt: firestore.FieldValue.serverTimestamp(),
+  });
+  return {
+    id: ref.id,
+    venueId: data.venueId,
+    venueName: data.venueName ?? '',
+    teamName: data.teamName,
+    date: data.date,
+    startTime: data.startTime,
+    endTime: data.endTime,
+    duration: data.duration,
+    price: data.price ?? 0,
+    status: 'pending',
+  };
+}
+
+/** Anketleri getirir. */
+export async function getPolls(teamId?: string): Promise<Poll[]> {
+  let q = firestore().collection(COLLECTIONS.polls).limit(50);
+  if (teamId) q = q.where('teamId', '==', teamId) as any;
+  const snap = await q.get();
+  return snap.docs.map((doc) => {
+    const d = (doc.data() || {}) as Record<string, unknown>;
+    const options = (Array.isArray(d.options) ? d.options : []) as Array<{ id: string; text: string; votes: number }>;
+    const voters = (Array.isArray(d.voters) ? d.voters : []) as string[];
+    return {
+      id: doc.id,
+      question: (d.question as string) ?? '',
+      options,
+      totalVotes: typeof d.totalVotes === 'number' ? d.totalVotes : options.reduce((s, o) => s + (o.votes || 0), 0),
+      isVoted: false,
+      expiresAt: (d.expiresAt as string) ?? (d.endDate as string) ?? '',
+      teamId: d.teamId as string | undefined,
+      voters,
+    };
+  });
+}
+
+/** Ankete oy verir. */
+export async function votePoll(pollId: string, optionId: string, userId: string): Promise<void> {
+  const ref = firestore().collection(COLLECTIONS.polls).doc(pollId);
+  const doc = await ref.get();
+  if (!doc.exists) throw new Error('Poll not found');
+  const d = doc.data() || {};
+  const options = [...(Array.isArray(d.options) ? d.options : [])] as Array<{ id: string; text: string; votes: number }>;
+  const voters = (Array.isArray(d.voters) ? d.voters : []) as string[];
+  if (voters.includes(userId)) throw new Error('Zaten oy kullandınız');
+  const opt = options.find((o) => o.id === optionId);
+  if (!opt) throw new Error('Invalid option');
+  opt.votes = (opt.votes || 0) + 1;
+  voters.push(userId);
+  const totalVotes = options.reduce((s, o) => s + (o.votes || 0), 0);
+  await ref.update({ options, voters, totalVotes });
+}
+
+/** Bildirimi okundu işaretler. */
+export async function markNotificationRead(notificationId: string): Promise<void> {
+  await firestore().collection(COLLECTIONS.notifications).doc(notificationId).update({
+    isRead: true,
+    read: true,
+  });
+}
+
+/** Talent pool listesi. */
+export interface TalentPoolItem {
+  id: string;
+  teamId?: string;
+  name: string;
+  position: string;
+  contactNumber?: string;
+  status?: string;
+  averageScore?: number;
+  potentialRating?: number;
+  source?: string;
+}
+
+export async function getTalentPool(teamId?: string): Promise<TalentPoolItem[]> {
+  let q = firestore().collection(COLLECTIONS.talent_pool).limit(50);
+  if (teamId) q = q.where('teamId', '==', teamId) as any;
+  const snap = await q.get();
+  return snap.docs.map((doc) => {
+    const d = (doc.data() || {}) as Record<string, unknown>;
+    return {
+      id: doc.id,
+      teamId: d.teamId as string | undefined,
+      name: (d.name as string) ?? '',
+      position: (d.position as string) ?? 'MID',
+      contactNumber: d.contactNumber as string | undefined,
+      status: d.status as string | undefined,
+      averageScore: d.averageScore as number | undefined,
+      potentialRating: d.potentialRating as number | undefined,
+      source: d.source as string | undefined,
+    };
+  });
+}
+
+/** Scout raporları. */
+export interface ScoutReportItem {
+  id: string;
+  playerId?: string;
+  scoutName?: string;
+  date?: string;
+  overallScore?: number;
+  potential?: number;
+  recommendation?: string;
+  strengths?: string[];
+  weaknesses?: string[];
+}
+
+export async function getScoutReports(): Promise<ScoutReportItem[]> {
+  const snap = await firestore().collection(COLLECTIONS.scout_reports).limit(50).get();
+  return snap.docs.map((doc) => {
+    const d = (doc.data() || {}) as Record<string, unknown>;
+    return {
+      id: doc.id,
+      playerId: d.playerId as string | undefined,
+      scoutName: (d.scoutName as string) ?? '',
+      date: d.date as string | undefined,
+      overallScore: d.overallScore as number | undefined,
+      potential: d.potential as number | undefined,
+      recommendation: d.recommendation as string | undefined,
+      strengths: (d.strengths as string[]) ?? [],
+      weaknesses: (d.weaknesses as string[]) ?? [],
+    };
+  });
+}
+
+/** Turnuva takımları. */
+export interface TournamentTeam {
+  id: string;
+  name: string;
+  logo?: string;
+  stats?: { played: number; won: number; drawn: number; lost: number; gf: number; ga: number; points: number };
+}
+
+export async function getTournamentTeams(): Promise<TournamentTeam[]> {
+  const snap = await firestore().collection(COLLECTIONS.tournament_teams).limit(20).get();
+  return snap.docs.map((doc) => {
+    const d = (doc.data() || {}) as Record<string, unknown>;
+    return {
+      id: doc.id,
+      name: (d.name as string) ?? '',
+      logo: d.logo as string | undefined,
+      stats: d.stats as TournamentTeam['stats'],
+    };
+  });
+}
+
+/** Turnuva fikstür maçları. */
+export interface BracketMatch {
+  id: string;
+  round: string;
+  team1?: { id: string; name: string };
+  team2?: { id: string; name: string };
+  winnerId?: string;
+  date?: string;
+  score?: string;
+  status?: string;
+}
+
+export async function getBracketMatches(): Promise<BracketMatch[]> {
+  const snap = await firestore().collection(COLLECTIONS.bracket_matches).limit(20).get();
+  return snap.docs.map((doc) => {
+    const d = (doc.data() || {}) as Record<string, unknown>;
+    return {
+      id: doc.id,
+      round: (d.round as string) ?? '',
+      team1: d.team1 as BracketMatch['team1'],
+      team2: d.team2 as BracketMatch['team2'],
+      winnerId: d.winnerId as string | undefined,
+      date: d.date as string | undefined,
+      score: d.score as string | undefined,
+      status: d.status as string | undefined,
+    };
+  });
+}
+
+/** Ödeme ekler. */
+export async function addPayment(data: {
+  playerId: string;
+  playerName?: string;
+  teamId?: string;
+  amount: number;
+  status: 'PAID' | 'PENDING' | 'REFUND';
+  month?: string;
+}): Promise<Payment> {
+  const ref = await firestore().collection(COLLECTIONS.payments).add({
+    playerId: data.playerId,
+    playerName: data.playerName ?? '',
+    teamId: data.teamId ?? null,
+    amount: data.amount,
+    status: data.status,
+    month: data.month ?? new Date().toISOString().slice(0, 7),
+    createdAt: firestore.FieldValue.serverTimestamp(),
+  });
+  return {
+    id: ref.id,
+    playerId: data.playerId,
+    playerName: data.playerName ?? '',
+    amount: data.amount,
+    dueDate: '',
+    status: data.status,
+    month: data.month ?? '',
+    teamId: data.teamId,
+  };
+}
+
+/** İşlem (gelir/gider) ekler. */
+export async function addTransaction(data: {
+  teamId?: string;
+  type: 'income' | 'expense';
+  category?: string;
+  amount: number;
+  date: string;
+  description?: string;
+}): Promise<Transaction> {
+  const amt = data.type === 'expense' ? -Math.abs(data.amount) : Math.abs(data.amount);
+  const ref = await firestore().collection(COLLECTIONS.transactions).add({
+    teamId: data.teamId ?? null,
+    type: data.type,
+    category: data.category ?? (data.type === 'income' ? 'gelir' : 'diger'),
+    amount: amt,
+    date: data.date,
+    description: data.description ?? '',
+    createdAt: firestore.FieldValue.serverTimestamp(),
+  });
+  return {
+    id: ref.id,
+    type: data.type,
+    category: (data.category as Transaction['category']) ?? 'gelir',
+    amount: amt,
+    date: data.date,
+    description: data.description ?? '',
+    teamId: data.teamId,
+  };
 }
 
 /** Manuel oyuncu ekler (uygulama kullanmayan biri). */

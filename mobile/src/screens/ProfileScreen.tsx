@@ -141,7 +141,7 @@ export default function ProfileScreen() {
 
           <TouchableOpacity
             style={styles.actionButton}
-            onPress={() => navigation.navigate('PaymentLedger')}
+            onPress={() => navigation.navigate('PaymentLedger', { myPaymentsOnly: true })}
           >
             <Icon name="receipt-text" size={20} color={colors.text.primary} />
             <Text style={styles.actionText}>Ödemeler</Text>

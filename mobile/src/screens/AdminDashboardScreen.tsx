@@ -1,8 +1,8 @@
 /**
- * Admin Dashboard Screen - Yönetim paneli özeti
+ * Admin Dashboard Screen - Yönetim paneli özeti (Firestore)
  */
 
-import React from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -17,6 +17,9 @@ import { CommonActions } from '@react-navigation/native';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import { canAccessAdminPanel } from '../utils/permissions';
+import { getPlayers } from '../services/players';
+import { getMatches } from '../services/matches';
+import { getPayments } from '../services/finance';
 import { colors, spacing, borderRadius, typography } from '../theme';
 import { RootStackParamList } from '../types';
 
@@ -32,16 +35,32 @@ function MenuRow({ icon, label, onPress }: { icon: string; label: string; onPres
   );
 }
 
-const STATS = [
-  { label: 'Üye', value: '14', icon: 'account-group', color: colors.primary },
-  { label: 'Maç', value: '3', icon: 'soccer', color: colors.info },
-  { label: 'Bekleyen', value: '2', icon: 'clock-outline', color: colors.warning },
-];
-
 export default function AdminDashboardScreen() {
   const navigation = useNavigation<AdminNavProp>();
   const { user } = useAuth();
   const isAdmin = canAccessAdminPanel(user);
+  const [stats, setStats] = useState({ members: 0, matches: 0, pending: 0 });
+
+  const fetchStats = useCallback(async () => {
+    if (!user?.id) return;
+    const { getTeamIdForUser } = await import('../services/players');
+    const teamId = await getTeamIdForUser(user.id);
+    if (!teamId) return;
+    const [players, matches, payments] = await Promise.all([
+      getPlayers({ teamId }),
+      getMatches({ teamId }),
+      getPayments({ teamId, status: 'PENDING' }),
+    ]);
+    setStats({
+      members: players.length,
+      matches: matches.length,
+      pending: payments.length,
+    });
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (isAdmin) fetchStats();
+  }, [isAdmin, fetchStats]);
 
   if (!isAdmin) {
     return (
@@ -72,15 +91,27 @@ export default function AdminDashboardScreen() {
       </View>
 
       <View style={styles.statsRow}>
-        {STATS.map((s) => (
-          <View key={s.label} style={styles.statCard}>
-            <View style={[styles.statIcon, { backgroundColor: s.color + '20' }]}>
-              <Icon name={s.icon as any} size={24} color={s.color} />
-            </View>
-            <Text style={styles.statValue}>{s.value}</Text>
-            <Text style={styles.statLabel}>{s.label}</Text>
+        <View style={styles.statCard}>
+          <View style={[styles.statIcon, { backgroundColor: colors.primary + '20' }]}>
+            <Icon name="account-group" size={24} color={colors.primary} />
           </View>
-        ))}
+          <Text style={styles.statValue}>{stats.members}</Text>
+          <Text style={styles.statLabel}>Üye</Text>
+        </View>
+        <View style={styles.statCard}>
+          <View style={[styles.statIcon, { backgroundColor: colors.info + '20' }]}>
+            <Icon name="soccer" size={24} color={colors.info} />
+          </View>
+          <Text style={styles.statValue}>{stats.matches}</Text>
+          <Text style={styles.statLabel}>Maç</Text>
+        </View>
+        <View style={styles.statCard}>
+          <View style={[styles.statIcon, { backgroundColor: colors.warning + '20' }]}>
+            <Icon name="clock-outline" size={24} color={colors.warning} />
+          </View>
+          <Text style={styles.statValue}>{stats.pending}</Text>
+          <Text style={styles.statLabel}>Bekleyen</Text>
+        </View>
       </View>
 
       <Text style={styles.sectionTitle}>Hızlı İşlemler</Text>

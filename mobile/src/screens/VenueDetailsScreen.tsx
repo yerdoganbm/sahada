@@ -95,7 +95,7 @@ export default function VenueDetailsScreen() {
 
         <TouchableOpacity
           style={styles.bookBtn}
-          onPress={() => navigation.navigate('Booking')}
+          onPress={() => navigation.navigate('Booking', { venueId: venue.id, venueName: venue.name })}
           accessibilityLabel="Rezervasyon yap"
           accessibilityRole="button"
         >

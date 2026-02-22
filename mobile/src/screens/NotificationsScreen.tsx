@@ -17,6 +17,7 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import { getNotifications } from '../services/notifications';
+import { markNotificationRead } from '../services/firestore';
 import type { NotificationItem } from '../services/notifications';
 import { RootStackParamList } from '../types';
 import { colors, spacing, borderRadius, typography } from '../theme';
@@ -90,6 +91,12 @@ export default function NotificationsScreen() {
               key={item.id}
               style={[styles.card, !(item.read ?? false) && styles.cardUnread]}
               activeOpacity={0.8}
+              onPress={() => {
+                if (!(item.read ?? false)) {
+                  markNotificationRead(item.id).catch(() => {});
+                  setItems((prev) => prev.map((i) => (i.id === item.id ? { ...i, read: true } : i)));
+                }
+              }}
             >
               <View style={styles.iconWrap}>
                 <Icon name={getIcon(item.type) as any} size={22} color={colors.primary} />

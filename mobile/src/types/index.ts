@@ -175,8 +175,8 @@ export type RootStackParamList = {
   VenueFinancialReports: undefined;
   ReservationManagement: undefined;
   Attendance: undefined;
-  Booking: undefined;
-  PaymentLedger: undefined;
+  Booking: { venueId?: string; venueName?: string } | undefined;
+  PaymentLedger: { myPaymentsOnly?: boolean } | undefined;
   WhatsAppIntegration: undefined;
   VenueAdd: undefined;
   Subscription: undefined;
