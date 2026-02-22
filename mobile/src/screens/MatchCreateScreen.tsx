@@ -16,6 +16,7 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
+import { canCreateMatch } from '../utils/permissions';
 import { colors, spacing, borderRadius, typography } from '../theme';
 import { getVenues } from '../services/venues';
 import { createMatch } from '../services/matches';
@@ -37,7 +38,7 @@ export default function MatchCreateScreen() {
   const [loadingVenues, setLoadingVenues] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
-  const isAdmin = user?.role === 'admin';
+  const canCreate = canCreateMatch(user);
   const venueList = venues.length > 0 ? venues : MOCK_VENUES;
 
   useEffect(() => {
@@ -80,7 +81,7 @@ export default function MatchCreateScreen() {
     }
   };
 
-  if (!isAdmin) {
+  if (!canCreate) {
     return (
       <View style={styles.container}>
         <View style={styles.header}>
@@ -92,7 +93,7 @@ export default function MatchCreateScreen() {
         </View>
         <View style={styles.centered}>
           <Icon name="lock" size={48} color={colors.alert} />
-          <Text style={styles.lockText}>Sadece yöneticiler maç oluşturabilir.</Text>
+          <Text style={styles.lockText}>Maç oluşturmak için yönetici veya kaptan yetkisi gerekir.</Text>
         </View>
       </View>
     );

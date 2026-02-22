@@ -16,6 +16,7 @@ import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
+import { canCreateMatch } from '../utils/permissions';
 import { RootStackParamList } from '../types';
 import { colors, spacing, borderRadius, typography } from '../theme';
 import { getMatches } from '../services/matches';
@@ -43,7 +44,7 @@ function isUpcoming(m: Match): boolean {
 export default function MatchesScreen() {
   const navigation = useNavigation<MatchesNavigationProp>();
   const { user } = useAuth();
-  const isAdmin = user?.role === 'admin' || user?.isCaptain;
+  const canCreate = canCreateMatch(user);
   const [matches, setMatches] = useState<Match[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -95,7 +96,7 @@ export default function MatchesScreen() {
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>Maçlar</Text>
-        {isAdmin && (
+        {canCreate && (
           <TouchableOpacity
             style={styles.addButton}
             onPress={() => navigation.navigate('MatchCreate')}

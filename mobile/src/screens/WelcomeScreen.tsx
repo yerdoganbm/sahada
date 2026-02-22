@@ -135,11 +135,11 @@ export default function WelcomeScreen() {
 
             <TouchableOpacity
               style={styles.secondaryButton}
-              onPress={() => navigation.navigate('Login')}
+              onPress={() => navigation.navigate('JoinTeam')}
               activeOpacity={0.8}
             >
               <Icon name="qrcode-scan" size={18} color={colors.text.secondary} />
-              <Text style={styles.secondaryButtonText}>Koda Katıl</Text>
+              <Text style={styles.secondaryButtonText}>Takıma Katıl</Text>
             </TouchableOpacity>
           </View>
         </View>

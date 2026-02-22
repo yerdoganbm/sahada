@@ -16,10 +16,21 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { CommonActions } from '@react-navigation/native';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
+import { canAccessAdminPanel } from '../utils/permissions';
 import { colors, spacing, borderRadius, typography } from '../theme';
 import { RootStackParamList } from '../types';
 
 type AdminNavProp = StackNavigationProp<RootStackParamList, 'Admin'>;
+
+function MenuRow({ icon, label, onPress }: { icon: string; label: string; onPress: () => void }) {
+  return (
+    <TouchableOpacity style={styles.menuRow} onPress={onPress}>
+      <Icon name={icon as any} size={22} color={colors.primary} />
+      <Text style={styles.menuText}>{label}</Text>
+      <Icon name="chevron-right" size={22} color={colors.text.secondary} />
+    </TouchableOpacity>
+  );
+}
 
 const STATS = [
   { label: 'Üye', value: '14', icon: 'account-group', color: colors.primary },
@@ -30,7 +41,7 @@ const STATS = [
 export default function AdminDashboardScreen() {
   const navigation = useNavigation<AdminNavProp>();
   const { user } = useAuth();
-  const isAdmin = user?.role === 'admin';
+  const isAdmin = canAccessAdminPanel(user);
 
   if (!isAdmin) {
     return (
@@ -74,40 +85,29 @@ export default function AdminDashboardScreen() {
 
       <Text style={styles.sectionTitle}>Hızlı İşlemler</Text>
       <View style={styles.menu}>
-        <TouchableOpacity
-          style={styles.menuRow}
-          onPress={() =>
-            navigation.dispatch(
-              CommonActions.navigate('MainTabs', { screen: 'Team' })
-            )
-          }
-        >
-          <Icon name="account-plus" size={22} color={colors.primary} />
-          <Text style={styles.menuText}>Üye Yönetimi</Text>
-          <Icon name="chevron-right" size={22} color={colors.text.secondary} />
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.menuRow}
-          onPress={() => navigation.navigate('MatchCreate')}
-        >
-          <Icon name="soccer" size={22} color={colors.primary} />
-          <Text style={styles.menuText}>Maç Oluştur</Text>
-          <Icon name="chevron-right" size={22} color={colors.text.secondary} />
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.menuRow}
-          onPress={() =>
-            Alert.alert(
-              'Finansal Rapor',
-              'Bu özellik yakında eklenecek.',
-              [{ text: 'Tamam' }]
-            )
-          }
-        >
-          <Icon name="cash" size={22} color={colors.primary} />
-          <Text style={styles.menuText}>Finansal Rapor</Text>
-          <Icon name="chevron-right" size={22} color={colors.text.secondary} />
-        </TouchableOpacity>
+        <MenuRow icon="account-cog" label="Üye Yönetimi" onPress={() => navigation.navigate('MemberManagement')} />
+        <MenuRow icon="account-plus" label="Kadro" onPress={() => navigation.dispatch(CommonActions.navigate('MainTabs', { screen: 'Team' }))} />
+        <MenuRow icon="soccer" label="Maç Oluştur" onPress={() => navigation.navigate('MatchCreate')} />
+        <MenuRow icon="chart-bar" label="Finansal Rapor" onPress={() => navigation.navigate('FinancialReports')} />
+        <MenuRow icon="cash-minus" label="Borç Listesi" onPress={() => navigation.navigate('DebtList')} />
+        <MenuRow icon="format-list-checks" label="Kadro Yöneticisi" onPress={() => navigation.navigate('LineupManager')} />
+        <MenuRow icon="binoculars" label="Scout Paneli" onPress={() => navigation.navigate('ScoutDashboard')} />
+        <MenuRow icon="whatsapp" label="WhatsApp" onPress={() => navigation.navigate('WhatsAppIntegration')} />
+        <MenuRow icon="receipt-text" label="Ödeme Defteri" onPress={() => navigation.navigate('PaymentLedger')} />
+      </View>
+
+      <Text style={[styles.sectionTitle, { marginTop: spacing.xl }]}>Diğer</Text>
+      <View style={styles.menu}>
+        <MenuRow icon="star-circle" label="Yetenek Havuzu" onPress={() => navigation.navigate('TalentPool')} />
+        <MenuRow icon="file-document-search" label="Scout Raporları" onPress={() => navigation.navigate('ScoutReports')} />
+        <MenuRow icon="domain" label="Saha Sahibi Paneli" onPress={() => navigation.navigate('VenueOwnerDashboard')} />
+        <MenuRow icon="chart-line" label="Saha Finansal Rapor" onPress={() => navigation.navigate('VenueFinancialReports')} />
+        <MenuRow icon="calendar-edit" label="Rezervasyon Yönetimi" onPress={() => navigation.navigate('ReservationManagement')} />
+        <MenuRow icon="account-tie" label="Müşteri Yönetimi" onPress={() => navigation.navigate('CustomerManagement')} />
+        <MenuRow icon="plus-circle" label="Saha Ekle" onPress={() => navigation.navigate('VenueAdd')} />
+        <MenuRow icon="calendar-check" label="Rezervasyon Sistemi" onPress={() => navigation.navigate('ReserveSystem')} />
+        <MenuRow icon="share-variant" label="Kadro Paylaşım" onPress={() => navigation.navigate('SquadShareWizard')} />
+        <MenuRow icon="message-text" label="Mesaj Kayıtları" onPress={() => navigation.navigate('MessageLogs')} />
       </View>
     </ScrollView>
   );

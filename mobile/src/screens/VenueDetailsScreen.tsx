@@ -11,7 +11,6 @@ import {
   TouchableOpacity,
   Image,
   ActivityIndicator,
-  Alert,
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
@@ -91,13 +90,7 @@ export default function VenueDetailsScreen() {
 
         <TouchableOpacity
           style={styles.bookBtn}
-          onPress={() =>
-            Alert.alert(
-              'Rezervasyon',
-              'Saha rezervasyonu özelliği yakında eklenecek.',
-              [{ text: 'Tamam' }]
-            )
-          }
+          onPress={() => navigation.navigate('Booking')}
           accessibilityLabel="Rezervasyon yap"
           accessibilityRole="button"
         >

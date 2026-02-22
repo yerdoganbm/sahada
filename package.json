@@ -70,6 +70,7 @@
     "libero:predict": "playwright test tests/libero-v4-core.spec.ts -g \"Oracle\" --reporter=json > test-results/predictive-report.json",
     "libero:quantum:genesis": "npm run genesis --prefix ../../libero-quantum",
     "libero:quantum:genesis:sahada": "node scripts/run-genesis-sahada.js",
+    "seed:firestore": "node scripts/seed-firestore.cjs",
     "libero:quantum:neuro": "npm run neuro:server --prefix ../../libero-quantum"
   },
   "dependencies": {
@@ -93,6 +94,7 @@
     "@types/pg": "^8.10.9",
     "@vitejs/plugin-react": "^5.0.0",
     "concurrently": "^8.2.2",
+    "firebase-admin": "^13.6.1",
     "nodemon": "^3.0.2",
     "pixelmatch": "^7.1.0",
     "playwright": "^1.40.0",

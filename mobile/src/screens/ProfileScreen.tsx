@@ -11,7 +11,6 @@ import {
   TouchableOpacity,
   ScrollView,
   ActivityIndicator,
-  Alert,
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -126,12 +125,34 @@ export default function ProfileScreen() {
         <View style={styles.actions}>
           <TouchableOpacity
             style={styles.actionButton}
-            onPress={() =>
-              Alert.alert('Profili Düzenle', 'Bu özellik yakında eklenecek.', [{ text: 'Tamam' }])
-            }
+            onPress={() => navigation.navigate('EditProfile')}
           >
             <Icon name="pencil" size={20} color={colors.text.primary} />
             <Text style={styles.actionText}>Profili Düzenle</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => navigation.navigate('Leaderboard')}
+          >
+            <Icon name="trophy" size={20} color={colors.text.primary} />
+            <Text style={styles.actionText}>Sıralama</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => navigation.navigate('PaymentLedger')}
+          >
+            <Icon name="receipt-text" size={20} color={colors.text.primary} />
+            <Text style={styles.actionText}>Ödemeler</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => navigation.navigate('Subscription')}
+          >
+            <Icon name="crown" size={20} color={colors.text.primary} />
+            <Text style={styles.actionText}>Abonelik</Text>
           </TouchableOpacity>
 
           <TouchableOpacity 

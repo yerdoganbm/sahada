@@ -24,6 +24,7 @@ import { RootStackParamList } from '../types';
 import { colors, spacing, borderRadius, typography, shadows } from '../theme';
 import { getMatches } from '../services/matches';
 import { hapticLight } from '../utils/haptic';
+import { canAccessAdminPanel, canCreateMatch, canManageMembers } from '../utils/permissions';
 import type { Match } from '../types';
 
 type DashboardNavigationProp = StackNavigationProp<RootStackParamList>;
@@ -63,8 +64,10 @@ export default function DashboardScreen() {
     setRefreshing(false);
   }, [fetchUpcoming]);
 
-  const isAdmin = user?.role === 'admin';
+  const isAdmin = canAccessAdminPanel(user);
   const isCaptain = user?.isCaptain;
+  const canManage = canManageMembers(user);
+  const canCreate = canCreateMatch(user);
 
   return (
     <View style={styles.container}>
@@ -87,10 +90,12 @@ export default function DashboardScreen() {
           <View style={styles.profileInfo}>
             <Text style={styles.userName}>{user?.name}</Text>
             <View style={styles.tierBadge}>
-              {isCaptain && <Text style={styles.captainIcon}>©️</Text>}
+              {(isAdmin || isCaptain) && <Text style={styles.captainIcon}>⚽</Text>}
               <Text style={styles.tierText}>
-                {user?.tier === 'partner' ? 'SAHA PARTNER' : 
-                 user?.tier === 'premium' ? 'PRO BALLER' : 'STARTER ÜYE'}
+                {isAdmin ? 'YÖNETİCİ' :
+                 user?.tier === 'partner' ? 'SAHA PARTNER' : 
+                 user?.tier === 'premium' ? 'PRO BALLER' : 
+                 isCaptain ? 'KAPTAN' : 'STARTER ÜYE'}
               </Text>
             </View>
           </View>
@@ -191,30 +196,32 @@ export default function DashboardScreen() {
           
           <View style={styles.quickActions}>
             {isAdmin && (
-              <>
-                <QuickActionButton
-                  icon="shield-account"
-                  label="Yönetim"
-                  color="#6366F1"
-                  onPress={() => navigation.navigate('Admin')}
-                />
-                <QuickActionButton
-                  icon="account-plus"
-                  label="Üyeler"
-                  color="#3B82F6"
-                  onPress={() =>
-                    navigation.dispatch(
-                      CommonActions.navigate('MainTabs', { screen: 'Team' })
-                    )
-                  }
-                />
-                <QuickActionButton
-                  icon="plus-circle"
-                  label="Maç Oluştur"
-                  color="#EC4899"
-                  onPress={() => navigation.navigate('MatchCreate')}
-                />
-              </>
+              <QuickActionButton
+                icon="shield-account"
+                label="Yönetim"
+                color="#6366F1"
+                onPress={() => navigation.navigate('Admin')}
+              />
+            )}
+            {canManage && (
+              <QuickActionButton
+                icon="account-plus"
+                label="Üyeler"
+                color="#3B82F6"
+                onPress={() =>
+                  navigation.dispatch(
+                    CommonActions.navigate('MainTabs', { screen: 'Team' })
+                  )
+                }
+              />
+            )}
+            {canCreate && (
+              <QuickActionButton
+                icon="plus-circle"
+                label="Maç Oluştur"
+                color="#EC4899"
+                onPress={() => navigation.navigate('MatchCreate')}
+              />
             )}
             <QuickActionButton
               icon="account-group"
@@ -238,6 +245,46 @@ export default function DashboardScreen() {
               color="#F59E0B"
               onPress={() => navigation.navigate('Polls')}
             />
+            <QuickActionButton
+              icon="trophy"
+              label="Sıralama"
+              color="#8B5CF6"
+              onPress={() => navigation.navigate('Leaderboard')}
+            />
+            <QuickActionButton
+              icon="medal"
+              label="Turnuva"
+              color="#EAB308"
+              onPress={() => navigation.navigate('Tournament')}
+            />
+            <QuickActionButton
+              icon="calendar-month"
+              label="Takvim"
+              color="#06B6D4"
+              onPress={() => navigation.navigate('VenueCalendar')}
+            />
+            <QuickActionButton
+              icon="crown"
+              label="Abonelik"
+              color="#F97316"
+              onPress={() => navigation.navigate('Subscription')}
+            />
+            {(isAdmin || canManage) && (
+              <QuickActionButton
+                icon="chart-bar"
+                label="Finans"
+                color="#A855F7"
+                onPress={() => navigation.navigate('FinancialReports')}
+              />
+            )}
+            {(isAdmin || canManage) && (
+              <QuickActionButton
+                icon="account-cog"
+                label="Üye Yönetimi"
+                color="#0EA5E9"
+                onPress={() => navigation.navigate('MemberManagement')}
+              />
+            )}
           </View>
         </View>
 
@@ -538,6 +585,7 @@ const styles = StyleSheet.create({
   },
   quickActions: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: spacing.md,
   },
   quickActionButton: {

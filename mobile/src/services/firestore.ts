@@ -232,3 +232,44 @@ export async function createTeamAndUser(
   if (!user) throw new Error('User creation failed');
   return { teamId, user };
 }
+
+/** Kullanici rolunu gunceller (admin/member). */
+export async function updateUserRole(userId: string, role: 'admin' | 'member'): Promise<void> {
+  await firestore().collection(COLLECTIONS.users).doc(userId).update({ role });
+}
+
+/** Kullaniciya ait takimin inviteCode'unu dondurur. */
+export async function getTeamInviteCode(userId: string): Promise<string | null> {
+  const userDoc = await firestore().collection(COLLECTIONS.users).doc(userId).get();
+  if (!userDoc.exists) return null;
+  const teamId = userDoc.data()?.teamId as string | undefined;
+  if (!teamId) return null;
+  const teamDoc = await firestore().collection(COLLECTIONS.teams).doc(teamId).get();
+  if (!teamDoc.exists) return null;
+  return (teamDoc.data()?.inviteCode as string) ?? null;
+}
+
+/** Kullanicinin teamId'sini dondurur. */
+export async function getTeamIdForUser(userId: string): Promise<string | null> {
+  const userDoc = await firestore().collection(COLLECTIONS.users).doc(userId).get();
+  if (!userDoc.exists) return null;
+  return (userDoc.data()?.teamId as string) ?? null;
+}
+
+/** Manuel oyuncu ekler (uygulama kullanmayan biri). */
+export async function addManualPlayer(
+  teamId: string,
+  data: { name: string; position: 'GK' | 'DEF' | 'MID' | 'FWD' }
+): Promise<Player | null> {
+  const ref = await firestore().collection(COLLECTIONS.users).add({
+    teamId,
+    name: data.name,
+    position: data.position,
+    role: 'member',
+    rating: 6,
+    reliability: 100,
+    avatar: `https://i.pravatar.cc/150?u=${Date.now()}`,
+    createdAt: firestore.FieldValue.serverTimestamp(),
+  });
+  return getUserById(ref.id);
+}

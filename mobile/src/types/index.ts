@@ -156,6 +156,34 @@ export type RootStackParamList = {
   Admin: undefined;
   Notifications: undefined;
   Polls: undefined;
+  EditProfile: undefined;
+  // Web align – placeholder/ek ekranlar
+  Leaderboard: undefined;
+  JoinTeam: undefined;
+  MemberManagement: undefined;
+  ScoutReports: undefined;
+  TalentPool: undefined;
+  ScoutDashboard: undefined;
+  LineupManager: undefined;
+  DebtList: undefined;
+  CreateProfile: undefined;
+  CustomerManagement: undefined;
+  ReservationDetails: { reservationId?: string } | undefined;
+  VenueCalendar: undefined;
+  VenueOwnerDashboard: undefined;
+  FinancialReports: undefined;
+  VenueFinancialReports: undefined;
+  ReservationManagement: undefined;
+  Attendance: undefined;
+  Booking: undefined;
+  PaymentLedger: undefined;
+  WhatsAppIntegration: undefined;
+  VenueAdd: undefined;
+  Subscription: undefined;
+  Tournament: undefined;
+  ReserveSystem: undefined;
+  SquadShareWizard: undefined;
+  MessageLogs: undefined;
 };
 
 export type MainTabParamList = {
