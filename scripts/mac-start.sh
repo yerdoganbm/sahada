@@ -14,4 +14,4 @@ echo "→ git pull origin main"
 git pull origin main
 
 echo "→ cd mobile && npx expo start (Watchman kapalı, FSEvents hatası önlenir)"
-cd mobile && CI=1 npx expo start
+cd mobile && CI=1 EXPO_NO_WATCHMAN=1 npx expo start
