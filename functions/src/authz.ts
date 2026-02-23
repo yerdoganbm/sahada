@@ -1,0 +1,70 @@
+import admin from 'firebase-admin';
+import type { Actor, MembershipStatus, Resource, SubscriptionTier } from '../../mobile/src/domain/model';
+import { authorize } from '../../mobile/src/domain/authorize';
+
+function membershipDocId(teamId: string, userId: string): string {
+  return `${teamId}_${userId}`;
+}
+
+function toSubscriptionTier(v: unknown): SubscriptionTier {
+  if (v === 'premium' || v === 'partner' || v === 'free') return v;
+  return 'free';
+}
+
+export async function buildActorForTeam(args: { uid: string; teamId: string }): Promise<Actor> {
+  const { uid, teamId } = args;
+  const db = admin.firestore();
+
+  const [userSnap, membershipSnap] = await Promise.all([
+    db.collection('users').doc(uid).get(),
+    db.collection('memberships').doc(membershipDocId(teamId, uid)).get(),
+  ]);
+
+  const user = (userSnap.data() || {}) as Record<string, unknown>;
+  const membership = (membershipSnap.data() || {}) as Record<string, unknown>;
+
+  const subscription = toSubscriptionTier(user.subscription ?? user.tier);
+  const roleId = typeof membership.roleId === 'string' ? membership.roleId : undefined;
+  const status = typeof membership.status === 'string' ? (membership.status as MembershipStatus) : undefined;
+
+  const actor: Actor = {
+    uid,
+    teamRoles: new Map(),
+    orgRoles: new Map(),
+    membershipStatusByTenant: new Map(),
+    subscription,
+  };
+
+  if (status) actor.membershipStatusByTenant.set(teamId, status);
+  if (status === 'ACTIVE' && roleId && roleId !== 'NONE') {
+    actor.teamRoles.set(teamId, roleId);
+  }
+  return actor;
+}
+
+export async function authorizeTeamAction(args: {
+  actorId: string;
+  teamId: string;
+  action: string;
+  resourceType?: string;
+  resourceId?: string;
+  resourceOwnerId?: string;
+}): Promise<{ actor: Actor; resource: Resource; decision: { allowed: boolean; reason: string } }> {
+  const { actorId, teamId, action, resourceType, resourceId, resourceOwnerId } = args;
+  const actor = await buildActorForTeam({ uid: actorId, teamId });
+
+  const resource: Resource = {
+    type: resourceType ?? 'team',
+    id: resourceId ?? teamId,
+    teamId,
+    ...(resourceOwnerId ? { ownerId: resourceOwnerId } : {}),
+  };
+
+  const decision = authorize(actor, resource, action, {
+    time: new Date(),
+    flags: {},
+  });
+
+  return { actor, resource, decision };
+}
+
