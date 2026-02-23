@@ -153,6 +153,24 @@ export default function SettingsScreen() {
         <Text style={[styles.sectionTitle, { color: colors.text.secondary }]}>Hesap</Text>
         <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border?.light }]}>
           <TouchableOpacity
+            style={styles.row}
+            onPress={() => {
+              hapticLight();
+              navigation.navigate('TeamSwitch');
+            }}
+            accessibilityLabel="Takım değiştir"
+            accessibilityRole="button"
+          >
+            <View style={styles.rowIcon}>
+              <Icon name="account-switch" size={22} color={colors.primary} />
+            </View>
+            <View style={styles.rowContent}>
+              <Text style={[styles.rowLabel, { color: colors.text.primary }]}>Takım Değiştir</Text>
+              <Text style={[styles.rowDesc, { color: colors.text.secondary }]}>Aktif takımını seç</Text>
+            </View>
+            <Icon name="chevron-right" size={22} color={colors.text.secondary} />
+          </TouchableOpacity>
+          <TouchableOpacity
             style={[styles.row, styles.dangerRow]}
             onPress={() => {
               hapticLight();

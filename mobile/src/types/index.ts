@@ -157,6 +157,7 @@ export type RootStackParamList = {
   VenueList: undefined;
   ProfileDetails: { userId: string };
   Settings: undefined;
+  TeamSwitch: undefined;
   TeamSetup: undefined;
   MatchCreate: undefined;
   Admin: undefined;

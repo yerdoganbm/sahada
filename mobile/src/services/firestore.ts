@@ -322,6 +322,21 @@ export interface TeamBasic {
   secondaryColor?: string;
 }
 
+/** Takımı ID ile getirir. */
+export async function getTeamById(teamId: string): Promise<TeamBasic | null> {
+  const doc = await firestore().collection(COLLECTIONS.teams).doc(teamId).get();
+  if (!doc.exists) return null;
+  const d = doc.data() || {};
+  return {
+    id: doc.id,
+    name: (d.name as string) ?? '',
+    shortName: d.shortName as string | undefined,
+    inviteCode: (d.inviteCode as string) ?? '',
+    primaryColor: d.primaryColor as string | undefined,
+    secondaryColor: d.secondaryColor as string | undefined,
+  };
+}
+
 /** Davet kodu ile takım bulur. */
 export async function getTeamByInviteCode(inviteCode: string): Promise<TeamBasic | null> {
   const trimmed = inviteCode.trim().toUpperCase();
@@ -347,6 +362,15 @@ export async function getTeamByInviteCode(inviteCode: string): Promise<TeamBasic
 /** Kullanıcının teamId'sini Firestore'da günceller. */
 export async function updateUserTeamId(userId: string, teamId: string): Promise<void> {
   await firestore().collection(COLLECTIONS.users).doc(userId).update({ teamId });
+}
+
+/** Kullanıcının aktif takımını günceller (legacy teamId + yeni activeTeamId birlikte). */
+export async function setUserActiveTeamId(userId: string, teamId: string): Promise<void> {
+  await firestore().collection(COLLECTIONS.users).doc(userId).update({
+    teamId,
+    activeTeamId: teamId,
+    authzMigrationAt: firestore.FieldValue.serverTimestamp(),
+  });
 }
 
 /** Kullanıcı profil alanlarını Firestore'da günceller. */

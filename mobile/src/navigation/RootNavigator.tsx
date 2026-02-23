@@ -20,6 +20,7 @@ import MainTabNavigator from './MainTabNavigator';
 // Detail Screens
 import ProfileScreen from '../screens/ProfileScreen';
 import SettingsScreen from '../screens/SettingsScreen';
+import TeamSwitchScreen from '../features/teamSwitch/TeamSwitchScreen';
 import TeamSetupScreen from '../screens/TeamSetupScreen';
 import MatchDetailsScreen from '../screens/MatchDetailsScreen';
 import VenueDetailsScreen from '../screens/VenueDetailsScreen';
@@ -115,6 +116,7 @@ export default function RootNavigator() {
           <Stack.Screen name="Polls" component={PollsScreen} />
           <Stack.Screen name="EditProfile" component={EditProfileScreen} />
           <Stack.Screen name="Settings" component={SettingsScreen} />
+          <Stack.Screen name="TeamSwitch" component={TeamSwitchScreen} />
           <Stack.Screen name="MatchCreate" component={MatchCreateScreen} />
           <Stack.Screen name="Admin" component={AdminDashboardScreen} />
           <Stack.Screen name="Leaderboard" component={LeaderboardScreen} />

@@ -17,8 +17,10 @@ import {
   getUserByPhoneOrEmail,
   getUserById,
   createTeamAndUser,
+  getTeamById,
   getTeamByInviteCode,
   updateUserTeamId,
+  setUserActiveTeamId,
   updateUserInFirestore,
   ensureLegacyMembership,
   getActiveMembershipsForUser,
@@ -43,6 +45,7 @@ interface AuthContextType {
   updateUser: (updates: Partial<Player>) => Promise<void>;
   createTeamAndLogin: (team: TeamProfile, founderName: string, founderEmail?: string) => Promise<void>;
   joinTeam: (inviteCode: string) => Promise<void>;
+  switchActiveTeam: (teamId: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -253,6 +256,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     console.log('✅ Takıma katıldı:', team.name);
   };
 
+  const switchActiveTeam = async (teamId: string) => {
+    if (!user) throw new Error('Giriş yapmanız gerekiyor');
+    const has = memberships.some((m) => m.teamId === teamId && m.status === 'ACTIVE');
+    if (!has) throw new Error('Bu takıma ait aktif üyelik bulunamadı');
+
+    await setUserActiveTeamId(user.id, teamId);
+    const updatedUser = { ...user, activeTeamId: teamId, teamId };
+    setUser(updatedUser);
+    setActiveTeamId(teamId);
+    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updatedUser));
+
+    const t = await getTeamById(teamId);
+    if (t) {
+      await AsyncStorage.setItem(TEAM_STORAGE_KEY, JSON.stringify({
+        id: t.id,
+        name: t.name,
+        shortName: t.shortName ?? t.name.slice(0, 3),
+        inviteCode: t.inviteCode,
+        colors: [t.primaryColor ?? '#10B981', t.secondaryColor ?? '#0B0F1A'],
+      }));
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -267,6 +293,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         updateUser,
         createTeamAndLogin,
         joinTeam,
+        switchActiveTeam,
       }}
     >
       {children}
