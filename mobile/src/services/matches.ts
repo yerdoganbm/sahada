@@ -10,6 +10,7 @@ import {
   type CreateMatchPayload,
 } from './firestore';
 import { rsvp as rsvpTxn } from './rsvpService';
+import { callFunction } from './functions';
 
 export type { CreateMatchPayload };
 
@@ -50,5 +51,12 @@ export async function updateMatchRSVP(
   status: 'yes' | 'no' | 'maybe'
 ): Promise<void> {
   const desiredState = status === 'yes' ? 'GOING' : status === 'no' ? 'NOT_GOING' : 'MAYBE';
-  await rsvpTxn({ matchId, userId: playerId, desiredState });
+  try {
+    await callFunction('rsvp', { matchId, desiredState });
+    return;
+  } catch (e) {
+    // Fallback keeps app usable in dev environments without Functions configured.
+    console.warn('functions.rsvp failed; falling back to client txn', e);
+    await rsvpTxn({ matchId, userId: playerId, desiredState });
+  }
 }
