@@ -69,7 +69,13 @@ service cloud.firestore {
     // Users (self access only)
     // ─────────────────────────────────────────────
     match /users/{userId} {
-      allow read: if isSignedIn() && uid() == userId;
+      // Allow reading own profile, and allow reading other users in the same team tenant
+      // (legacy compatibility: users.teamId is kept in sync with activeTeamId).
+      allow read: if isSignedIn()
+        && (
+          uid() == userId
+          || ((resource.data.teamId is string) && isActiveMember(resource.data.teamId))
+        );
       allow create: if isSignedIn() && uid() == userId;
       allow update: if isSignedIn() && uid() == userId;
       allow delete: if false;
@@ -116,6 +122,7 @@ service cloud.firestore {
         && (
           resource.data.userId == uid()
           || isTeamAdmin(resource.data.teamId)
+          || isActiveMember(resource.data.teamId)
         );
 
       // All membership status/role mutations must be via Cloud Functions.
