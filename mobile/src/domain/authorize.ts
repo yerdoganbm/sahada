@@ -1,5 +1,6 @@
 import type { Actor, Context, Resource, Scope } from './model';
 import { OrgRoleId, TeamRoleId, isBlockedStatus } from './model';
+import { resolveRole } from './roleResolution';
 import {
   BuiltInPermissionId,
   PLATFORM_ADMIN_ROLE_ID,
@@ -16,32 +17,6 @@ export function resourceScope(resource: Resource): Scope {
 
 function tenantIdFor(resource: Resource): string | null {
   return resource.teamId ?? resource.orgId ?? null;
-}
-
-function resolveRoleId(actor: Actor, resource: Resource): string | null {
-  const scope = resourceScope(resource);
-
-  if (scope === 'GLOBAL') return actor.globalRole ?? null;
-
-  if (scope === 'ORG') {
-    if (!resource.orgId) return null;
-    return actor.orgRoles.get(resource.orgId) ?? null;
-  }
-
-  // TEAM scope
-  if (!resource.teamId) return null;
-  const direct = actor.teamRoles.get(resource.teamId);
-  if (direct) return direct;
-
-  // ORG admins/owners get synthetic read-only observer for teams in their org.
-  if (resource.orgId) {
-    const orgRole = actor.orgRoles.get(resource.orgId);
-    if (orgRole === OrgRoleId.ORG_OWNER || orgRole === OrgRoleId.ORG_ADMIN) {
-      return SYNTHETIC_ORG_OBSERVER_ROLE_ID;
-    }
-  }
-
-  return null;
 }
 
 export function authorize(
@@ -66,7 +41,7 @@ export function authorize(
   }
 
   // 3) Resolve scope role (with precedence rules)
-  const roleId = resolveRoleId(actor, resource);
+  const roleId = resolveRole(actor, resource);
   if (!roleId) return { allowed: false, reason: 'no_role_for_scope' };
 
   // 4) Expand permissions with inheritance graph (DFS, deduped)
