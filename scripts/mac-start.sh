@@ -19,5 +19,9 @@ if command -v watchman &>/dev/null; then
   watchman watch-del-all 2>/dev/null || true
 fi
 
+# Metro'nun Watchman beklemesin, hemen node crawler kullansın
+export CI=1
+export EXPO_NO_WATCHMAN=1
+export WATCHMAN_SOCK=/dev/null
 echo "→ cd mobile && npx expo start (Watchman kapalı, FSEvents hatası önlenir)"
-cd mobile && CI=1 EXPO_NO_WATCHMAN=1 npx expo start
+cd mobile && npx expo start
