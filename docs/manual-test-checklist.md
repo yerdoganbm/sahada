@@ -86,3 +86,25 @@ This checklist is designed to be run with **two devices/accounts** (or two simul
   - Both attempt to accept same token
   - Expect: only one succeeds; invite ends as `ACCEPTED` and membership ends as `ACTIVE`
 
+## P1.4 — Owner transfer
+
+- [ ] **Start owner transfer (owner only)**:
+  - Ensure `teams/{teamId}.ownerId` is set to User A
+  - User A starts transfer to User B
+  - Expect: `owner_transfers/{teamId}` exists with status `PENDING` and `newOwnerId == B`
+
+- [ ] **Confirm owner transfer (target only)**:
+  - User B confirms
+  - Expect:
+    - `teams/{teamId}.ownerId == B`
+    - membership role updates: A→`TEAM_ADMIN`, B→`TEAM_OWNER`
+    - intent doc removed
+
+- [ ] **Confirm by non-target denied**:
+  - User C attempts confirm
+  - Expect: denied, no changes applied
+
+- [ ] **Concurrent confirm** (two devices for User B):
+  - Both confirm at the same time
+  - Expect: exactly one succeeds; end state consistent (single owner)
+

@@ -18,6 +18,10 @@ export const BuiltInPermissionId = {
   MEMBER_APPROVE_JOIN: 'MEMBER_APPROVE_JOIN',
   MEMBER_ROLE_CHANGE: 'MEMBER_ROLE_CHANGE',
 
+  // Team ownership
+  TEAM_OWNER_TRANSFER_START: 'TEAM_OWNER_TRANSFER_START',
+  TEAM_OWNER_TRANSFER_CONFIRM: 'TEAM_OWNER_TRANSFER_CONFIRM',
+
   // Matches / attendance
   MATCH_CREATE: 'MATCH_CREATE',
   MATCH_EDIT: 'MATCH_EDIT',
@@ -88,6 +92,18 @@ export const BUILT_IN_PERMISSIONS: Readonly<Record<PermissionId, Permission>> = 
     action: 'role_change',
     scope: 'TEAM',
   },
+  [BuiltInPermissionId.TEAM_OWNER_TRANSFER_START]: {
+    id: BuiltInPermissionId.TEAM_OWNER_TRANSFER_START,
+    resourceType: 'team',
+    action: 'owner_transfer_start',
+    scope: 'TEAM',
+  },
+  [BuiltInPermissionId.TEAM_OWNER_TRANSFER_CONFIRM]: {
+    id: BuiltInPermissionId.TEAM_OWNER_TRANSFER_CONFIRM,
+    resourceType: 'team',
+    action: 'owner_transfer_confirm',
+    scope: 'TEAM',
+  },
   [BuiltInPermissionId.MATCH_CREATE]: {
     id: BuiltInPermissionId.MATCH_CREATE,
     resourceType: 'match',
@@ -148,6 +164,7 @@ export const BUILT_IN_ROLES: Readonly<Record<RoleId, Role>> = {
   ]),
   [TeamRoleId.MEMBER]: role(TeamRoleId.MEMBER, 'TEAM', [
     BuiltInPermissionId.USER_READ,
+    BuiltInPermissionId.TEAM_OWNER_TRANSFER_CONFIRM,
   ], [TeamRoleId.GUEST]),
   [TeamRoleId.CAPTAIN]: role(TeamRoleId.CAPTAIN, 'TEAM', [
     BuiltInPermissionId.MATCH_CREATE,
@@ -158,6 +175,7 @@ export const BUILT_IN_ROLES: Readonly<Record<RoleId, Role>> = {
     BuiltInPermissionId.MEMBER_INVITE,
     BuiltInPermissionId.MEMBER_APPROVE_JOIN,
     BuiltInPermissionId.MEMBER_ROLE_CHANGE,
+    BuiltInPermissionId.TEAM_OWNER_TRANSFER_START,
     BuiltInPermissionId.PAYMENT_MARK,
     BuiltInPermissionId.PAYMENT_APPROVE,
   ], [TeamRoleId.CAPTAIN]),

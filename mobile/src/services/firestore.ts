@@ -267,6 +267,7 @@ export async function createTeamAndUser(
     inviteCode: team.inviteCode,
     primaryColor: team.colors?.[0] ?? '#10B981',
     secondaryColor: team.colors?.[1] ?? '#0B0F1A',
+    joinPolicy: 'OPEN',
     createdAt: firestore.FieldValue.serverTimestamp(),
   });
   const teamId = teamRef.id;
@@ -288,12 +289,19 @@ export async function createTeamAndUser(
     createdAt: firestore.FieldValue.serverTimestamp(),
   });
 
+  // Canonical single owner.
+  await teamRef.update({
+    ownerId: userRef.id,
+    updatedAt: firestore.FieldValue.serverTimestamp(),
+    updatedBy: userRef.id,
+  });
+
   // Canonical membership doc (deterministic ID prevents duplicates).
   const membershipId = membershipDocId(teamId, userRef.id);
   await firestore().collection(COLLECTIONS.memberships).doc(membershipId).set({
     teamId,
     userId: userRef.id,
-    roleId: 'TEAM_ADMIN',
+    roleId: 'TEAM_OWNER',
     status: 'ACTIVE',
     version: 1,
     createdAt: firestore.FieldValue.serverTimestamp(),

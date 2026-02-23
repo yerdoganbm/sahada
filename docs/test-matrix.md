@@ -75,3 +75,24 @@ This matrix is meant to be used both for **manual testing** and as a guide for *
 - Invite creation while join request exists → join request cancelled (superseded) + membership set to INVITED
 - Two concurrent `acceptInvite` calls → exactly one succeeds, second fails with `invite_already_used`
 
+## Owner transfer (two-phase commit)
+
+### Positive
+
+- Start transfer by current owner creates `owner_transfers/{teamId}` intent with 24h expiry
+- Confirm by target updates:
+  - `teams.ownerId`
+  - old owner role → `TEAM_ADMIN`
+  - new owner role → `TEAM_OWNER`
+  - intent removed
+
+### Negative
+
+- Non-owner cannot start transfer (`abac:owner_transfer_start_requires_current_owner`)
+- Non-target cannot confirm (`abac:owner_transfer_confirm_requires_target`)
+- Expired intent cannot be confirmed
+
+### Concurrency
+
+- Two concurrent confirms (target double-submit) → exactly one commits; final state single owner
+

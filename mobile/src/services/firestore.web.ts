@@ -11,6 +11,7 @@ import {
   getDoc,
   getDocs,
   addDoc,
+  setDoc,
   updateDoc,
   query,
   where,
@@ -243,12 +244,14 @@ export async function createTeamAndUser(
     inviteCode: team.inviteCode,
     primaryColor: team.colors?.[0] ?? '#10B981',
     secondaryColor: team.colors?.[1] ?? '#0B0F1A',
+    joinPolicy: 'OPEN',
     createdAt: serverTimestamp(),
   });
   const teamId = teamRef.id;
   const usersRef = collection(db, COLLECTIONS.users);
   const userRef = await addDoc(usersRef, {
     teamId,
+    activeTeamId: teamId,
     name: founderName,
     email: founderEmail ?? null,
     phone: founderPhone ?? null,
@@ -258,8 +261,31 @@ export async function createTeamAndUser(
     rating: 7,
     reliability: 100,
     avatar: `https://i.pravatar.cc/150?u=${founderName}`,
+    authzMigrationVersion: 1,
     createdAt: serverTimestamp(),
   });
+
+  // Canonical single owner.
+  await updateDoc(doc(db, COLLECTIONS.teams, teamId), {
+    ownerId: userRef.id,
+    updatedAt: serverTimestamp(),
+    updatedBy: userRef.id,
+  });
+
+  // Canonical membership doc.
+  await setDoc(doc(db, 'memberships', `${teamId}_${userRef.id}`), {
+    teamId,
+    userId: userRef.id,
+    roleId: 'TEAM_OWNER',
+    status: 'ACTIVE',
+    version: 1,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+    updatedBy: userRef.id,
+    previousStatus: null,
+    bannedRoleSnapshot: null,
+  });
+
   const user = await getUserById(userRef.id);
   if (!user) throw new Error('User creation failed');
   return { teamId, user };

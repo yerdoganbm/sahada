@@ -81,6 +81,19 @@ Invite/token flow (never store plaintext tokens).
 - **`status`**: `'INVITED'|'ACCEPTED'|'CANCELLED'|'INVITE_EXPIRED'`
 - **`createdAt`**
 
+### `payment_idempotency/{idempotencyKey}`
+
+Idempotency guard for payment marking.
+
+- **Doc id**: `sha256(matchId:userId:amount:dateBucket)`
+- **`teamId`**: `string`
+- **`matchId`**: `string`
+- **`userId`**: `string`
+- **`amount`**: `number`
+- **`dateBucket`**: `YYYY-MM-DD`
+- **`paymentId`**: `string`
+- **`createdAt`**, **`createdBy`**
+
 ### `join_requests/{requestId}`
 
 Join request workflow.
@@ -90,6 +103,19 @@ Join request workflow.
 - **`status`**: `'REQUESTED'|'APPROVED'|'REJECTED'|'CANCELLED'`
 - **`createdAt`**
 - **`rejectedAt`** (for cooldown enforcement)
+
+### `owner_transfers/{teamId}`
+
+Two-phase owner transfer intent (single pending transfer per team).
+
+- **Doc id**: `teamId` (enforces at most one pending intent per team)
+- **`teamId`**: `string`
+- **`currentOwnerId`**: `string`
+- **`newOwnerId`**: `string`
+- **`status`**: `'PENDING'|'CONFIRMED'|'CANCELLED'|'EXPIRED'` (note: current implementation deletes the intent on confirm)
+- **`expiresAt`**: `timestamp`
+- **`createdAt`**, **`createdBy`**
+- **`updatedAt`**, **`updatedBy`**
 
 ### `audits/{auditId}` (append-only)
 
@@ -113,5 +139,7 @@ Create these in Firestore (Console or `firestore.indexes.json` when added):
 - **`teams`**: `orgId`
 - **`invites`**: `tokenHash`
 - **`join_requests`**: `teamId` + `status`
+- **`owner_transfers`**: `expiresAt` (optional, for scheduled cleanup)
+- **`payment_idempotency`**: `teamId` + `createdAt` (optional, operational reporting)
 - **`audits`**: `scopeId` + `at` (time)
 

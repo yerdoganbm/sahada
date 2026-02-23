@@ -1,6 +1,6 @@
-import firestore from '@react-native-firebase/firestore';
-import type { Actor, Context, MembershipStatus, Resource, SubscriptionTier } from '../domain/model';
-import { authorize } from '../domain/authorize';
+import admin from 'firebase-admin';
+import type { Actor, MembershipStatus, Resource, SubscriptionTier } from '../../mobile/src/domain/model';
+import { authorize } from '../../mobile/src/domain/authorize';
 
 function membershipDocId(teamId: string, userId: string): string {
   return `${teamId}_${userId}`;
@@ -11,15 +11,13 @@ function toSubscriptionTier(v: unknown): SubscriptionTier {
   return 'free';
 }
 
-export async function buildActorForTeam(args: {
-  uid: string;
-  teamId: string;
-}): Promise<Actor> {
+export async function buildActorForTeam(args: { uid: string; teamId: string }): Promise<Actor> {
   const { uid, teamId } = args;
+  const db = admin.firestore();
 
   const [userSnap, membershipSnap] = await Promise.all([
-    firestore().collection('users').doc(uid).get(),
-    firestore().collection('memberships').doc(membershipDocId(teamId, uid)).get(),
+    db.collection('users').doc(uid).get(),
+    db.collection('memberships').doc(membershipDocId(teamId, uid)).get(),
   ]);
 
   const user = (userSnap.data() || {}) as Record<string, unknown>;
@@ -41,7 +39,6 @@ export async function buildActorForTeam(args: {
   if (status === 'ACTIVE' && roleId && roleId !== 'NONE') {
     actor.teamRoles.set(teamId, roleId);
   }
-
   return actor;
 }
 
@@ -52,9 +49,8 @@ export async function authorizeTeamAction(args: {
   resourceType?: string;
   resourceId?: string;
   resourceOwnerId?: string;
-  context?: Partial<Context>;
 }): Promise<{ actor: Actor; resource: Resource; decision: { allowed: boolean; reason: string } }> {
-  const { actorId, teamId, action, resourceType, resourceId, resourceOwnerId, context } = args;
+  const { actorId, teamId, action, resourceType, resourceId, resourceOwnerId } = args;
   const actor = await buildActorForTeam({ uid: actorId, teamId });
 
   const resource: Resource = {
@@ -66,21 +62,9 @@ export async function authorizeTeamAction(args: {
 
   const decision = authorize(actor, resource, action, {
     time: new Date(),
-    matchLive: context?.matchLive,
-    matchState: context?.matchState,
-    requestIp: context?.requestIp,
-    sessionToken: context?.sessionToken,
-    flags: context?.flags ?? {},
+    flags: {},
   });
 
   return { actor, resource, decision };
-}
-
-export function assertAllowed(decision: { allowed: boolean; reason: string }): void {
-  if (!decision.allowed) {
-    const err = new Error(`not_authorized:${decision.reason}`);
-    (err as any).code = 'NOT_AUTHORIZED';
-    throw err;
-  }
 }
 

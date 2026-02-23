@@ -35,8 +35,8 @@
   - `mobile/src/services/inviteService.ts`  
   - `mobile/src/services/joinRequestService.ts`  
   - wired into `mobile/src/contexts/AuthContext.tsx` + `mobile/src/screens/JoinTeamScreen.tsx`
-- [ ] **P1.4 Owner transfer (two-phase commit)** (`mobile/src/services/ownerTransferService.ts`)  
-- [ ] **P1.5 Payment idempotency keys** (`mobile/src/services/paymentService.ts`)  
+- [x] **P1.4 Owner transfer (two-phase commit)** (`mobile/src/services/ownerTransferService.ts`)  
+- [x] **P1.5 Payment idempotency keys** (`mobile/src/services/paymentService.ts`)  
 - [ ] **P1.6 Rate limiting** (Cloud Functions design + client UX guard)
 
 ### P2 — Match capacity + waitlist (concurrency safe)
@@ -48,7 +48,7 @@
 ### P3 — Production guardrails
 
 - [x] **P3.1 Firestore Rules baseline** (`firestore.rules`)  
-- [ ] **P3.2 Cloud Functions privileged mutations** (only if/when `functions/` exists)  
+- [x] **P3.2 Cloud Functions privileged mutations** (`functions/src/index.ts`)  
 - [ ] **P3.3 Scheduled jobs** (invite expiry, temp ban lift, invariants checks)
 
 ### P4 — Tests + docs
@@ -246,6 +246,82 @@
 
 ---
 
+## P1.4 — Owner transfer (two-phase commit)
+
+### Files created/edited
+
+- **Created**
+  - `mobile/src/services/ownerTransferService.ts`
+
+- **Edited**
+  - `mobile/src/domain/roleRegistry.ts` (new permissions: `TEAM_OWNER_TRANSFER_START`, `TEAM_OWNER_TRANSFER_CONFIRM`)
+  - `mobile/src/domain/authorize.ts` (ABAC: only current owner can start; only target can confirm)
+  - `mobile/src/services/authz.ts` (support `resourceOwnerId` for ABAC checks)
+  - `mobile/src/services/firestore.ts` (team creation now sets `teams.ownerId` and founder membership role `TEAM_OWNER`)
+  - `docs/firestore-schema.md` (added `owner_transfers/{teamId}`)
+
+### Exact code (where to look)
+
+- `mobile/src/services/ownerTransferService.ts`
+  - `startOwnerTransfer(...)`:
+    - creates/overwrites `owner_transfers/{teamId}` with `expiresAt` (24h default)
+    - writes audit `OWNER_TRANSFER_START`
+    - bootstraps legacy teams missing `teams.ownerId` by setting it to the starter
+  - `confirmOwnerTransfer(...)`:
+    - verifies intent exists + not expired + target matches
+    - transactional update:
+      - `teams.ownerId = newOwnerId`
+      - old owner role → `TEAM_ADMIN`
+      - new owner role → `TEAM_OWNER`
+      - deletes intent
+    - writes audit `OWNER_TRANSFER_CONFIRM`
+
+### Manual test checklist
+
+- Seed a team with a valid owner:
+  - Create a new team (should set `teams.ownerId` and founder membership `TEAM_OWNER`)
+- Start transfer (owner user):
+  - Call `startOwnerTransfer({ teamId, currentOwnerId, newOwnerId })`
+  - Expect: `owner_transfers/{teamId}` exists with status `PENDING` and valid `expiresAt`
+- Confirm transfer (target user):
+  - Call `confirmOwnerTransfer({ teamId, newOwnerId })`
+  - Expect:
+    - `teams.ownerId == newOwnerId`
+    - old owner membership role `TEAM_ADMIN`
+    - new owner membership role `TEAM_OWNER`
+    - transfer intent doc deleted
+
+---
+
+## P1.5 — Payment idempotency keys
+
+### Files created/edited
+
+- **Created**
+  - `mobile/src/services/paymentService.ts`
+  - `mobile/src/services/__tests__/paymentService.test.ts`
+
+- **Edited**
+  - `docs/firestore-schema.md` (added `payment_idempotency/{idempotencyKey}`)
+
+### Exact code (where to look)
+
+- `mobile/src/services/paymentService.ts`
+  - `paymentIdempotencyKey(...)`
+  - `markPayment(...)` (txn: `payment_idempotency` + `payments` + audit)
+  - `approvePayment(...)` (txn + audit)
+
+### Manual test checklist
+
+- Mark payment twice with same `(matchId,userId,amount,dateBucket)`:
+  - expect same `paymentId` returned, no duplicate `payments` docs
+- Approve payment as premium TEAM_ADMIN:
+  - status becomes `PAID`
+- Attempt approve as free subscription:
+  - denied by ABAC (`abac:payment_approve_requires_premium`)
+
+---
+
 ## P3.1 — Firestore Rules baseline (guardrail)
 
 ### Files
@@ -259,6 +335,39 @@
   - reading `teams/{teamId}` allowed
 - Without membership:
   - reading `teams/{teamId}` denied
+
+---
+
+## P3.2 — Cloud Functions privileged mutations
+
+### Files created/edited
+
+- **Created**
+  - `functions/src/index.ts`
+  - `functions/src/authz.ts`
+  - `functions/src/util/errors.ts`
+  - `functions/src/util/hash.ts`
+  - `functions/package.json`, `functions/tsconfig.json`
+
+- **Edited**
+  - `firebase.json` (declares functions source + firestore rules path)
+  - `docs/cloud-functions-plan.md`
+
+### Implemented callables (current)
+
+- Invites / joins:
+  - `createInvite`, `acceptInvite`, `requestJoin`, `approveJoinRequest`
+- Owner transfer:
+  - `startOwnerTransfer`, `confirmOwnerTransfer`
+- Payments:
+  - `markPayment`, `approvePayment`
+
+### Manual test checklist
+
+- Run via Firebase emulator or deployed functions:
+  - call `createInvite` as TEAM_ADMIN → expect token returned + invite doc created
+  - call `acceptInvite` as target → membership becomes ACTIVE, invite ACCEPTED
+  - call `markPayment` twice with same tuple → same paymentId (idempotent)
 
 ---
 
