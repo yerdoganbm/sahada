@@ -165,9 +165,26 @@ Immutable audit trail. **No updates/deletes**.
 - **`decision`**: `{ allowed: boolean, reason: string }` (for authz allow/deny logging)
 - **`meta`**: map (sanitized; never store secrets)
 
+## CLI ile deploy (Firebase)
+
+Proje kökünden:
+
+```bash
+# Sadece kurallar
+firebase deploy --only firestore:rules
+
+# Sadece indeksler (ilk seferde birkaç dakika sürebilir)
+firebase deploy --only firestore:indexes
+
+# Kurallar + indeksler
+firebase deploy --only firestore
+```
+
+Kullanılan dosyalar (repo kökü): `firestore.rules`, `firestore.indexes.json`. `firebase.json` içinde `firestore.rules` ve `firestore.indexes` tanımlı.
+
 ## Required composite indexes
 
-Create these in Firestore (Console or `firestore.indexes.json` when added):
+Composite indeksler `firestore.indexes.json` içinde tanımlı; tek alanlı sorgular (örn. `teams.orgId`, `invites.tokenHash`) Firestore tarafından otomatik indekslenir.
 
 - **`memberships`**: `userId` + `status`
 - **`memberships`**: `teamId` + `status`
