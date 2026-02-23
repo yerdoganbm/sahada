@@ -106,6 +106,27 @@ Sliding window buckets for Cloud Functions rate limiting.
 - **`expiresAt`**: timestamp (TTL-style cleanup)
 - **`createdAt`**, **`updatedAt`**
 
+## Match capacity / waitlist (P2)
+
+### `matches/{matchId}`
+
+- **Hot fields** (counters, updated transactionally):
+  - **`goingCount`**: number
+  - **`waitlistCount`**: number
+- Keep legacy:
+  - **`attendees`**: array (legacy; will be phased out)
+
+### `matches/{matchId}/participants/{userId}`
+
+- **`userId`**: string
+- **`state`**: `'GOING'|'WAITLIST'|'NOT_GOING'|'MAYBE'`
+- **`createdAt`**, **`updatedAt`**
+
+### `matches/{matchId}/waitlist/{userId}`
+
+- **`userId`**: string
+- **`createdAt`**: timestamp (ordering key)
+
 ### `join_requests/{requestId}`
 
 Join request workflow.

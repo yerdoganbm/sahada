@@ -64,6 +64,8 @@ function docToMatch(doc: DocSnap): Match {
   const d = (doc.data() || {}) as Record<string, unknown>;
   const date = d.matchDate ?? d.date ?? '';
   const time = d.matchTime ?? d.time ?? '';
+  const goingCount = typeof d.goingCount === 'number' ? d.goingCount : undefined;
+  const waitlistCount = typeof d.waitlistCount === 'number' ? d.waitlistCount : undefined;
   return {
     id: doc.id,
     date: typeof date === 'string' ? date : (date?.toDate?.()?.toISOString?.()?.slice(0, 10) ?? ''),
@@ -76,6 +78,8 @@ function docToMatch(doc: DocSnap): Match {
     venueId: d.venueId,
     capacity: d.capacity,
     waitlistEnabled: d.waitlistEnabled,
+    goingCount,
+    waitlistCount,
     attendees: Array.isArray(d.attendees) ? d.attendees : [],
     mvpVotes: d.mvpVotes,
     mvpWinner: d.mvpWinner,
@@ -229,6 +233,9 @@ export async function createMatch(payload: CreateMatchPayload): Promise<Match | 
       status: 'upcoming',
       pricePerPerson: payload.pricePerPerson ?? 0,
       capacity: payload.capacity ?? 14,
+      waitlistEnabled: true,
+      goingCount: 0,
+      waitlistCount: 0,
       attendees: [],
       createdAt: firestore.FieldValue.serverTimestamp(),
     });

@@ -89,7 +89,9 @@ export default function AttendanceScreen() {
   }
 
   const renderItem = ({ item }: { item: Match }) => {
-    const yes = item.attendees?.filter((a) => a.status === 'YES').length ?? 0;
+    const yes = typeof item.goingCount === 'number'
+      ? item.goingCount
+      : item.attendees?.filter((a) => a.status === 'YES').length ?? 0;
     const no = item.attendees?.filter((a) => a.status === 'NO').length ?? 0;
     const maybe = item.attendees?.filter((a) => a.status === 'MAYBE').length ?? 0;
     const capacity = item.capacity ?? 14;

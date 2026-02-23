@@ -7,9 +7,9 @@ import {
   getMatches as getMatchesFromFirestore,
   getMatch as getMatchFromFirestore,
   createMatch as createMatchInFirestore,
-  updateMatchRSVP as updateMatchRSVPInFirestore,
   type CreateMatchPayload,
 } from './firestore';
+import { rsvp as rsvpTxn } from './rsvpService';
 
 export type { CreateMatchPayload };
 
@@ -49,6 +49,6 @@ export async function updateMatchRSVP(
   playerId: string,
   status: 'yes' | 'no' | 'maybe'
 ): Promise<void> {
-  const apiStatus = status === 'yes' ? 'YES' : status === 'no' ? 'NO' : 'MAYBE';
-  await updateMatchRSVPInFirestore(matchId, playerId, apiStatus);
+  const desiredState = status === 'yes' ? 'GOING' : status === 'no' ? 'NOT_GOING' : 'MAYBE';
+  await rsvpTxn({ matchId, userId: playerId, desiredState });
 }

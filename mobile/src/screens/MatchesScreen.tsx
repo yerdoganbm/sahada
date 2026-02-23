@@ -149,7 +149,10 @@ export default function MatchesScreen() {
           </View>
         }
         renderItem={({ item }) => {
-          const yesCount = item.attendees?.filter((a) => a.status === 'YES').length ?? 0;
+          const yesCount =
+            typeof item.goingCount === 'number'
+              ? item.goingCount
+              : item.attendees?.filter((a) => a.status === 'YES').length ?? 0;
           const total = item.capacity ?? 14;
           const myRsvp = item.attendees?.find((a) => a.playerId === user?.id);
           const isUpcomingMatch = isUpcoming(item);

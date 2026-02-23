@@ -61,6 +61,8 @@ export interface Match {
   venueId?: string;
   capacity?: MatchCapacity;
   waitlistEnabled?: boolean;
+  goingCount?: number;
+  waitlistCount?: number;
   attendees?: Array<{
     playerId: string;
     status: AttendanceStatus;

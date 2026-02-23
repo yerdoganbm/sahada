@@ -21,6 +21,7 @@ import { colors, spacing, borderRadius, typography } from '../theme';
 import { RsvpStatus } from '../types';
 import { getMatch, updateMatchRSVP } from '../services/matches';
 import { getPlayers } from '../services/players';
+import { getMyParticipationState, listParticipants } from '../services/rsvpService';
 import { hapticLight } from '../utils/haptic';
 import type { Match } from '../types';
 import type { Player } from '../types';
@@ -73,7 +74,24 @@ export default function MatchDetailsScreen() {
         });
         setSquadList(list);
       } else if (players.length > 0 && !match.attendees?.length) {
-        setSquadList(players.slice(0, 8).map((p) => ({ id: p.id, name: p.name, position: p.position, avatar: p.avatar || `https://i.pravatar.cc/150?u=${p.id}` })));
+        listParticipants(match.id, 50).then((parts) => {
+          if (cancelled) return;
+          if (parts.length === 0) {
+            setSquadList(players.slice(0, 8).map((p) => ({ id: p.id, name: p.name, position: p.position, avatar: p.avatar || `https://i.pravatar.cc/150?u=${p.id}` })));
+            return;
+          }
+          const map = new Map(players.map((p) => [p.id, p]));
+          const list: SquadItem[] = parts
+            .filter((pt) => pt.state === 'GOING' || pt.state === 'WAITLIST' || pt.state === 'MAYBE')
+            .map((pt) => {
+              const p = map.get(pt.userId);
+              const status = pt.state === 'GOING' ? 'YES' : 'MAYBE';
+              return p
+                ? { id: p.id, name: p.name, position: p.position, avatar: p.avatar || `https://i.pravatar.cc/150?u=${p.id}`, status }
+                : { id: pt.userId, name: 'Oyuncu', position: '-', avatar: `https://i.pravatar.cc/150?u=${pt.userId}`, status };
+            });
+          setSquadList(list);
+        });
       } else {
         setSquadList([]);
       }
@@ -90,6 +108,18 @@ export default function MatchDetailsScreen() {
       setRsvp(status as RsvpStatus);
     }
   }, [match?.attendees, user?.id]);
+
+  useEffect(() => {
+    if (!match || !user?.id) return;
+    if (match.attendees?.length) return;
+    let cancelled = false;
+    getMyParticipationState(match.id, user.id).then((st) => {
+      if (cancelled || !st) return;
+      const mapped: RsvpStatus = st === 'GOING' ? 'yes' : st === 'NOT_GOING' ? 'no' : 'maybe';
+      setRsvp(mapped);
+    });
+    return () => { cancelled = true; };
+  }, [match?.id, match?.attendees, user?.id]);
 
   const rsvpOptions: { value: RsvpStatus; label: string; icon: string }[] = [
     { value: 'yes', label: 'Geliyorum', icon: 'check-circle' },
