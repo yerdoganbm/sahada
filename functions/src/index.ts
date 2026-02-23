@@ -6,6 +6,7 @@ import { requireAuth, invalidArg, permissionDenied } from './util/errors';
 import { authorizeTeamAction } from './authz';
 import { randomTokenHex, sha256Hex } from './util/hash';
 import { paymentIdempotencyKey } from '../../mobile/src/domain/paymentIdempotency';
+import { enforceRateLimit } from './rateLimit';
 
 admin.initializeApp();
 
@@ -60,6 +61,14 @@ export const createInvite = onCall(async (req) => {
     ttlHours?: number;
   };
   if (!teamId || !target || !target.type || !target.value || !roleId) throw invalidArg('Missing fields');
+
+  // Rate limit: invite/hour per team
+  await enforceRateLimit({
+    key: `invite:${teamId}`,
+    limit: 30,
+    windowSeconds: 60 * 60,
+    meta: { fn: 'createInvite' },
+  });
 
   const { decision } = await authorizeTeamAction({
     actorId,
@@ -242,6 +251,14 @@ export const requestJoin = onCall(async (req) => {
   const { teamId } = (req.data || {}) as { teamId?: string };
   if (!teamId) throw invalidArg('Missing teamId');
 
+  // Rate limit: joinRequest/hour per user
+  await enforceRateLimit({
+    key: `joinRequest:${userId}`,
+    limit: 10,
+    windowSeconds: 60 * 60,
+    meta: { fn: 'requestJoin' },
+  });
+
   const db = admin.firestore();
   const teamRef = db.collection('teams').doc(teamId);
   const membershipRef = db.collection('memberships').doc(membershipDocId(teamId, userId));
@@ -409,6 +426,14 @@ export const startOwnerTransfer = onCall(async (req) => {
   const { teamId, newOwnerId, ttlHours } = (req.data || {}) as { teamId?: string; newOwnerId?: string; ttlHours?: number };
   if (!teamId || !newOwnerId) throw invalidArg('Missing fields');
 
+  // Rate limit: owner transfer starts/day per team
+  await enforceRateLimit({
+    key: `ownerTransferStart:${teamId}`,
+    limit: 5,
+    windowSeconds: 24 * 60 * 60,
+    meta: { fn: 'startOwnerTransfer' },
+  });
+
   const db = admin.firestore();
   const teamRef = db.collection('teams').doc(teamId);
   const teamPre = await teamRef.get();
@@ -541,6 +566,14 @@ export const markPayment = onCall(async (req) => {
   };
   if (!teamId || !matchId || !userId || typeof amount !== 'number') throw invalidArg('Missing fields');
   if (!Number.isFinite(amount) || amount <= 0) throw invalidArg('invalid_amount');
+
+  // Rate limit: paymentMark/min per admin
+  await enforceRateLimit({
+    key: `paymentMark:${actorId}`,
+    limit: 10,
+    windowSeconds: 60,
+    meta: { fn: 'markPayment' },
+  });
 
   const { decision } = await authorizeTeamAction({
     actorId,

@@ -94,6 +94,18 @@ Idempotency guard for payment marking.
 - **`paymentId`**: `string`
 - **`createdAt`**, **`createdBy`**
 
+### `rate_limits/{id}`
+
+Sliding window buckets for Cloud Functions rate limiting.
+
+- **Doc id**: `${key}__${bucketStartMs}`
+- **`key`**: string (e.g. `invite:{teamId}`, `joinRequest:{userId}`)
+- **`bucketStartMs`**: number (epoch ms)
+- **`windowSeconds`**: number
+- **`count`**: number
+- **`expiresAt`**: timestamp (TTL-style cleanup)
+- **`createdAt`**, **`updatedAt`**
+
 ### `join_requests/{requestId}`
 
 Join request workflow.

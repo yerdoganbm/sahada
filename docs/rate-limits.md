@@ -12,8 +12,9 @@ Rate limiting must be enforced **server-side** (Cloud Functions) and only mirror
 
 ## Algorithm
 
-- Sliding window counter stored in Firestore:
-  - `rate_limits/{key}` where key encodes scope (e.g. `invite:{teamId}:{hourBucket}`)
+- Sliding window counter stored in Firestore (two-bucket approximation):
+  - `rate_limits/{id}` where `id = "${key}__${bucketStartMs}"`
+  - Effective count is approximated using current + previous bucket (weighted).
 - For high write rates, use **sharded counters**:
   - `rate_limits/{key}/shards/{n}` incremented by random shard id
 
@@ -25,4 +26,13 @@ Rate limiting must be enforced **server-side** (Cloud Functions) and only mirror
   - reject if limit exceeded
   - increment counter and proceed with the privileged mutation
 - Write an audit record for allow/deny
+
+## Repo implementation
+
+- `functions/src/rateLimit.ts` implements the sliding-window limiter.
+- Integrated into callables in `functions/src/index.ts`:
+  - `createInvite`: `invite/hour per team` (limit currently 30/hour)
+  - `requestJoin`: `joinRequest/hour per user` (limit currently 10/hour)
+  - `startOwnerTransfer`: starts/day per team (limit currently 5/day)
+  - `markPayment`: `paymentMark/min per admin` (limit currently 10/min)
 
