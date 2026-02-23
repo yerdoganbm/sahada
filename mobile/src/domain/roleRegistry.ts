@@ -23,6 +23,7 @@ export const BuiltInPermissionId = {
   TEAM_OWNER_TRANSFER_CONFIRM: 'TEAM_OWNER_TRANSFER_CONFIRM',
 
   // Matches / attendance
+  MATCH_RSVP: 'MATCH_RSVP',
   MATCH_CREATE: 'MATCH_CREATE',
   MATCH_EDIT: 'MATCH_EDIT',
   MATCH_ATTENDANCE_MANAGE: 'MATCH_ATTENDANCE_MANAGE',
@@ -60,6 +61,12 @@ export const BUILT_IN_PERMISSIONS: Readonly<Record<PermissionId, Permission>> = 
     id: BuiltInPermissionId.MATCH_READ,
     resourceType: 'match',
     action: 'read',
+    scope: 'TEAM',
+  },
+  [BuiltInPermissionId.MATCH_RSVP]: {
+    id: BuiltInPermissionId.MATCH_RSVP,
+    resourceType: 'match',
+    action: 'rsvp',
     scope: 'TEAM',
   },
   [BuiltInPermissionId.VENUE_READ]: {
@@ -160,6 +167,7 @@ export const BUILT_IN_ROLES: Readonly<Record<RoleId, Role>> = {
   [TeamRoleId.GUEST]: role(TeamRoleId.GUEST, 'TEAM', [
     BuiltInPermissionId.TEAM_READ,
     BuiltInPermissionId.MATCH_READ,
+    BuiltInPermissionId.MATCH_RSVP,
     BuiltInPermissionId.PAYMENT_READ,
   ]),
   [TeamRoleId.MEMBER]: role(TeamRoleId.MEMBER, 'TEAM', [

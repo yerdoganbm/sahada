@@ -685,3 +685,152 @@ export const approvePayment = onCall(async (req) => {
   return { ok: true };
 });
 
+export const rsvp = onCall(async (req) => {
+  const userId = requireAuth(req);
+  const { matchId, desiredState } = (req.data || {}) as { matchId?: string; desiredState?: 'GOING' | 'NOT_GOING' | 'MAYBE' };
+  if (!matchId || !desiredState) throw invalidArg('Missing fields');
+  if (desiredState !== 'GOING' && desiredState !== 'NOT_GOING' && desiredState !== 'MAYBE') throw invalidArg('invalid_state');
+
+  await enforceRateLimit({
+    key: `rsvp:${userId}`,
+    limit: 30,
+    windowSeconds: 60,
+    meta: { fn: 'rsvp' },
+  });
+
+  const db = admin.firestore();
+  const matchRef = db.collection('matches').doc(matchId);
+  const matchPre = await matchRef.get();
+  if (!matchPre.exists) throw invalidArg('match_not_found');
+  const matchPreData = (matchPre.data() || {}) as Record<string, unknown>;
+  const teamId = matchPreData.teamId as string | undefined;
+  if (!teamId) throw invalidArg('match_missing_teamId');
+
+  const { decision } = await authorizeTeamAction({
+    actorId: userId,
+    teamId,
+    action: BuiltInPermissionId.MATCH_RSVP,
+    resourceType: 'match',
+    resourceId: matchId,
+  });
+  if (!decision.allowed) {
+    await writeAudit({ actorId: userId, action: 'RSVP', scope: 'TEAM', scopeId: teamId, decision, target: { type: 'match', id: matchId } });
+    throw permissionDenied(decision.reason);
+  }
+
+  const participantRef = matchRef.collection('participants').doc(userId);
+  const waitlistRef = matchRef.collection('waitlist').doc(userId);
+  const auditRef = db.collection('audits').doc();
+
+  const toNumber = (v: unknown, fallback: number) => (typeof v === 'number' && Number.isFinite(v) ? v : fallback);
+
+  await db.runTransaction(async (tx) => {
+    const [matchSnap, partSnap, waitSnap] = await Promise.all([tx.get(matchRef), tx.get(participantRef), tx.get(waitlistRef)]);
+    if (!matchSnap.exists) throw new Error('match_not_found');
+    const match = (matchSnap.data() || {}) as Record<string, unknown>;
+
+    const capacity = toNumber(match.capacity, 14);
+    const waitlistEnabled = match.waitlistEnabled !== false;
+    const goingCount = toNumber(match.goingCount, 0);
+    const waitlistCount = toNumber(match.waitlistCount, 0);
+
+    const prevState = ((partSnap.data() || {}) as any)?.state as string | undefined;
+    const prev = prevState === 'GOING' || prevState === 'WAITLIST' || prevState === 'NOT_GOING' || prevState === 'MAYBE' ? prevState : 'NOT_GOING';
+
+    const setParticipant = (state: string) => {
+      if (!partSnap.exists) {
+        tx.set(participantRef, { userId, state, createdAt: admin.firestore.FieldValue.serverTimestamp(), updatedAt: admin.firestore.FieldValue.serverTimestamp() });
+      } else {
+        tx.update(participantRef, { state, updatedAt: admin.firestore.FieldValue.serverTimestamp() });
+      }
+    };
+
+    const removeWaitlistIfPresent = () => {
+      if (waitSnap.exists) {
+        tx.delete(waitlistRef);
+      }
+    };
+
+    // Transition logic
+    if (desiredState === 'GOING') {
+      if (prev === 'GOING') {
+        // idempotent
+      } else if (goingCount < capacity) {
+        setParticipant('GOING');
+        tx.update(matchRef, {
+          goingCount: goingCount + 1,
+          ...(prev === 'WAITLIST' && waitSnap.exists ? { waitlistCount: Math.max(0, waitlistCount - 1) } : {}),
+        });
+        removeWaitlistIfPresent();
+      } else {
+        if (!waitlistEnabled) {
+          setParticipant('NOT_GOING');
+        } else {
+          setParticipant('WAITLIST');
+          if (!waitSnap.exists) {
+            tx.set(waitlistRef, { userId, createdAt: admin.firestore.FieldValue.serverTimestamp() });
+            tx.update(matchRef, { waitlistCount: waitlistCount + 1 });
+          }
+        }
+      }
+    } else {
+      // desired NOT_GOING or MAYBE
+      const nextState = desiredState === 'NOT_GOING' ? 'NOT_GOING' : 'MAYBE';
+      setParticipant(nextState);
+      const nextUpdate: { goingCount?: number; waitlistCount?: number } = {};
+      if (prev === 'GOING') {
+        nextUpdate.goingCount = Math.max(0, goingCount - 1);
+      }
+      if (prev === 'WAITLIST' && waitSnap.exists) {
+        nextUpdate.waitlistCount = Math.max(0, waitlistCount - 1);
+        removeWaitlistIfPresent();
+      }
+      if (Object.keys(nextUpdate).length) {
+        tx.update(matchRef, nextUpdate as any);
+      }
+
+      // Auto-promote waitlist if a GOING slot became free.
+      const nextGoingCount = typeof nextUpdate.goingCount === 'number' ? (nextUpdate.goingCount as number) : goingCount;
+      if (waitlistEnabled && prev === 'GOING' && nextGoingCount < capacity) {
+        const q = matchRef
+          .collection('waitlist')
+          .orderBy('createdAt', 'asc')
+          .orderBy(admin.firestore.FieldPath.documentId(), 'asc')
+          .limit(1);
+        // Firestore supports query reads inside transactions (Admin SDK).
+        const waitQ = await tx.get(q as any);
+        if (!waitQ.empty) {
+          const nextDoc = waitQ.docs[0];
+          const promoteUserId = nextDoc.id;
+          const promoteParticipantRef = matchRef.collection('participants').doc(promoteUserId);
+          const promoteWaitRef = matchRef.collection('waitlist').doc(promoteUserId);
+          const promotePartSnap = await tx.get(promoteParticipantRef);
+
+          if (!promotePartSnap.exists) {
+            tx.set(promoteParticipantRef, { userId: promoteUserId, state: 'GOING', createdAt: admin.firestore.FieldValue.serverTimestamp(), updatedAt: admin.firestore.FieldValue.serverTimestamp() });
+          } else {
+            tx.update(promoteParticipantRef, { state: 'GOING', updatedAt: admin.firestore.FieldValue.serverTimestamp() });
+          }
+          tx.delete(promoteWaitRef);
+          tx.update(matchRef, {
+            goingCount: nextGoingCount + 1,
+            waitlistCount: Math.max(0, waitlistCount - 1),
+          });
+        }
+      }
+    }
+
+    tx.set(auditRef, {
+      at: admin.firestore.FieldValue.serverTimestamp(),
+      actorId: userId,
+      action: 'RSVP',
+      scope: 'TEAM',
+      scopeId: teamId,
+      target: { type: 'match', id: matchId },
+      meta: { desiredState, prevState: prev },
+    });
+  });
+
+  return { ok: true };
+});
+
