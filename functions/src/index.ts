@@ -9,6 +9,7 @@ import { randomTokenHex, sha256Hex } from './util/hash';
 import { paymentIdempotencyKey } from '../../mobile/src/domain/paymentIdempotency';
 import { enforceRateLimit } from './rateLimit';
 import { canAssignTeamRole } from '../../mobile/src/domain/roleHierarchy';
+import { planMembershipTransition, type MembershipDocument } from '../../mobile/src/domain/membershipStateMachine';
 
 admin.initializeApp();
 
@@ -423,6 +424,72 @@ export const approveJoinRequest = onCall(async (req) => {
   return { ok: true };
 });
 
+export const rejectJoinRequest = onCall(async (req) => {
+  const actorId = requireAuth(req);
+  const { requestId } = (req.data || {}) as { requestId?: string };
+  if (!requestId) throw invalidArg('Missing requestId');
+
+  const db = admin.firestore();
+  const jrRef = db.collection('join_requests').doc(requestId);
+  const pre = await jrRef.get();
+  if (!pre.exists) throw invalidArg('join_request_not_found');
+  const preData = (pre.data() || {}) as Record<string, unknown>;
+  const teamId = preData.teamId as string | undefined;
+  const userId = preData.userId as string | undefined;
+  if (!teamId || !userId) throw invalidArg('join_request_invalid');
+
+  const { decision } = await authorizeTeamAction({
+    actorId,
+    teamId,
+    action: BuiltInPermissionId.MEMBER_APPROVE_JOIN,
+    resourceType: 'join_request',
+    resourceId: requestId,
+  });
+  if (!decision.allowed) {
+    await writeAudit({ actorId, action: 'JOIN_REQUEST_REJECT', scope: 'TEAM', scopeId: teamId, decision });
+    throw permissionDenied(decision.reason);
+  }
+
+  const auditRef = db.collection('audits').doc();
+  await db.runTransaction(async (tx) => {
+    const jrSnap = await tx.get(jrRef);
+    if (!jrSnap.exists) throw new Error('join_request_not_found');
+    const jr = (jrSnap.data() || {}) as Record<string, unknown>;
+    const status = jr.status as string | undefined;
+    if (status === 'REJECTED') return;
+    if (status !== 'REQUESTED') throw new Error(`join_request_not_pending:${status ?? 'unknown'}`);
+
+    const membershipRef = db.collection('memberships').doc(membershipDocId(teamId, userId));
+    const mSnap = await tx.get(membershipRef);
+    if (mSnap.exists) {
+      tx.update(membershipRef, {
+        status: MS.REQUEST_REJECTED,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        updatedBy: actorId,
+        rejectedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+    }
+
+    tx.update(jrRef, {
+      status: 'REJECTED',
+      rejectedAt: admin.firestore.FieldValue.serverTimestamp(),
+      rejectedBy: actorId,
+    });
+
+    tx.set(auditRef, {
+      at: admin.firestore.FieldValue.serverTimestamp(),
+      actorId,
+      action: 'JOIN_REQUEST_REJECT',
+      scope: 'TEAM',
+      scopeId: teamId,
+      target: { type: 'join_request', id: requestId },
+      meta: { userId },
+    });
+  });
+
+  return { ok: true };
+});
+
 export const changeMemberRole = onCall(async (req) => {
   const actorId = requireAuth(req);
   const { teamId, userId, roleId } = (req.data || {}) as { teamId?: string; userId?: string; roleId?: string };
@@ -498,6 +565,127 @@ export const changeMemberRole = onCall(async (req) => {
       scopeId: teamId,
       target: { type: 'membership', id: targetMembershipRef.id },
       meta: { userId, from: targetCurrentRoleId ?? null, to: roleId },
+    });
+  });
+
+  return { ok: true };
+});
+
+export const transitionMembershipStatus = onCall(async (req) => {
+  const actorId = requireAuth(req);
+  const { teamId, userId, nextStatus, meta } = (req.data || {}) as {
+    teamId?: string;
+    userId?: string;
+    nextStatus?: string;
+    meta?: { banEnd?: string; adminOverride?: boolean; auditMeta?: Record<string, unknown> };
+  };
+  if (!teamId || !userId || !nextStatus) throw invalidArg('Missing fields');
+
+  // Rate limit: transitions/min per admin
+  await enforceRateLimit({
+    key: `membershipTransition:${actorId}`,
+    limit: 60,
+    windowSeconds: 60,
+    meta: { fn: 'transitionMembershipStatus' },
+  });
+
+  // Authorization: reuse member-role-change permission for now (admin-only).
+  const { decision } = await authorizeTeamAction({
+    actorId,
+    teamId,
+    action: BuiltInPermissionId.MEMBER_ROLE_CHANGE,
+    resourceType: 'membership',
+    resourceId: `${teamId}_${userId}`,
+  });
+  if (!decision.allowed) {
+    await writeAudit({
+      actorId,
+      action: 'MEMBERSHIP_STATUS_TRANSITION',
+      scope: 'TEAM',
+      scopeId: teamId,
+      decision,
+      meta: { userId, nextStatus },
+    });
+    throw permissionDenied(decision.reason);
+  }
+
+  const db = admin.firestore();
+  const membershipRef = db.collection('memberships').doc(membershipDocId(teamId, userId));
+  const auditRef = db.collection('audits').doc();
+
+  await db.runTransaction(async (tx) => {
+    const snap = await tx.get(membershipRef);
+    if (!snap.exists) throw new Error('membership_not_found');
+    const d = (snap.data() || {}) as Record<string, unknown>;
+
+    const membership: MembershipDocument = {
+      tenantId: teamId,
+      teamId,
+      userId,
+      orgId: (d.orgId as string | undefined) ?? undefined,
+      roleId: (d.roleId as string) ?? 'MEMBER',
+      status: (d.status as any) ?? MS.ACTIVE,
+      version: typeof d.version === 'number' ? (d.version as number) : 0,
+      bannedRoleSnapshot: typeof d.bannedRoleSnapshot === 'string' ? (d.bannedRoleSnapshot as string) : undefined,
+      leftAt: toDateMaybe(d.leftAt),
+      rejectedAt: toDateMaybe(d.rejectedAt),
+      banEnd: toDateMaybe(d.banEnd),
+    };
+
+    const now = new Date();
+    const banEnd = meta?.banEnd ? new Date(meta.banEnd) : membership.banEnd;
+
+    const { update, audit } = planMembershipTransition({
+      membership,
+      nextStatus: nextStatus as any,
+      actor: {
+        uid: actorId,
+        teamRoles: new Map(),
+        orgRoles: new Map(),
+        membershipStatusByTenant: new Map(),
+        subscription: 'free',
+      },
+      meta: {
+        now,
+        leftAt: membership.leftAt,
+        rejectedAt: membership.rejectedAt,
+        banEnd,
+        adminOverride: meta?.adminOverride === true,
+        auditMeta: meta?.auditMeta,
+      } as any,
+    });
+
+    if (!update || !audit) return;
+
+    const payload: any = {
+      status: update.status,
+      version: update.version,
+      previousStatus: update.previousStatus,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      updatedBy: actorId,
+    };
+    if (update.roleId) payload.roleId = update.roleId;
+    if (update.bannedRoleSnapshot) payload.bannedRoleSnapshot = update.bannedRoleSnapshot;
+    if (update.leftAt) payload.leftAt = admin.firestore.Timestamp.fromDate(update.leftAt);
+    if (update.rejectedAt) payload.rejectedAt = admin.firestore.Timestamp.fromDate(update.rejectedAt);
+    if (update.banEnd) payload.banEnd = admin.firestore.Timestamp.fromDate(update.banEnd);
+
+    tx.update(membershipRef, payload);
+
+    tx.set(auditRef, {
+      at: admin.firestore.FieldValue.serverTimestamp(),
+      actorId,
+      action: 'MEMBERSHIP_STATUS_TRANSITION',
+      scope: 'TEAM',
+      scopeId: teamId,
+      target: { type: 'membership', id: membershipRef.id },
+      meta: {
+        subjectUserId: userId,
+        from: audit.from,
+        to: audit.to,
+        membershipVersion: update.version,
+        ...(audit.meta ? { auditMeta: audit.meta } : {}),
+      },
     });
   });
 
