@@ -22,16 +22,14 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
-import { canManageMembers } from '../utils/permissions';
 import {
-  getPlayers,
-  updateUserRole,
-  getTeamInviteCode,
   addManualPlayer,
-  getTeamIdForUser,
 } from '../services/players';
 import { getJoinRequests, approveJoinRequest, rejectJoinRequest, createJoinRequest } from '../services/joinRequests';
 import type { JoinRequestItem } from '../services/joinRequests';
+import { listActiveTeamMembers, type TeamMember } from '../services/teamMembers';
+import { changeMemberRole } from '../services/memberRoleService';
+import { getTeamById } from '../services/firestore';
 import { colors, spacing, borderRadius, typography } from '../theme';
 import type { Player } from '../types';
 
@@ -40,11 +38,13 @@ const POSITIONS: Array<'GK' | 'DEF' | 'MID' | 'FWD'> = ['GK', 'DEF', 'MID', 'FWD
 
 export default function MemberManagementScreen() {
   const navigation = useNavigation();
-  const { user, updateUser } = useAuth();
-  const canManage = canManageMembers(user);
+  const { user, memberships, activeTeamId } = useAuth();
+  const myMembership = activeTeamId ? memberships.find((m) => m.teamId === activeTeamId) : null;
+  const myRoleId = myMembership?.roleId ?? null;
+  const canManage = myRoleId === 'TEAM_OWNER' || myRoleId === 'TEAM_ADMIN';
 
   const [activeTab, setActiveTab] = useState<'members' | 'requests'>('members');
-  const [players, setPlayers] = useState<Player[]>([]);
+  const [players, setPlayers] = useState<TeamMember[]>([]);
   const [joinRequests, setJoinRequests] = useState<JoinRequestItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -57,7 +57,7 @@ export default function MemberManagementScreen() {
   const [addingPlayer, setAddingPlayer] = useState(false);
   const [requestActionId, setRequestActionId] = useState<string | null>(null);
 
-  const [selectedMember, setSelectedMember] = useState<Player | null>(null);
+  const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null);
   const [showProposeModal, setShowProposeModal] = useState(false);
   const [proposeForm, setProposeForm] = useState({
     name: '',
@@ -68,16 +68,23 @@ export default function MemberManagementScreen() {
 
   const fetchData = useCallback(async () => {
     if (!user?.id) return;
-    const teamId = await getTeamIdForUser(user.id);
-    const [list, code, requests] = await Promise.all([
-      getPlayers(teamId ? { teamId } : undefined),
-      getTeamInviteCode(user.id),
-      teamId ? getJoinRequests(teamId) : Promise.resolve([]),
+    const teamId = activeTeamId ?? user.teamId ?? null;
+    if (!teamId) {
+      setPlayers([]);
+      setInviteCode('SAHADA-2024');
+      setJoinRequests([]);
+      return;
+    }
+
+    const [list, team, requests] = await Promise.all([
+      listActiveTeamMembers(teamId),
+      getTeamById(teamId),
+      getJoinRequests(teamId),
     ]);
     setPlayers(list);
-    setInviteCode(code ?? 'SAHADA-2024');
+    setInviteCode(team?.inviteCode ?? 'SAHADA-2024');
     setJoinRequests(requests);
-  }, [user?.id]);
+  }, [user?.id, activeTeamId, user?.teamId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -116,7 +123,7 @@ export default function MemberManagementScreen() {
 
   const handleAddManualPlayer = async () => {
     if (!newPlayerName.trim() || !user?.id) return;
-    const teamId = await getTeamIdForUser(user.id);
+    const teamId = activeTeamId ?? user.teamId ?? null;
     if (!teamId) {
       Alert.alert('Hata', 'Takım bilgisi bulunamadı.');
       return;
@@ -125,7 +132,7 @@ export default function MemberManagementScreen() {
     try {
       const added = await addManualPlayer(teamId, { name: newPlayerName.trim(), position: newPlayerPos });
       if (added) {
-        setPlayers((prev) => [...prev, added]);
+        setPlayers((prev) => [...prev, { ...added, roleId: 'MEMBER', membershipId: `${teamId}_${added.id}` }]);
         setNewPlayerName('');
         setShowAddModal(false);
         Alert.alert('Başarılı', 'Oyuncu eklendi.');
@@ -137,20 +144,19 @@ export default function MemberManagementScreen() {
     }
   };
 
-  const handleRoleChange = async (memberId: string, newRole: 'admin' | 'member') => {
-    if (!canManage || user?.id === memberId) return;
+  const handleRoleChange = async (member: TeamMember, desiredRoleId: string) => {
+    const teamId = activeTeamId ?? user?.teamId ?? null;
+    if (!canManage || !teamId) return;
+    if (user?.id === member.id) return;
     try {
-      await updateUserRole(memberId, newRole);
+      await changeMemberRole({ teamId, userId: member.id, roleId: desiredRoleId });
       setPlayers((prev) =>
-        prev.map((p) => (p.id === memberId ? { ...p, role: newRole } : p))
+        prev.map((p) => (p.id === member.id ? { ...p, roleId: desiredRoleId } : p))
       );
-      if (user?.id === memberId) {
-        await updateUser({ role: newRole });
-      }
       setSelectedMember(null);
       Alert.alert('Başarılı', 'Yetki güncellendi.');
     } catch (e) {
-      Alert.alert('Hata', 'Yetki güncellenemedi.');
+      Alert.alert('Hata', e instanceof Error ? e.message : 'Yetki güncellenemedi.');
     }
   };
 
@@ -213,12 +219,25 @@ export default function MemberManagementScreen() {
     }
   };
 
-  const renderRoleBadge = (p: Player) => {
-    if (p.role === 'admin')
+  const renderRoleBadge = (p: TeamMember) => {
+    if (p.roleId === 'TEAM_OWNER')
+      return (
+        <View style={styles.roleBadgeAdmin}>
+          <Icon name="crown" size={12} color="#F59E0B" />
+          <Text style={styles.roleBadgeAdminText}>Owner</Text>
+        </View>
+      );
+    if (p.roleId === 'TEAM_ADMIN')
       return (
         <View style={styles.roleBadgeAdmin}>
           <Icon name="shield-account" size={12} color="#A78BFA" />
           <Text style={styles.roleBadgeAdminText}>Yönetici</Text>
+        </View>
+      );
+    if (p.roleId === 'CAPTAIN')
+      return (
+        <View style={styles.roleBadge}>
+          <Text style={styles.roleBadgeText}>Kaptan</Text>
         </View>
       );
     return (
@@ -489,20 +508,27 @@ export default function MemberManagementScreen() {
                 />
                 <Text style={styles.memberModalName}>
                   {selectedMember.name}{' '}
-                  {selectedMember.role === 'admin' && (
+                  {selectedMember.roleId === 'TEAM_ADMIN' && (
                     <Icon name="shield-check" size={20} color="#A78BFA" />
                   )}
                 </Text>
                 <Text style={styles.memberModalMeta}>
-                  {selectedMember.role === 'admin' ? 'Yönetici' : 'Oyuncu'} •{' '}
+                  {selectedMember.roleId === 'TEAM_OWNER'
+                    ? 'Owner'
+                    : selectedMember.roleId === 'TEAM_ADMIN'
+                      ? 'Yönetici'
+                      : selectedMember.roleId === 'CAPTAIN'
+                        ? 'Kaptan'
+                        : 'Oyuncu'}{' '}
+                  •{' '}
                   {POS_LABEL[selectedMember.position]}
                 </Text>
                 {canManage && user?.id !== selectedMember.id && (
                   <View style={styles.roleActions}>
-                    {selectedMember.role === 'member' ? (
+                    {selectedMember.roleId !== 'TEAM_ADMIN' ? (
                       <TouchableOpacity
                         style={styles.roleActionBtn}
-                        onPress={() => handleRoleChange(selectedMember.id, 'admin')}
+                        onPress={() => handleRoleChange(selectedMember, 'TEAM_ADMIN')}
                       >
                         <Icon name="shield-account" size={18} color="#A78BFA" />
                         <Text style={styles.roleActionBtnText}>Yönetici Yap</Text>
@@ -510,7 +536,7 @@ export default function MemberManagementScreen() {
                     ) : (
                       <TouchableOpacity
                         style={styles.roleActionBtn}
-                        onPress={() => handleRoleChange(selectedMember.id, 'member')}
+                        onPress={() => handleRoleChange(selectedMember, 'MEMBER')}
                       >
                         <Icon name="account" size={18} color={colors.text.secondary} />
                         <Text style={styles.roleActionBtnText}>Yönetici Yetkisini Al</Text>
