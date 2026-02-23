@@ -236,6 +236,7 @@ export async function createMatch(payload: CreateMatchPayload): Promise<Match | 
       waitlistEnabled: true,
       goingCount: 0,
       waitlistCount: 0,
+      waitlistSeq: 0,
       attendees: [],
       createdAt: firestore.FieldValue.serverTimestamp(),
     });

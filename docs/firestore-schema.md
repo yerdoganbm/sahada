@@ -113,6 +113,7 @@ Sliding window buckets for Cloud Functions rate limiting.
 - **Hot fields** (counters, updated transactionally):
   - **`goingCount`**: number
   - **`waitlistCount`**: number
+  - **`waitlistSeq`**: number (monotonic queue counter)
 - Keep legacy:
   - **`attendees`**: array (legacy; will be phased out)
 
@@ -125,6 +126,7 @@ Sliding window buckets for Cloud Functions rate limiting.
 ### `matches/{matchId}/waitlist/{userId}`
 
 - **`userId`**: string
+- **`queue`**: number (ordering key; from `matches.waitlistSeq`)
 - **`createdAt`**: timestamp (ordering key)
 
 ### `join_requests/{requestId}`

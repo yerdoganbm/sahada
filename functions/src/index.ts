@@ -1004,6 +1004,7 @@ export const rsvp = onCall(async (req) => {
     const waitlistEnabled = match.waitlistEnabled !== false;
     const goingCount = toNumber(match.goingCount, 0);
     const waitlistCount = toNumber(match.waitlistCount, 0);
+    const waitlistSeq = toNumber(match.waitlistSeq, 0);
 
     const prevState = ((partSnap.data() || {}) as any)?.state as string | undefined;
     const prev = prevState === 'GOING' || prevState === 'WAITLIST' || prevState === 'NOT_GOING' || prevState === 'MAYBE' ? prevState : 'NOT_GOING';
@@ -1039,8 +1040,9 @@ export const rsvp = onCall(async (req) => {
         } else {
           setParticipant('WAITLIST');
           if (!waitSnap.exists) {
-            tx.set(waitlistRef, { userId, createdAt: admin.firestore.FieldValue.serverTimestamp() });
-            tx.update(matchRef, { waitlistCount: waitlistCount + 1 });
+            const nextSeq = waitlistSeq + 1;
+            tx.set(waitlistRef, { userId, queue: nextSeq, createdAt: admin.firestore.FieldValue.serverTimestamp() });
+            tx.update(matchRef, { waitlistCount: waitlistCount + 1, waitlistSeq: nextSeq });
           }
         }
       }
@@ -1065,7 +1067,7 @@ export const rsvp = onCall(async (req) => {
       if (waitlistEnabled && prev === 'GOING' && nextGoingCount < capacity) {
         const q = matchRef
           .collection('waitlist')
-          .orderBy('createdAt', 'asc')
+          .orderBy('queue', 'asc')
           .orderBy(admin.firestore.FieldPath.documentId(), 'asc')
           .limit(1);
         // Firestore supports query reads inside transactions (Admin SDK).

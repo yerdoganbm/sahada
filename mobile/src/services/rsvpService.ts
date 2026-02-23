@@ -76,6 +76,7 @@ export async function rsvp(args: {
     const waitlistEnabled = match.waitlistEnabled !== false;
     const goingCount = toNumber(match.goingCount, 0);
     const waitlistCount = toNumber(match.waitlistCount, 0);
+    const waitlistSeq = toNumber(match.waitlistSeq, 0);
 
     const p = (participantSnap.data() || {}) as Record<string, unknown>;
     const prevState = (p.state as ParticipationState | undefined) ?? 'NOT_GOING';
@@ -116,11 +117,13 @@ export async function rsvp(args: {
         if (waitlistEnabled) {
           setParticipant('WAITLIST');
           if (!waitlistSnap.exists) {
+            const nextSeq = waitlistSeq + 1;
             tx.set(waitlistRef, {
               userId,
+              queue: nextSeq,
               createdAt: firestore.FieldValue.serverTimestamp(),
             });
-            tx.update(matchRef, { waitlistCount: waitlistCount + 1 } as any);
+            tx.update(matchRef, { waitlistCount: waitlistCount + 1, waitlistSeq: nextSeq } as any);
           }
         } else {
           setParticipant('NOT_GOING');
@@ -171,7 +174,11 @@ export async function autoPromoteWaitlist(matchId: string): Promise<boolean> {
   const waitlistCol = matchRef.collection('waitlist');
 
   // Query outside the transaction; promotion is guarded by a second transaction.
-  const snap = await waitlistCol.orderBy('createdAt', 'asc').limit(1).get();
+  const snap = await waitlistCol
+    .orderBy('queue', 'asc')
+    .orderBy(firestore.FieldPath.documentId(), 'asc')
+    .limit(1)
+    .get();
   if (snap.empty) return false;
   const entryDoc = snap.docs[0];
   const nextUserId = entryDoc.id;
