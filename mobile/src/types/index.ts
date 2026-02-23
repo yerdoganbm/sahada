@@ -186,6 +186,7 @@ export type RootStackParamList = {
   ReserveSystem: undefined;
   SquadShareWizard: undefined;
   MessageLogs: undefined;
+  TeamChat: undefined;
 };
 
 export type MainTabParamList = {

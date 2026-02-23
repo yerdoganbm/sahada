@@ -216,10 +216,29 @@ export default function LoginScreen() {
           <Text style={styles.secondaryButtonText}>Takımını Sıfırdan Kur</Text>
         </TouchableOpacity>
 
-        {/* Test Users Info */}
-        <View style={styles.testInfo}>
+        {/* Demo Accounts */}
+        <View style={styles.demoSection}>
+          <Text style={styles.demoTitle}>DEMO HESAPLAR</Text>
+          <View style={styles.demoButtons}>
+            {[
+              { label: '👑 Admin', phone: '05320000001' },
+              { label: '⭐ Kaptan', phone: '05320000002' },
+              { label: '⚽ Üye', phone: '05320000003' },
+              { label: '🏟️ Partner', phone: '05320000008' },
+            ].map((d) => (
+              <TouchableOpacity
+                key={d.phone}
+                style={styles.demoBtn}
+                onPress={() => {
+                  setPhone(d.phone);
+                }}
+              >
+                <Text style={styles.demoBtnText}>{d.label}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
           <Text style={styles.testInfoText}>
-            Test için: Admin=1, Kaptan=7, Üye=2
+            Seçip "Devam Et" butonuna basın
           </Text>
         </View>
       </View>
@@ -389,15 +408,49 @@ const styles = StyleSheet.create({
     marginLeft: spacing.sm,
   },
   testInfo: {
-    marginTop: spacing.xl,
+    marginTop: spacing.sm,
     padding: spacing.md,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: borderRadius.md,
     alignItems: 'center',
   },
   testInfoText: {
     fontSize: typography.fontSize.xs,
     color: colors.text.disabled,
     textAlign: 'center',
+  },
+  demoSection: {
+    marginTop: spacing.xl,
+    padding: spacing.md,
+    backgroundColor: 'rgba(16,185,129,0.06)',
+    borderRadius: borderRadius.lg,
+    borderWidth: 1,
+    borderColor: 'rgba(16,185,129,0.2)',
+  },
+  demoTitle: {
+    fontSize: typography.fontSize.xs,
+    fontWeight: typography.fontWeight.bold,
+    color: colors.primary,
+    letterSpacing: 1.5,
+    marginBottom: spacing.sm,
+    textAlign: 'center',
+  },
+  demoButtons: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+    justifyContent: 'center',
+    marginBottom: spacing.sm,
+  },
+  demoBtn: {
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: colors.border.light,
+  },
+  demoBtnText: {
+    fontSize: typography.fontSize.xs,
+    fontWeight: typography.fontWeight.semiBold,
+    color: colors.text.primary,
   },
 });

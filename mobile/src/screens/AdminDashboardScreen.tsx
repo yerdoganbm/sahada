@@ -125,6 +125,7 @@ export default function AdminDashboardScreen() {
         <MenuRow icon="binoculars" label="Scout Paneli" onPress={() => navigation.navigate('ScoutDashboard')} />
         <MenuRow icon="whatsapp" label="WhatsApp" onPress={() => navigation.navigate('WhatsAppIntegration')} />
         <MenuRow icon="receipt-text" label="Ödeme Defteri" onPress={() => navigation.navigate('PaymentLedger')} />
+        <MenuRow icon="forum" label="Takım Chat" onPress={() => navigation.navigate('TeamChat')} />
       </View>
 
       <Text style={[styles.sectionTitle, { marginTop: spacing.xl }]}>Diğer</Text>
