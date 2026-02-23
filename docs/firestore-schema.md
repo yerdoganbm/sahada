@@ -81,6 +81,19 @@ Invite/token flow (never store plaintext tokens).
 - **`status`**: `'INVITED'|'ACCEPTED'|'CANCELLED'|'INVITE_EXPIRED'`
 - **`createdAt`**
 
+### `payment_idempotency/{idempotencyKey}`
+
+Idempotency guard for payment marking.
+
+- **Doc id**: `sha256(matchId:userId:amount:dateBucket)`
+- **`teamId`**: `string`
+- **`matchId`**: `string`
+- **`userId`**: `string`
+- **`amount`**: `number`
+- **`dateBucket`**: `YYYY-MM-DD`
+- **`paymentId`**: `string`
+- **`createdAt`**, **`createdBy`**
+
 ### `join_requests/{requestId}`
 
 Join request workflow.
@@ -127,5 +140,6 @@ Create these in Firestore (Console or `firestore.indexes.json` when added):
 - **`invites`**: `tokenHash`
 - **`join_requests`**: `teamId` + `status`
 - **`owner_transfers`**: `expiresAt` (optional, for scheduled cleanup)
+- **`payment_idempotency`**: `teamId` + `createdAt` (optional, operational reporting)
 - **`audits`**: `scopeId` + `at` (time)
 
