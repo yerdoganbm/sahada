@@ -104,7 +104,7 @@ export default function MatchAnalysisScreen() {
   const navigation = useNavigation();
   const route = useRoute<AnalysisRoute>();
   const { user } = useAuth();
-  const matchId = route.params?.matchId;
+  const matchId = (route.params as { matchId?: string } | undefined)?.matchId;
 
   const [match, setMatch] = useState<Match | null>(null);
   const [players, setPlayers] = useState<Player[]>([]);
@@ -132,58 +132,68 @@ export default function MatchAnalysisScreen() {
 
   // Load match data
   useEffect(() => {
-    if (!matchId) return;
+    if (!matchId) {
+      setLoading(false);
+      return;
+    }
     let cancelled = false;
     setLoading(true);
-    Promise.all([
-      getMatch(matchId),
-      firestore().collection('match_goals').where('matchId', '==', matchId).orderBy('minute', 'asc').get().catch(() => null),
-      firestore().collection('match_stats').doc(matchId).get().catch(() => null),
-    ]).then(([m, goalsSnap, statsSnap]) => {
-      if (cancelled) return;
-      setMatch(m);
-      if (goalsSnap) {
-        const g = goalsSnap.docs.map((d) => ({ id: d.id, ...d.data() } as GoalEvent));
-        setGoals(g);
-      }
-      if (statsSnap?.exists) {
-        setStats((prev) => ({ ...prev, ...(statsSnap.data() as MatchStats) }));
-      }
-      if (m?.teamId) {
-        getPlayers({ teamId: m.teamId }).then((list) => {
+    const load = async () => {
+      try {
+        const m = await getMatch(matchId);
+        if (cancelled) return;
+        setMatch(m);
+        if (m?.teamId) {
+          const list = await getPlayers({ teamId: m.teamId });
           if (!cancelled) setPlayers(list);
-        });
+        }
+        try {
+          const goalsSnap = await firestore().collection('match_goals').where('matchId', '==', matchId).orderBy('minute', 'asc').get();
+          if (!cancelled && goalsSnap?.docs?.length) setGoals(goalsSnap.docs.map((d) => ({ id: d.id, ...d.data() } as GoalEvent)));
+        } catch (_) { /* optional */ }
+        try {
+          const statsSnap = await firestore().collection('match_stats').doc(matchId).get();
+          if (!cancelled && statsSnap?.exists) setStats((prev) => ({ ...prev, ...(statsSnap.data() as MatchStats) }));
+        } catch (_) { /* optional */ }
+      } catch (e) {
+        if (!cancelled) setMatch(null);
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-      setLoading(false);
-    }).catch(() => { if (!cancelled) setLoading(false); });
+    };
+    load();
     return () => { cancelled = true; };
   }, [matchId]);
 
-  // Realtime comments
+  // Realtime comments (skip if firestore not available e.g. web)
   useEffect(() => {
     if (!matchId) return;
-    const unsub = firestore()
-      .collection('match_comments')
-      .where('matchId', '==', matchId)
-      .where('phase', '==', commentPhase)
-      .orderBy('createdAt', 'desc')
-      .limit(50)
-      .onSnapshot((snap) => {
-        const list = snap.docs.map((d) => {
-          const data = d.data();
-          return {
-            id: d.id,
-            userId: data.userId as string,
-            userName: data.userName as string,
-            userAvatar: data.userAvatar as string | undefined,
-            text: data.text as string,
-            createdAt: (data.createdAt as { toDate?: () => Date })?.toDate?.() ?? new Date(),
-            phase: data.phase as 'pre' | 'post',
-          };
-        });
-        setComments(list);
-      }, () => {});
-    return () => unsub();
+    try {
+      const unsub = firestore()
+        .collection('match_comments')
+        .where('matchId', '==', matchId)
+        .where('phase', '==', commentPhase)
+        .orderBy('createdAt', 'desc')
+        .limit(50)
+        .onSnapshot((snap) => {
+          const list = snap.docs.map((d) => {
+            const data = d.data();
+            return {
+              id: d.id,
+              userId: data.userId as string,
+              userName: data.userName as string,
+              userAvatar: data.userAvatar as string | undefined,
+              text: data.text as string,
+              createdAt: (data.createdAt as { toDate?: () => Date })?.toDate?.() ?? new Date(),
+              phase: data.phase as 'pre' | 'post',
+            };
+          });
+          setComments(list);
+        }, () => {});
+      return () => unsub();
+    } catch {
+      return () => {};
+    }
   }, [matchId, commentPhase]);
 
   const handleSendComment = async () => {
@@ -235,6 +245,19 @@ export default function MatchAnalysisScreen() {
 
   const formatDate = (dateStr: string) =>
     new Date(dateStr).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' });
+
+  if (!matchId) {
+    return (
+      <View style={[styles.container, styles.centered]}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+          <Icon name="arrow-left" size={24} color={colors.text.primary} />
+        </TouchableOpacity>
+        <Icon name="alert-circle-outline" size={48} color={colors.text.tertiary} />
+        <Text style={styles.loadingText}>Maç seçilmedi</Text>
+        <Text style={[styles.loadingText, { fontSize: 12, marginTop: 8 }]}>Maç detayından "Maç Analizi"ne girin.</Text>
+      </View>
+    );
+  }
 
   if (loading) {
     return (

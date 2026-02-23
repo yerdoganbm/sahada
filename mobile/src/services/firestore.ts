@@ -22,9 +22,8 @@ const COLLECTIONS = {
   tournament_teams: 'tournament_teams',
   bracket_matches: 'bracket_matches',
   subscription_plans: 'subscription_plans',
-  // NOTE: Canonical membership join requests use top-level collection `join_requests`
-  // and are handled by `mobile/src/services/joinRequestService.ts` + Cloud Functions.
-  // This legacy "player proposal" flow uses a separate collection to avoid collisions.
+  // Canonical join requests: top-level `join_requests` + joinRequestService + CF. Use canonicalJoinRequestApi for UI.
+  // Legacy "player proposal" flow used this key for `player_join_requests`; deprecated in favor of canonical model.
   join_requests: 'player_join_requests',
 } as const;
 

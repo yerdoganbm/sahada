@@ -68,10 +68,19 @@ export default function ProfileScreen() {
   const tier = TIER_LABELS[displayUser?.tier ?? 'free'] ?? TIER_LABELS.free;
   const posColor = POSITION_COLORS[displayUser?.position ?? 'MID'] ?? '#10B981';
 
-  const shareProfile = () => {
-    Share.share({
-      message: `${displayUser?.name} | ${POSITION_LABELS[displayUser?.position ?? 'MID']} | Rating: ${displayUser?.rating} | Sahada`,
-    });
+  const shareProfile = async () => {
+    const message = `${displayUser?.name} | ${POSITION_LABELS[displayUser?.position ?? 'MID']} | Rating: ${displayUser?.rating} | Sahada`;
+    try {
+      if (typeof Share?.share === 'function') {
+        await Share.share({ message, title: displayUser?.name ?? 'Profil' });
+      } else if (typeof navigator !== 'undefined' && navigator.share) {
+        await navigator.share({ text: message, title: displayUser?.name ?? 'Profil' });
+      }
+    } catch (e) {
+      if ((e as Error).message?.includes('cancel') === false) {
+        console.warn('Share failed', e);
+      }
+    }
   };
 
   if (loading) {
@@ -163,6 +172,25 @@ export default function ProfileScreen() {
           </View>
         </View>
       </View>
+
+      {/* Kişisel iletişim */}
+      {(displayUser?.phone || displayUser?.email) && (
+        <View style={[styles.contactCard, { backgroundColor: colors.surface, borderColor: colors.border.light }]}>
+          <Text style={[styles.contactTitle, { color: colors.text.tertiary }]}>İLETİŞİM</Text>
+          {displayUser.phone ? (
+            <View style={styles.contactRow}>
+              <Icon name="phone" size={16} color={colors.text.secondary} />
+              <Text style={[styles.contactText, { color: colors.text.primary }]}>{displayUser.phone}</Text>
+            </View>
+          ) : null}
+          {displayUser.email ? (
+            <View style={styles.contactRow}>
+              <Icon name="email" size={16} color={colors.text.secondary} />
+              <Text style={[styles.contactText, { color: colors.text.primary }]}>{displayUser.email}</Text>
+            </View>
+          ) : null}
+        </View>
+      )}
 
       {/* Stats */}
       <View style={[styles.statsCard, { backgroundColor: colors.surface, borderColor: colors.border.light }]}>
@@ -283,6 +311,16 @@ const styles = StyleSheet.create({
   badgeRow: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 8 },
   roleBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, borderRadius: borderRadius.full, paddingHorizontal: spacing.sm, paddingVertical: 4 },
   roleText: { fontSize: 11, fontWeight: '700' },
+  contactCard: {
+    marginHorizontal: spacing.lg,
+    borderRadius: borderRadius.xl,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+    borderWidth: 1,
+  },
+  contactTitle: { fontSize: 10, fontWeight: '700', letterSpacing: 1.5, marginBottom: spacing.sm },
+  contactRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: 4 },
+  contactText: { fontSize: typography.fontSize.sm },
   statsCard: {
     flexDirection: 'row',
     marginHorizontal: spacing.lg,

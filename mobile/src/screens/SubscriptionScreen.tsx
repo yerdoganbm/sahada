@@ -112,7 +112,7 @@ const PLANS: Plan[] = [
 export default function SubscriptionScreen() {
   const navigation = useNavigation<SubscriptionNavProp>();
   const { user } = useAuth();
-  const currentTier = user?.tier ?? 'free';
+  const currentTier = (user?.role === 'admin' ? 'partner' : user?.tier) ?? 'free';
   const [annual, setAnnual] = useState(false);
 
   const handleSubscribe = (plan: Plan) => {

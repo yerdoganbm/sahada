@@ -2,7 +2,7 @@
  * Team Setup Screen - Takım kurulumu (adım adım)
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -13,23 +13,33 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import { TeamProfile } from '../types';
+import { RootStackParamList } from '../types';
 import { colors, spacing, borderRadius, typography } from '../theme';
+
+type TeamSetupRoute = RouteProp<RootStackParamList, 'TeamSetup'>;
 
 const COLOR_OPTIONS = ['#10B981', '#EF4444', '#3B82F6', '#F59E0B', '#8B5CF6', '#EC4899'];
 
 export default function TeamSetupScreen() {
   const navigation = useNavigation();
+  const route = useRoute<TeamSetupRoute>();
   const { createTeamAndLogin } = useAuth();
+  const prefillPhone = route.params?.prefillPhone ?? '';
   const [step, setStep] = useState(1);
   const [name, setName] = useState('');
   const [shortName, setShortName] = useState('');
   const [founderName, setFounderName] = useState('');
   const [founderEmail, setFounderEmail] = useState('');
+  const [founderPhone, setFounderPhone] = useState(prefillPhone);
   const [primaryColor, setPrimaryColor] = useState(COLOR_OPTIONS[0]);
+
+  useEffect(() => {
+    if (prefillPhone) setFounderPhone(prefillPhone);
+  }, [prefillPhone]);
 
   const inviteCode = (shortName || name.slice(0, 3).toUpperCase()) + '-' + new Date().getFullYear();
 
@@ -51,7 +61,7 @@ export default function TeamSetupScreen() {
         founderEmail: founderEmail.trim() || undefined,
         foundedDate: new Date().toISOString().split('T')[0],
       };
-      createTeamAndLogin(team, founderName.trim(), founderEmail.trim() || undefined);
+      createTeamAndLogin(team, founderName.trim(), founderEmail.trim() || undefined, founderPhone.trim() || undefined);
     }
   };
 
@@ -140,6 +150,15 @@ export default function TeamSetupScreen() {
               placeholder="Örn: Ahmet Yılmaz"
               placeholderTextColor={colors.text.disabled}
               autoCapitalize="words"
+            />
+            <Text style={styles.label}>Telefon</Text>
+            <TextInput
+              style={styles.input}
+              value={founderPhone}
+              onChangeText={setFounderPhone}
+              placeholder="5XX XXX XX XX"
+              placeholderTextColor={colors.text.disabled}
+              keyboardType="phone-pad"
             />
             <Text style={styles.label}>E-posta (opsiyonel)</Text>
             <TextInput

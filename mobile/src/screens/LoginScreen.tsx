@@ -13,6 +13,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -76,11 +77,19 @@ export default function LoginScreen() {
       await loginWithCredentials({ phone: phone.trim() });
     } catch (err) {
       console.error('Login error:', err);
-      setAlert({
-        title: 'Giriş Yapılamadı',
-        message: 'Bu telefon numarasıyla kayıtlı kullanıcı bulunamadı. Takım kurulumu ile yeni hesap oluşturabilirsiniz.',
-        type: 'error',
-      });
+      const normalizedPhone = phone.trim().replace(/^0/, '').replace(/\D/g, '');
+      const phoneForPrefill = normalizedPhone.length >= 10 ? (normalizedPhone.startsWith('90') ? normalizedPhone : '90' + normalizedPhone) : phone.trim();
+      Alert.alert(
+        'Giriş Yapılamadı',
+        'Bu numarayla kayıtlı hesap yok. Takım kurarak yeni hesap oluşturabilir veya davet kodu ile takıma katılabilirsiniz.',
+        [
+          { text: 'Tamam' },
+          {
+            text: 'Takım Kur',
+            onPress: () => navigation.navigate('TeamSetup', { prefillPhone: phoneForPrefill || phone.trim() }),
+          },
+        ]
+      );
     } finally {
       setIsLoading(false);
     }

@@ -6,6 +6,20 @@
 - The implementation below is based on the **spec excerpt in the issue description** and the existing repo constraints.  
 - To fully guarantee spec parity, add the `.docx` into the repo (e.g. `docs/sahada-mimari-tr.docx`) or mount it into the agent VM.
 
+## Implementation verification (2025-02)
+
+Tüm spec maddeleri repoda kontrol edildi. **Özet: İsterlerin büyük çoğunluğu uygulanmış.**
+
+- **P0:** Tamam (domain, state machine, authorize, schema, migration bootstrap, TeamSwitchScreen).
+- **P1:** Tamam (roleResolution, membershipTransitions, inviteService, joinRequestService, ownerTransferService, paymentService, rate limiting CF’de).
+- **P2:** Tamam (participants/waitlist subcollections, rsvp transaction, autoPromoteWaitlist).
+- **P3:** Tamam (CF callables + scheduled jobs). **Not:** `mobile/firestore.rules` şu an geliştirme için `allow true`; production’da spec’teki guardrail kuralları (membership ACTIVE, audit append-only, role escalation engeli) uygulanmalı.
+- **P4:** Tamam (unit testler, manual checklist, authz/state-machine/tenant-isolation/rate-limits dokümanları).
+
+Eksik veya opsiyonel: Production Firestore kurallarının deploy edilmesi (schema’da tanımlı; `firestore.rules` dosyası production için güçlendirilebilir).
+
+---
+
 ## Non‑negotiables (how we enforce them)
 
 - **Single authorization entry point**: `mobile/src/domain/authorize.ts` (pure decision function).
@@ -37,19 +51,19 @@
   - wired into `mobile/src/contexts/AuthContext.tsx` + `mobile/src/screens/JoinTeamScreen.tsx`
 - [x] **P1.4 Owner transfer (two-phase commit)** (`mobile/src/services/ownerTransferService.ts`)  
 - [x] **P1.5 Payment idempotency keys** (`mobile/src/services/paymentService.ts`)  
-- [ ] **P1.6 Rate limiting** (Cloud Functions design + client UX guard)
+- [x] **P1.6 Rate limiting** (`functions/src/rateLimit.ts` + `enforceRateLimit` in callables; client shows friendly error)
 
 ### P2 — Match capacity + waitlist (concurrency safe)
 
-- [ ] **P2.1 Participants subcollection + counters**  
-- [ ] **P2.2 RSVP txn algorithm** (`mobile/src/services/rsvpService.ts`)  
-- [ ] **P2.3 Auto-promote waitlist**
+- [x] **P2.1 Participants subcollection + counters** (`matches/{id}/participants`, `waitlist`, `goingCount`/`waitlistCount` in `rsvpService`)  
+- [x] **P2.2 RSVP txn algorithm** (`mobile/src/services/rsvpService.ts`)  
+- [x] **P2.3 Auto-promote waitlist** (`autoPromoteWaitlist()` in `rsvpService.ts`)
 
 ### P3 — Production guardrails
 
-- [x] **P3.1 Firestore Rules baseline** (`firestore.rules`)  
+- [x] **P3.1 Firestore Rules baseline** (`mobile/firestore.rules`; production guardrail rules doc in schema; current file is dev-friendly `allow true`)  
 - [x] **P3.2 Cloud Functions privileged mutations** (`functions/src/index.ts`)  
-- [ ] **P3.3 Scheduled jobs** (invite expiry, temp ban lift, invariants checks)
+- [x] **P3.3 Scheduled jobs** (`expireInvites`, `liftTempBans`, `invariantsHealthCheck` in `functions/src/index.ts`)
 
 ### P4 — Tests + docs
 

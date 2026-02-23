@@ -64,7 +64,7 @@ interface Template {
 
 export default function WhatsAppIntegrationScreen() {
   const navigation = useNavigation<WhatsAppNavProp>();
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
   const [enabled, setEnabled] = useState(user?.whatsappEnabled ?? false);
   const [saving, setSaving] = useState(false);
   const [alert, setAlert] = useState<{
@@ -132,8 +132,7 @@ export default function WhatsAppIntegrationScreen() {
     setEnabled(value);
     setSaving(true);
     try {
-      const { updateUser } = require('../contexts/AuthContext');
-      // updateUser is from useAuth hook
+      await updateUser({ whatsappEnabled: value });
       setAlert({
         title: 'Kaydedildi',
         message: value ? 'WhatsApp bildirimleri açıldı.' : 'WhatsApp bildirimleri kapatıldı.',
@@ -141,6 +140,11 @@ export default function WhatsAppIntegrationScreen() {
       });
     } catch (err) {
       setEnabled(!value);
+      setAlert({
+        title: 'Hata',
+        message: (err as Error).message ?? 'Ayarlar kaydedilemedi.',
+        type: 'error',
+      });
     } finally {
       setSaving(false);
     }

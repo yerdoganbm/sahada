@@ -200,7 +200,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const createTeamAndLogin = async (
     team: TeamProfile,
     founderName: string,
-    founderEmail?: string
+    founderEmail?: string,
+    founderPhone?: string
   ) => {
     const { teamId, user: newUser } = await createTeamAndUser(
       {
@@ -213,7 +214,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         ] as [string, string],
       },
       founderName,
-      founderEmail
+      founderEmail,
+      founderPhone
     );
     const teamWithId = { ...team, id: teamId };
     await AsyncStorage.setItem(TEAM_STORAGE_KEY, JSON.stringify(teamWithId));

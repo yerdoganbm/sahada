@@ -160,7 +160,7 @@ export type RootStackParamList = {
   ProfileDetails: { userId: string };
   Settings: undefined;
   TeamSwitch: undefined;
-  TeamSetup: undefined;
+  TeamSetup: { prefillPhone?: string } | undefined;
   MatchCreate: undefined;
   Admin: undefined;
   Notifications: undefined;

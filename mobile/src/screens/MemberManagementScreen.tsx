@@ -22,11 +22,13 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
+import { addManualPlayer } from '../services/players';
 import {
-  addManualPlayer,
-} from '../services/players';
-import { getJoinRequests, approveJoinRequest, rejectJoinRequest, createJoinRequest } from '../services/joinRequests';
-import type { JoinRequestItem } from '../services/joinRequests';
+  listJoinRequestsWithUsers,
+  approveJoinRequestViaCF,
+  rejectJoinRequestViaCF,
+  type CanonicalJoinRequestWithUser,
+} from '../services/canonicalJoinRequestApi';
 import { listActiveTeamMembers, type TeamMember } from '../services/teamMembers';
 import { changeMemberRole } from '../services/memberRoleService';
 import { getTeamById } from '../services/firestore';
@@ -46,7 +48,7 @@ export default function MemberManagementScreen() {
 
   const [activeTab, setActiveTab] = useState<'members' | 'requests'>('members');
   const [players, setPlayers] = useState<TeamMember[]>([]);
-  const [joinRequests, setJoinRequests] = useState<JoinRequestItem[]>([]);
+  const [joinRequests, setJoinRequests] = useState<CanonicalJoinRequestWithUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -61,13 +63,6 @@ export default function MemberManagementScreen() {
   const [requestActionId, setRequestActionId] = useState<string | null>(null);
 
   const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null);
-  const [showProposeModal, setShowProposeModal] = useState(false);
-  const [proposeForm, setProposeForm] = useState({
-    name: '',
-    position: 'MID' as 'GK' | 'DEF' | 'MID' | 'FWD',
-    contactNumber: '',
-  });
-  const [proposingPlayer, setProposingPlayer] = useState(false);
 
   const fetchData = useCallback(async () => {
     if (!user?.id) return;
@@ -82,7 +77,7 @@ export default function MemberManagementScreen() {
     const [list, team, requests] = await Promise.all([
       listActiveTeamMembers(teamId),
       getTeamById(teamId),
-      getJoinRequests(teamId),
+      listJoinRequestsWithUsers(teamId),
     ]);
     setPlayers(list);
     setInviteCode(team?.inviteCode ?? 'SAHADA-2024');
@@ -187,62 +182,32 @@ export default function MemberManagementScreen() {
     }
   };
 
-  const handleApproveRequest = async (req: JoinRequestItem) => {
+  const handleApproveRequest = async (req: CanonicalJoinRequestWithUser) => {
     if (!canManage) return;
     setRequestActionId(req.id);
     try {
-      await approveJoinRequest(req.id);
+      await approveJoinRequestViaCF(req.id);
       setJoinRequests((prev) => prev.filter((r) => r.id !== req.id));
-      await fetchData(); // refresh players to show newly added member
-      Alert.alert('Başarılı', `${req.name} takıma eklendi.`);
-    } catch (e) {
-      Alert.alert('Hata', 'İstek onaylanamadı.');
-    } finally {
-      setRequestActionId(null);
-    }
-  };
-
-  const handleRejectRequest = async (req: JoinRequestItem) => {
-    if (!canManage) return;
-    setRequestActionId(req.id);
-    try {
-      await rejectJoinRequest(req.id);
-      setJoinRequests((prev) => prev.filter((r) => r.id !== req.id));
-      Alert.alert('Reddedildi', `${req.name} isteği reddedildi.`);
-    } catch (e) {
-      Alert.alert('Hata', 'İstek reddedilemedi.');
-    } finally {
-      setRequestActionId(null);
-    }
-  };
-
-  const handleProposePlayer = async () => {
-    if (!proposeForm.name.trim() || !proposeForm.contactNumber.trim()) {
-      Alert.alert('Uyarı', 'İsim ve telefon gerekli.');
-      return;
-    }
-    const teamId = user?.id ? await getTeamIdForUser(user.id) : null;
-    if (!teamId) {
-      Alert.alert('Hata', 'Takım bilgisi bulunamadı.');
-      return;
-    }
-    setProposingPlayer(true);
-    try {
-      await createJoinRequest({
-        teamId,
-        name: proposeForm.name.trim(),
-        phone: proposeForm.contactNumber.trim(),
-        position: proposeForm.position,
-        referrerId: user?.id,
-      });
-      setProposeForm({ name: '', position: 'MID', contactNumber: '' });
-      setShowProposeModal(false);
-      Alert.alert('Başarılı', 'Oyuncu önerisi gönderildi. Admin onaylayacak.');
       await fetchData();
+      Alert.alert('Başarılı', `${req.userName} takıma eklendi.`);
     } catch (e) {
-      Alert.alert('Hata', 'Öneri gönderilemedi.');
+      Alert.alert('Hata', e instanceof Error ? e.message : 'İstek onaylanamadı.');
     } finally {
-      setProposingPlayer(false);
+      setRequestActionId(null);
+    }
+  };
+
+  const handleRejectRequest = async (req: CanonicalJoinRequestWithUser) => {
+    if (!canManage) return;
+    setRequestActionId(req.id);
+    try {
+      await rejectJoinRequestViaCF(req.id);
+      setJoinRequests((prev) => prev.filter((r) => r.id !== req.id));
+      Alert.alert('Reddedildi', `${req.userName} isteği reddedildi.`);
+    } catch (e) {
+      Alert.alert('Hata', e instanceof Error ? e.message : 'İstek reddedilemedi.');
+    } finally {
+      setRequestActionId(null);
     }
   };
 
@@ -317,12 +282,6 @@ export default function MemberManagementScreen() {
         )}
       </View>
 
-      {/* Propose Button */}
-      <TouchableOpacity style={styles.proposeBtn} onPress={() => setShowProposeModal(true)}>
-        <Icon name="account-search" size={18} color={colors.primary} />
-        <Text style={styles.proposeBtnText}>Tanıdığın Birini Öner</Text>
-      </TouchableOpacity>
-
       {/* Tabs */}
       <View style={styles.tabs}>
         <TouchableOpacity
@@ -389,16 +348,23 @@ export default function MemberManagementScreen() {
             {joinRequests.length === 0 ? (
               <View style={styles.empty}>
                 <Icon name="inbox" size={48} color={colors.text.tertiary} />
-                <Text style={styles.emptySub}>Bekleyen katılım isteği yok.</Text>
+                <Text style={styles.emptyTitle}>Bekleyen katılım isteği yok</Text>
+                <Text style={styles.emptySub}>
+                  Takıma katılmak isteyenler uygulamada davet kodu ile istek gönderebilir (onay gerekli takımlarda). Yeni davet için "Davet Et" kullanın.
+                </Text>
               </View>
             ) : (
               joinRequests.map((req) => (
                 <View key={req.id} style={styles.requestCard}>
-                  <Image source={{ uri: req.avatar }} style={styles.requestAvatar} />
+                  <Image
+                    source={{ uri: req.userAvatar || `https://i.pravatar.cc/150?u=${req.userId}` }}
+                    style={styles.requestAvatar}
+                  />
                   <View style={styles.requestInfo}>
-                    <Text style={styles.requestName}>{req.name}</Text>
+                    <Text style={styles.requestName}>{req.userName}</Text>
                     <Text style={styles.requestMeta}>
-                      {req.position} • {req.phone}
+                      {req.userPosition ? POS_LABEL[req.userPosition] || req.userPosition : ''}
+                      {req.userPhone ? ` • ${req.userPhone}` : ''}
                     </Text>
                   </View>
                   <View style={styles.requestActions}>
@@ -611,72 +577,6 @@ export default function MemberManagementScreen() {
         </TouchableOpacity>
       </Modal>
 
-      {/* Propose Modal */}
-      <Modal visible={showProposeModal} transparent animationType="slide">
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          style={styles.modalOverlay}
-        >
-          <View style={styles.modal}>
-            <Text style={styles.modalTitle}>Oyuncu Öner</Text>
-            <Text style={styles.modalSub}>Tanıdığın birini takıma öner.</Text>
-            <Text style={styles.inputLabel}>Ad Soyad</Text>
-            <TextInput
-              style={styles.input}
-              value={proposeForm.name}
-              onChangeText={(t) => setProposeForm({ ...proposeForm, name: t })}
-              placeholder="Örn: Ahmet Yılmaz"
-              placeholderTextColor={colors.text.tertiary}
-            />
-            <Text style={styles.inputLabel}>Telefon</Text>
-            <TextInput
-              style={styles.input}
-              value={proposeForm.contactNumber}
-              onChangeText={(t) => setProposeForm({ ...proposeForm, contactNumber: t })}
-              placeholder="0532 XXX XX XX"
-              placeholderTextColor={colors.text.tertiary}
-              keyboardType="phone-pad"
-            />
-            <Text style={styles.inputLabel}>Mevki</Text>
-            <View style={styles.posRow}>
-              {POSITIONS.map((pos) => (
-                <TouchableOpacity
-                  key={pos}
-                  style={[
-                    styles.posBtn,
-                    proposeForm.position === pos && styles.posBtnActive,
-                  ]}
-                  onPress={() => setProposeForm({ ...proposeForm, position: pos })}
-                >
-                  <Text
-                    style={[
-                      styles.posBtnText,
-                      proposeForm.position === pos && styles.posBtnTextActive,
-                    ]}
-                  >
-                    {pos}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-            <View style={styles.modalActions}>
-              <TouchableOpacity
-                style={styles.cancelModalBtn}
-                onPress={() => setShowProposeModal(false)}
-              >
-                <Text style={styles.cancelModalBtnText}>İptal</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.primaryModalBtn, proposingPlayer && styles.btnDisabled]}
-                onPress={handleProposePlayer}
-                disabled={proposingPlayer}
-              >
-                <Text style={styles.primaryModalBtnText}>{proposingPlayer ? 'Gönderiliyor...' : 'Öner'}</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </KeyboardAvoidingView>
-      </Modal>
     </View>
   );
 }
@@ -728,20 +628,6 @@ const styles = StyleSheet.create({
     color: colors.secondary,
   },
   placeholder: { width: 40 },
-  proposeBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.sm,
-    marginHorizontal: spacing.lg,
-    marginBottom: spacing.lg,
-    paddingVertical: spacing.md,
-    borderRadius: borderRadius.lg,
-    backgroundColor: `${colors.primary}20`,
-    borderWidth: 1,
-    borderColor: `${colors.primary}40`,
-  },
-  proposeBtnText: { fontSize: typography.fontSize.sm, fontWeight: '600', color: colors.primary },
   tabs: {
     flexDirection: 'row',
     marginHorizontal: spacing.lg,

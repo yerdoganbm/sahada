@@ -1,5 +1,7 @@
 /**
- * Katılım istekleri – Firestore
+ * Katılım istekleri – LEGACY (player_join_requests).
+ * @deprecated Use canonicalJoinRequestApi (join_requests + Cloud Functions) for production.
+ * MemberManagementScreen uses canonicalJoinRequestApi. This module remains for backward compatibility only.
  */
 
 import {

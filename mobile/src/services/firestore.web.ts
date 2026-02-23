@@ -290,3 +290,49 @@ export async function createTeamAndUser(
   if (!user) throw new Error('User creation failed');
   return { teamId, user };
 }
+
+export interface TeamBasic {
+  id: string;
+  name: string;
+  shortName?: string;
+  inviteCode: string;
+  primaryColor?: string;
+  secondaryColor?: string;
+}
+
+export async function getTeamById(teamId: string): Promise<TeamBasic | null> {
+  const ref = doc(db, COLLECTIONS.teams, teamId);
+  const snap = await getDoc(ref);
+  if (!snap.exists()) return null;
+  const d = snap.data() || {};
+  return {
+    id: snap.id,
+    name: (d.name as string) ?? '',
+    shortName: d.shortName as string | undefined,
+    inviteCode: (d.inviteCode as string) ?? '',
+    primaryColor: d.primaryColor as string | undefined,
+    secondaryColor: d.secondaryColor as string | undefined,
+  };
+}
+
+export async function getTeamByInviteCode(inviteCode: string): Promise<TeamBasic | null> {
+  const trimmed = inviteCode.trim().toUpperCase();
+  if (!trimmed) return null;
+  const q = query(
+    collection(db, COLLECTIONS.teams),
+    where('inviteCode', '==', trimmed),
+    limit(1)
+  );
+  const snap = await getDocs(q);
+  if (snap.empty) return null;
+  const docSnap = snap.docs[0];
+  const d = docSnap.data() || {};
+  return {
+    id: docSnap.id,
+    name: (d.name as string) ?? '',
+    shortName: d.shortName as string | undefined,
+    inviteCode: (d.inviteCode as string) ?? '',
+    primaryColor: d.primaryColor as string | undefined,
+    secondaryColor: d.secondaryColor as string | undefined,
+  };
+}
