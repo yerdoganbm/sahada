@@ -177,6 +177,8 @@ export const acceptInvite = onCall(async (req) => {
   const inviteRef = snap.docs[0].ref;
   const auditRef = db.collection('audits').doc();
 
+  let out: { ok: true; teamId: string; roleId: string } | null = null;
+
   await db.runTransaction(async (tx) => {
     const inviteSnap = await tx.get(inviteRef);
     if (!inviteSnap.exists) throw new Error('invite_not_found');
@@ -190,6 +192,7 @@ export const acceptInvite = onCall(async (req) => {
     if (status === 'ACCEPTED') {
       const acceptedBy = invite.acceptedBy as string | undefined;
       if (acceptedBy && acceptedBy !== userId) throw new Error('invite_already_used');
+      out = { ok: true, teamId, roleId };
       return;
     }
     if (status !== 'INVITED') throw new Error(`invite_not_active:${status ?? 'unknown'}`);
@@ -244,9 +247,12 @@ export const acceptInvite = onCall(async (req) => {
       target: { type: 'invite', id: inviteRef.id },
       meta: { roleId },
     });
+
+    out = { ok: true, teamId, roleId };
   });
 
-  return { ok: true };
+  if (!out) throw new Error('invite_accept_failed');
+  return out;
 });
 
 export const requestJoin = onCall(async (req) => {

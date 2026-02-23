@@ -30,6 +30,7 @@ import type { JoinRequestItem } from '../services/joinRequests';
 import { listActiveTeamMembers, type TeamMember } from '../services/teamMembers';
 import { changeMemberRole } from '../services/memberRoleService';
 import { getTeamById } from '../services/firestore';
+import { createInviteToken } from '../services/inviteFunctions';
 import { colors, spacing, borderRadius, typography } from '../theme';
 import type { Player } from '../types';
 
@@ -51,6 +52,8 @@ export default function MemberManagementScreen() {
 
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [inviteCode, setInviteCode] = useState<string>('');
+  const [inviteTargetValue, setInviteTargetValue] = useState('');
+  const [creatingToken, setCreatingToken] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [newPlayerName, setNewPlayerName] = useState('');
   const [newPlayerPos, setNewPlayerPos] = useState<'GK' | 'DEF' | 'MID' | 'FWD'>('MID');
@@ -118,6 +121,30 @@ export default function MemberManagementScreen() {
       setShowInviteModal(false);
     } catch {
       await handleCopyInvite();
+    }
+  };
+
+  const handleCreateTokenInvite = async () => {
+    const teamId = activeTeamId ?? user?.teamId ?? null;
+    if (!teamId || !user?.id) return;
+    setCreatingToken(true);
+    try {
+      const res = await createInviteToken({
+        teamId,
+        targetValue: inviteTargetValue,
+        roleId: 'MEMBER',
+        ttlHours: 48,
+      });
+      await Share.share({
+        message: `Sahada takıma katıl! Davet tokenı: ${res.token}`,
+        title: 'Sahada Daveti (Token)',
+      });
+      setInviteTargetValue('');
+      setShowInviteModal(false);
+    } catch (e) {
+      Alert.alert('Hata', e instanceof Error ? e.message : 'Token davet oluşturulamadı.');
+    } finally {
+      setCreatingToken(false);
     }
   };
 
@@ -418,6 +445,35 @@ export default function MemberManagementScreen() {
             <TouchableOpacity style={styles.secondaryModalBtn} onPress={handleCopyInvite}>
               <Text style={styles.secondaryModalBtnText}>Kopyala</Text>
             </TouchableOpacity>
+
+            {canManage && (
+              <>
+                <View style={{ height: 16 }} />
+                <Text style={styles.modalTitle}>Token Davet (Tek Kullanımlık)</Text>
+                <Text style={styles.modalSub}>
+                  Üretilecek token, üretimden sonra paylaşıldığında 1 kez kullanılabilir.
+                </Text>
+                <Text style={styles.inputLabel}>Hedef (telefon veya email)</Text>
+                <TextInput
+                  style={styles.input}
+                  value={inviteTargetValue}
+                  onChangeText={setInviteTargetValue}
+                  placeholder="örn: 5551234567 veya ali@ornek.com"
+                  placeholderTextColor={colors.text.tertiary}
+                  editable={!creatingToken}
+                />
+                <TouchableOpacity
+                  style={styles.primaryModalBtn}
+                  onPress={handleCreateTokenInvite}
+                  disabled={creatingToken || !inviteTargetValue.trim()}
+                >
+                  <Text style={styles.primaryModalBtnText}>
+                    {creatingToken ? 'Oluşturuluyor...' : 'Token Oluştur & Paylaş'}
+                  </Text>
+                </TouchableOpacity>
+              </>
+            )}
+
             <TouchableOpacity style={styles.closeBtn} onPress={() => setShowInviteModal(false)}>
               <Text style={styles.closeBtnText}>Kapat</Text>
             </TouchableOpacity>

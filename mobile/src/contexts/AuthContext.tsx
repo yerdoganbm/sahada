@@ -27,6 +27,7 @@ import {
   type MembershipItem,
 } from '../services/firestore';
 import { acceptInvite } from '../services/inviteService';
+import { acceptInviteToken } from '../services/inviteFunctions';
 import { requestJoin } from '../services/joinRequestService';
 
 const TEAM_STORAGE_KEY = '@sahada_team';
@@ -250,7 +251,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // 1) Prefer one-time invite token flow (invites/tokenHash).
     try {
-      const accepted = await acceptInvite({ token: code, userId: user.id });
+      // Prefer Cloud Function (rules will deny direct invites reads in production).
+      const acceptedCf = await acceptInviteToken(code);
+      const accepted = { teamId: acceptedCf.teamId, roleId: acceptedCf.roleId };
       await updateUserAuthzFields(user.id, { activeTeamId: accepted.teamId, authzMigrationVersion: 1 });
       const updatedUser = await bootstrapMembershipState({
         ...user,
@@ -279,7 +282,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (e) {
       // Only fall back to legacy team invite code if the token isn't found.
       const msg = e instanceof Error ? e.message : String(e);
-      if (!msg.includes('invite_not_found')) throw e;
+      if (!msg.includes('invite_not_found')) {
+        // Dev fallback: local acceptInvite can still work under permissive rules.
+        try {
+          const acceptedLocal = await acceptInvite({ token: code, userId: user.id });
+          await updateUserAuthzFields(user.id, { activeTeamId: acceptedLocal.teamId, authzMigrationVersion: 1 });
+          const updatedUser = await bootstrapMembershipState({
+            ...user,
+            teamId: acceptedLocal.teamId,
+            activeTeamId: acceptedLocal.teamId,
+            authzMigrationVersion: 1,
+          });
+          setUser(updatedUser);
+          await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updatedUser));
+          console.log('✅ Davet kabul edildi (local):', acceptedLocal.teamId);
+          return { status: 'ACTIVE', teamId: acceptedLocal.teamId };
+        } catch {
+          throw e;
+        }
+      }
     }
 
     // 2) Legacy join-by-team invite code: create canonical membership via join policy.
