@@ -56,6 +56,7 @@ import ReserveSystemScreen from '../screens/ReserveSystemScreen';
 import SquadShareWizardScreen from '../screens/SquadShareWizardScreen';
 import MessageLogsScreen from '../screens/MessageLogsScreen';
 import TeamChatScreen from '../screens/TeamChatScreen';
+import MatchAnalysisScreen from '../screens/MatchAnalysisScreen';
 
 const Stack = createStackNavigator<RootStackParamList>();
 
@@ -143,6 +144,7 @@ export default function RootNavigator() {
           <Stack.Screen name="SquadShareWizard" component={SquadShareWizardScreen} />
           <Stack.Screen name="MessageLogs" component={MessageLogsScreen} />
           <Stack.Screen name="TeamChat" component={TeamChatScreen} />
+          <Stack.Screen name="MatchAnalysis" component={MatchAnalysisScreen} />
         </>
       )}
     </Stack.Navigator>

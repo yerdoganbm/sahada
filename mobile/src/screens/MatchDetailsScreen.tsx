@@ -179,6 +179,14 @@ export default function MatchDetailsScreen() {
             <Text style={styles.badgeText}>Yaklaşan</Text>
           </View>
         )}
+        <TouchableOpacity
+          style={styles.analysisBtn}
+          onPress={() => (navigation as any).navigate('MatchAnalysis', { matchId: match.id })}
+        >
+          <Icon name="chart-bar" size={16} color={colors.primary} />
+          <Text style={styles.analysisBtnText}>Maç Analizi & Yorumlar</Text>
+          <Icon name="chevron-right" size={16} color={colors.primary} />
+        </TouchableOpacity>
       </View>
 
       <Text style={styles.sectionTitle}>Katılım</Text>
@@ -296,6 +304,21 @@ const styles = StyleSheet.create({
     fontWeight: typography.fontWeight.bold,
     color: colors.text.secondary,
     marginTop: spacing.sm,
+  },
+  analysisBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginTop: spacing.md,
+    paddingVertical: spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: colors.border.light,
+  },
+  analysisBtnText: {
+    flex: 1,
+    fontSize: typography.fontSize.sm,
+    fontWeight: '600',
+    color: colors.primary,
   },
   badge: {
     alignSelf: 'flex-start',

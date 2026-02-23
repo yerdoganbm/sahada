@@ -54,6 +54,8 @@ export interface Match {
   status: MatchStatus;
   score?: string;
   teamId?: string;
+  teamName?: string;
+  opponent?: string;
   venueId?: string;
   capacity?: MatchCapacity;
   waitlistEnabled?: boolean;
@@ -187,6 +189,7 @@ export type RootStackParamList = {
   SquadShareWizard: undefined;
   MessageLogs: undefined;
   TeamChat: undefined;
+  MatchAnalysis: { matchId: string };
 };
 
 export type MainTabParamList = {
