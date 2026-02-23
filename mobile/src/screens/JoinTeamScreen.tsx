@@ -44,12 +44,20 @@ export default function JoinTeamScreen() {
     }
     setLoading(true);
     try {
-      await joinTeam(code);
-      setAlert({
-        title: 'Başarılı',
-        message: 'Takıma katıldınız! Ana sayfaya yönlendiriliyorsunuz.',
-        type: 'success',
-      });
+      const res = await joinTeam(code);
+      if (res.status === 'ACTIVE') {
+        setAlert({
+          title: 'Başarılı',
+          message: 'Takıma katıldınız! Ana sayfaya yönlendiriliyorsunuz.',
+          type: 'success',
+        });
+      } else {
+        setAlert({
+          title: 'İstek Gönderildi',
+          message: 'Katılım isteğiniz gönderildi. Yönetici onayladıktan sonra takıma erişebileceksiniz.',
+          type: 'info',
+        });
+      }
     } catch (err) {
       console.error('Join team error:', err);
       setAlert({
