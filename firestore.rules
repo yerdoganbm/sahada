@@ -65,6 +65,26 @@ service cloud.firestore {
         .hasOnly(["proofUrl", "proofUpdatedAt", "updatedAt", "updatedBy"]);
     }
 
+    function venueDoc(venueId) {
+      return get(/databases/$(database)/documents/venues/$(venueId));
+    }
+
+    function isVenueOwner(venueId) {
+      return isSignedIn()
+        && venueDoc(venueId).exists()
+        && venueDoc(venueId).data.ownerId == uid();
+    }
+
+    function onlyUpdatesNotificationRead() {
+      return request.resource.data.diff(resource.data).affectedKeys()
+        .hasOnly(["isRead", "read", "readAt"]);
+    }
+
+    function onlyUpdatesReservationStatus() {
+      return request.resource.data.diff(resource.data).affectedKeys()
+        .hasOnly(["status", "updatedAt", "updatedBy"]);
+    }
+
     // ─────────────────────────────────────────────
     // Users (self access only)
     // ─────────────────────────────────────────────
@@ -152,11 +172,174 @@ service cloud.firestore {
     }
 
     // ─────────────────────────────────────────────
+    // Player proposals (legacy UI flow)
+    // ─────────────────────────────────────────────
+    match /player_join_requests/{requestId} {
+      allow create: if isSignedIn()
+        && request.resource.data.teamId is string
+        && isActiveMember(request.resource.data.teamId)
+        && request.resource.data.status == "pending";
+
+      // Only team admins can review proposals (contains PII like phone).
+      allow read: if isSignedIn()
+        && (resource.data.teamId is string)
+        && isTeamAdmin(resource.data.teamId);
+
+      // Approve/reject are privileged (functions/UI admin only).
+      allow update: if isSignedIn()
+        && (resource.data.teamId is string)
+        && isTeamAdmin(resource.data.teamId);
+
+      allow delete: if false;
+    }
+
+    // ─────────────────────────────────────────────
     // Invites (tokenHash only; no plaintext token)
     // ─────────────────────────────────────────────
     match /invites/{inviteId} {
       // Accept / create / manage via Cloud Functions only.
       allow read, write: if false;
+    }
+
+    // ─────────────────────────────────────────────
+    // Venues (catalog; owner can edit)
+    // ─────────────────────────────────────────────
+    match /venues/{venueId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn()
+        && request.resource.data.name is string
+        && request.resource.data.location is string
+        && request.resource.data.ownerId == uid();
+      allow update: if isSignedIn()
+        && resource.data.ownerId == uid()
+        && request.resource.data.ownerId == resource.data.ownerId;
+      allow delete: if false;
+    }
+
+    // ─────────────────────────────────────────────
+    // Reservations (createdBy or venue owner can read; venue owner can confirm)
+    // ─────────────────────────────────────────────
+    match /reservations/{reservationId} {
+      allow create: if isSignedIn()
+        && request.resource.data.venueId is string
+        && request.resource.data.status == "pending"
+        && request.resource.data.createdBy == uid();
+
+      allow read: if isSignedIn()
+        && (
+          resource.data.createdBy == uid()
+          || ((resource.data.venueId is string) && isVenueOwner(resource.data.venueId))
+        );
+
+      // Venue owner can update status (confirm/cancel/etc). Creator can only cancel.
+      allow update: if isSignedIn()
+        && (
+          (
+            (resource.data.venueId is string)
+            && isVenueOwner(resource.data.venueId)
+            && onlyUpdatesReservationStatus()
+          )
+          || (
+            resource.data.createdBy == uid()
+            && onlyUpdatesReservationStatus()
+            && request.resource.data.status == "cancelled"
+          )
+        );
+
+      allow delete: if false;
+    }
+
+    // ─────────────────────────────────────────────
+    // Notifications (per-user or per-team)
+    // ─────────────────────────────────────────────
+    match /notifications/{notificationId} {
+      allow read: if isSignedIn()
+        && (
+          (resource.data.userId == uid())
+          || ((resource.data.teamId is string) && isActiveMember(resource.data.teamId))
+        );
+      allow update: if isSignedIn()
+        && resource.data.userId == uid()
+        && onlyUpdatesNotificationRead();
+      allow create, delete: if false;
+    }
+
+    // ─────────────────────────────────────────────
+    // Transactions (team scoped)
+    // ─────────────────────────────────────────────
+    match /transactions/{transactionId} {
+      allow read: if isSignedIn()
+        && (resource.data.teamId is string)
+        && isActiveMember(resource.data.teamId);
+      allow create: if isSignedIn()
+        && request.resource.data.teamId is string
+        && isTeamAdmin(request.resource.data.teamId)
+        && request.resource.data.type in ["income", "expense"]
+        && request.resource.data.amount is number
+        && request.resource.data.date is string;
+      allow update, delete: if false;
+    }
+
+    // ─────────────────────────────────────────────
+    // Polls (team scoped; best-effort voting update)
+    // ─────────────────────────────────────────────
+    match /polls/{pollId} {
+      allow read: if isSignedIn()
+        && (resource.data.teamId is string)
+        && isActiveMember(resource.data.teamId);
+
+      allow create: if false;
+
+      allow update: if isSignedIn()
+        && (resource.data.teamId is string)
+        && isActiveMember(resource.data.teamId)
+        && request.resource.data.teamId == resource.data.teamId
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(["options", "voters", "totalVotes"])
+        && (resource.data.voters is list)
+        && (request.resource.data.voters is list)
+        && !resource.data.voters.hasAny([uid()])
+        && request.resource.data.voters.hasAny([uid()]);
+
+      allow delete: if false;
+    }
+
+    // ─────────────────────────────────────────────
+    // Talent pool (team scoped; read-only for members)
+    // ─────────────────────────────────────────────
+    match /talent_pool/{talentId} {
+      allow read: if isSignedIn()
+        && (resource.data.teamId is string)
+        && isActiveMember(resource.data.teamId);
+      allow write: if false;
+    }
+
+    // ─────────────────────────────────────────────
+    // Scout reports (global; read-only)
+    // ─────────────────────────────────────────────
+    match /scout_reports/{reportId} {
+      allow read: if isSignedIn();
+      allow write: if false;
+    }
+
+    // ─────────────────────────────────────────────
+    // Tournament (public read-only)
+    // ─────────────────────────────────────────────
+    match /tournament_teams/{teamId} {
+      allow read: if isSignedIn();
+      allow write: if false;
+    }
+    match /bracket_matches/{matchId} {
+      allow read: if isSignedIn();
+      allow write: if false;
+    }
+
+    // ─────────────────────────────────────────────
+    // Subscription plans (public read-only)
+    // ─────────────────────────────────────────────
+    match /subscription_plans/{planId} {
+      allow read: if isSignedIn();
+      allow write: if false;
     }
 
     // ─────────────────────────────────────────────

@@ -74,6 +74,7 @@ export default function BookingScreen() {
         teamName: user?.name,
         contactPerson: user?.name,
         contactPhone: user?.phone,
+        createdBy: user?.id,
       });
       Alert.alert('Başarılı', 'Rezervasyon talebi oluşturuldu.');
       navigation.goBack();

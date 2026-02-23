@@ -22,7 +22,10 @@ const COLLECTIONS = {
   tournament_teams: 'tournament_teams',
   bracket_matches: 'bracket_matches',
   subscription_plans: 'subscription_plans',
-  join_requests: 'join_requests',
+  // NOTE: Canonical membership join requests use top-level collection `join_requests`
+  // and are handled by `mobile/src/services/joinRequestService.ts` + Cloud Functions.
+  // This legacy "player proposal" flow uses a separate collection to avoid collisions.
+  join_requests: 'player_join_requests',
 } as const;
 
 export interface NotificationItem {
@@ -574,11 +577,16 @@ export async function updateUserAuthzFields(
 
 /** Kullanıcının bildirimlerini getirir. (userId/teamId ileride filtre için – şu an tüm bildirimler) */
 export async function getNotifications(
-  _userId?: string,
-  _teamId?: string
+  userId?: string,
+  teamId?: string
 ): Promise<NotificationItem[]> {
   const col = firestore().collection(COLLECTIONS.notifications);
-  const snap = await col.orderBy('createdAt', 'desc').limit(50).get();
+  let q: any = col;
+  if (userId) q = q.where('userId', '==', userId);
+  else if (teamId) q = q.where('teamId', '==', teamId);
+  else return [];
+
+  const snap = await q.orderBy('createdAt', 'desc').limit(50).get();
   return snap.docs.map((doc) => {
     const d = (doc.data() || {}) as Record<string, unknown>;
     const body = (d.message ?? d.body ?? '') as string;
@@ -736,6 +744,7 @@ export async function createReservation(data: {
   teamName?: string;
   contactPerson?: string;
   contactPhone?: string;
+  createdBy?: string;
 }): Promise<Reservation> {
   const ref = await firestore().collection(COLLECTIONS.reservations).add({
     venueId: data.venueId,
@@ -749,6 +758,7 @@ export async function createReservation(data: {
     teamName: data.teamName ?? null,
     contactPerson: data.contactPerson ?? null,
     contactPhone: data.contactPhone ?? null,
+    createdBy: data.createdBy ?? null,
     createdAt: firestore.FieldValue.serverTimestamp(),
   });
   return {

@@ -16,6 +16,7 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
+import { useAuth } from '../contexts/AuthContext';
 import { RootStackParamList } from '../types';
 import { colors, spacing, borderRadius, typography } from '../theme';
 import { getNotifications, markNotificationRead, type NotificationItem } from '../services/firestore';
@@ -32,14 +33,15 @@ const TYPE_ICONS: Record<string, string> = {
 
 export default function MessageLogsScreen() {
   const navigation = useNavigation<MessageLogsNavProp>();
+  const { user, activeTeamId } = useAuth();
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   const fetchNotifications = useCallback(async () => {
-    const list = await getNotifications();
+    const list = await getNotifications(user?.id, activeTeamId ?? undefined);
     setNotifications(list);
-  }, []);
+  }, [user?.id, activeTeamId]);
 
   useEffect(() => {
     setLoading(true);

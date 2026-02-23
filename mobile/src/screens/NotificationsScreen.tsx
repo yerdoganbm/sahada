@@ -26,15 +26,15 @@ type NotificationsNavProp = StackNavigationProp<RootStackParamList, 'Notificatio
 
 export default function NotificationsScreen() {
   const navigation = useNavigation<NotificationsNavProp>();
-  const { user } = useAuth();
+  const { user, activeTeamId } = useAuth();
   const [items, setItems] = useState<NotificationItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   const fetchItems = useCallback(async () => {
-    const list = await getNotifications(user?.id);
+    const list = await getNotifications(user?.id, activeTeamId ?? undefined);
     setItems(list);
-  }, [user?.id]);
+  }, [user?.id, activeTeamId]);
 
   useEffect(() => {
     let cancelled = false;
