@@ -1,20 +1,10 @@
 import firestore from '@react-native-firebase/firestore';
 import { BuiltInPermissionId } from '../domain/roleRegistry';
 import { assertAllowed, authorizeTeamAction } from './authz';
-import { sha256Hex } from '../utils/token';
+import { paymentIdempotencyKey } from '../domain/paymentIdempotency';
 
 function dateBucketUTC(d: Date): string {
   return d.toISOString().slice(0, 10); // YYYY-MM-DD
-}
-
-export function paymentIdempotencyKey(args: {
-  matchId: string;
-  userId: string;
-  amount: number;
-  dateBucket: string;
-}): string {
-  const base = `${args.matchId}:${args.userId}:${args.amount}:${args.dateBucket}`;
-  return sha256Hex(base);
 }
 
 /**
