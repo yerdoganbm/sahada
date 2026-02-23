@@ -47,15 +47,15 @@
 
 ### P3 — Production guardrails
 
-- [ ] **P3.1 Firestore Rules baseline** (`firestore.rules`)  
+- [x] **P3.1 Firestore Rules baseline** (`firestore.rules`)  
 - [ ] **P3.2 Cloud Functions privileged mutations** (only if/when `functions/` exists)  
 - [ ] **P3.3 Scheduled jobs** (invite expiry, temp ban lift, invariants checks)
 
 ### P4 — Tests + docs
 
-- [ ] **P4.1 Unit + concurrency tests** (domain + service-level where feasible)  
-- [ ] **P4.2 Manual test checklist** (`docs/manual-test-checklist.md`)  
-- [ ] **P4.3 Documentation set** (decision tree, state machine, tenant isolation, rate limits)
+- [x] **P4.1 Unit + concurrency tests** (domain + service-level where feasible)  
+- [x] **P4.2 Manual test checklist** (`docs/manual-test-checklist.md`)  
+- [x] **P4.3 Documentation set** (decision tree, state machine, tenant isolation, rate limits)
 
 ---
 
@@ -115,6 +115,84 @@
 
 ---
 
+## P0.2 — Membership state machine (transitions + cooldowns + versioning)
+
+### Files
+
+- `mobile/src/domain/membershipStateMachine.ts`
+- `mobile/src/services/membershipTransitions.ts`
+
+### Code
+
+- Transition matrix: `TRANSITION_MATRIX`
+- Validator: `validateTransition(...)`
+- Transaction wrapper: `transitionMembership(...)` (writes audit in same tx)
+
+### Manual test checklist
+
+- Transition ACTIVE → LEFT; verify `leftAt` set and `version` increments
+- Transition LEFT → REQUESTED within 72h; expect denial (`COOLDOWN_ACTIVE`)
+- Transition TEMP_BANNED → ACTIVE before `banEnd`; expect denial unless admin override
+
+---
+
+## P0.3 — Central authorization (RBAC + ABAC + isolation)
+
+### Files
+
+- `mobile/src/domain/authorize.ts`
+- `mobile/src/domain/roleRegistry.ts`
+- `mobile/src/domain/roleResolution.ts`
+
+### Manual test checklist
+
+- With TEAM_ADMIN membership ACTIVE:
+  - `MEMBER_INVITE` allowed
+- With membership status BANNED:
+  - any action denied with `membership_blocked:*`
+
+---
+
+## P0.4 — Firestore schema + required composite indexes
+
+### Files
+
+- `docs/firestore-schema.md`
+
+### Manual check
+
+- Ensure composite indexes from the doc exist in Firestore (Console or `firestore.indexes.json` when added)
+
+---
+
+## P0.5 — Legacy → canonical migration (no breaking)
+
+### Files
+
+- `mobile/src/contexts/AuthContext.tsx` (`bootstrapMembershipState`)
+- `mobile/src/services/firestore.ts` (`ensureLegacyMembership`, `getActiveMembershipsForUser`, `updateUserAuthzFields`)
+
+### Manual test checklist
+
+- Existing legacy user has `users.teamId` but no `memberships/{teamId}_{uid}`
+  - Login
+  - Expect membership created as `ACTIVE`, activeTeamId set, migration marker set
+
+---
+
+## P0.6 — Multi-team selector UI
+
+### Files
+
+- `mobile/src/features/teamSwitch/TeamSwitchScreen.tsx`
+
+### Manual test checklist
+
+- With 2 ACTIVE memberships:
+  - switching active team updates `users/{uid}.activeTeamId` (and legacy `teamId` for compatibility)
+
+---
+
 ## P1.3 — Invite vs Join Request (race-safe) — what was implemented
 
 ### Files created/edited
@@ -165,4 +243,36 @@
 - Race safety
   - While user submits join request, create an invite for the same user/team
   - Expect: join request is cancelled (superseded) and membership moves to `INVITED`
+
+---
+
+## P3.1 — Firestore Rules baseline (guardrail)
+
+### Files
+
+- `firestore.rules` (production baseline; requires Firebase Auth)
+- `mobile/firestore.rules` (legacy permissive rules for development; do not use in prod)
+
+### Manual test checklist
+
+- With authenticated user and ACTIVE membership:
+  - reading `teams/{teamId}` allowed
+- Without membership:
+  - reading `teams/{teamId}` denied
+
+---
+
+## P4.1 — Unit tests (where feasible)
+
+### Files
+
+- `mobile/jest.config.js`
+- `mobile/src/domain/__tests__/authorize.test.ts`
+- `mobile/src/domain/__tests__/roleRegistry.test.ts`
+- `mobile/src/domain/__tests__/membershipStateMachine.test.ts`
+
+### How to run
+
+- From `mobile/`:
+  - `npm test`
 
