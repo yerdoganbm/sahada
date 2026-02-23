@@ -19,7 +19,6 @@ import {
   createTeamAndUser,
   getTeamById,
   getTeamByInviteCode,
-  updateUserTeamId,
   setUserActiveTeamId,
   updateUserInFirestore,
   ensureLegacyMembership,
@@ -27,6 +26,8 @@ import {
   updateUserAuthzFields,
   type MembershipItem,
 } from '../services/firestore';
+import { acceptInvite } from '../services/inviteService';
+import { requestJoin } from '../services/joinRequestService';
 
 const TEAM_STORAGE_KEY = '@sahada_team';
 const BIOMETRIC_USER_KEY = '@sahada_biometric_user';
@@ -44,7 +45,7 @@ interface AuthContextType {
   logout: () => Promise<void>;
   updateUser: (updates: Partial<Player>) => Promise<void>;
   createTeamAndLogin: (team: TeamProfile, founderName: string, founderEmail?: string) => Promise<void>;
-  joinTeam: (inviteCode: string) => Promise<void>;
+  joinTeam: (inviteCode: string) => Promise<{ status: 'ACTIVE' | 'REQUESTED'; teamId: string }>;
   switchActiveTeam: (teamId: string) => Promise<void>;
 }
 
@@ -205,7 +206,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         name: team.name,
         shortName: team.shortName,
         inviteCode: team.inviteCode ?? `${team.name.slice(0, 3).toUpperCase()}${Date.now().toString(36)}`,
-        colors: team.colors,
+        colors: [
+          team.colors?.[0] ?? '#10B981',
+          team.colors?.[1] ?? '#0B0F1A',
+        ] as [string, string],
       },
       founderName,
       founderEmail
@@ -237,23 +241,78 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const joinTeam = async (inviteCode: string) => {
+  const joinTeam = async (
+    inviteCode: string
+  ): Promise<{ status: 'ACTIVE' | 'REQUESTED'; teamId: string }> => {
     if (!user) throw new Error('Giriş yapmanız gerekiyor');
-    const team = await getTeamByInviteCode(inviteCode);
+    const code = inviteCode.trim().toUpperCase();
+    if (!code) throw new Error('Geçersiz davet kodu');
+
+    // 1) Prefer one-time invite token flow (invites/tokenHash).
+    try {
+      const accepted = await acceptInvite({ token: code, userId: user.id });
+      await updateUserAuthzFields(user.id, { activeTeamId: accepted.teamId, authzMigrationVersion: 1 });
+      const updatedUser = await bootstrapMembershipState({
+        ...user,
+        teamId: accepted.teamId,
+        activeTeamId: accepted.teamId,
+        authzMigrationVersion: 1,
+      });
+      setUser(updatedUser);
+      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updatedUser));
+
+      const t = await getTeamById(accepted.teamId);
+      if (t) {
+        await AsyncStorage.setItem(
+          TEAM_STORAGE_KEY,
+          JSON.stringify({
+            id: t.id,
+            name: t.name,
+            shortName: t.shortName ?? t.name.slice(0, 3),
+            inviteCode: t.inviteCode,
+            colors: [t.primaryColor ?? '#10B981', t.secondaryColor ?? '#0B0F1A'],
+          })
+        );
+      }
+      console.log('✅ Davet kabul edildi:', accepted.teamId);
+      return { status: 'ACTIVE', teamId: accepted.teamId };
+    } catch (e) {
+      // Only fall back to legacy team invite code if the token isn't found.
+      const msg = e instanceof Error ? e.message : String(e);
+      if (!msg.includes('invite_not_found')) throw e;
+    }
+
+    // 2) Legacy join-by-team invite code: create canonical membership via join policy.
+    const team = await getTeamByInviteCode(code);
     if (!team) throw new Error('Geçersiz davet kodu');
-    await updateUserTeamId(user.id, team.id);
+
+    const res = await requestJoin({ teamId: team.id, userId: user.id });
+    if (res.status === 'REQUESTED') {
+      console.log('🕒 Katılım isteği gönderildi:', team.id);
+      return { status: 'REQUESTED', teamId: team.id };
+    }
+
     await updateUserAuthzFields(user.id, { activeTeamId: team.id, authzMigrationVersion: 1 });
-    const updatedUser = await bootstrapMembershipState({ ...user, teamId: team.id, activeTeamId: team.id, authzMigrationVersion: 1 });
+    const updatedUser = await bootstrapMembershipState({
+      ...user,
+      teamId: team.id,
+      activeTeamId: team.id,
+      authzMigrationVersion: 1,
+    });
     setUser(updatedUser);
     await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updatedUser));
-    await AsyncStorage.setItem(TEAM_STORAGE_KEY, JSON.stringify({
-      id: team.id,
-      name: team.name,
-      shortName: team.shortName ?? team.name.slice(0, 3),
-      inviteCode: team.inviteCode,
-      colors: [team.primaryColor ?? '#10B981', team.secondaryColor ?? '#0B0F1A'],
-    }));
+    await AsyncStorage.setItem(
+      TEAM_STORAGE_KEY,
+      JSON.stringify({
+        id: team.id,
+        name: team.name,
+        shortName: team.shortName ?? team.name.slice(0, 3),
+        inviteCode: team.inviteCode,
+        colors: [team.primaryColor ?? '#10B981', team.secondaryColor ?? '#0B0F1A'],
+      })
+    );
     console.log('✅ Takıma katıldı:', team.name);
+    return { status: 'ACTIVE', teamId: team.id };
   };
 
   const switchActiveTeam = async (teamId: string) => {
@@ -261,7 +320,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const has = memberships.some((m) => m.teamId === teamId && m.status === 'ACTIVE');
     if (!has) throw new Error('Bu takıma ait aktif üyelik bulunamadı');
 
+    // Backward compatibility: keep legacy `teamId` in sync with `activeTeamId`.
     await setUserActiveTeamId(user.id, teamId);
+    await updateUserAuthzFields(user.id, { authzMigrationVersion: 1 });
     const updatedUser = { ...user, activeTeamId: teamId, teamId };
     setUser(updatedUser);
     setActiveTeamId(teamId);

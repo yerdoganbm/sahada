@@ -1,0 +1,120 @@
+rules_version = '2';
+
+/**
+ * Firestore Rules — Production guardrail baseline
+ *
+ * IMPORTANT:
+ * - This baseline assumes Firebase Authentication (`request.auth.uid`) is in use.
+ * - Current mobile app code in this repo still operates with permissive rules under `mobile/firestore.rules`.
+ * - Privileged mutations must be performed by Cloud Functions (Admin SDK bypasses rules).
+ */
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function uid() {
+      return request.auth.uid;
+    }
+
+    function membershipId(teamId, userId) {
+      return teamId + "_" + userId;
+    }
+
+    function membershipDoc(teamId, userId) {
+      return get(/databases/$(database)/documents/memberships/$(membershipId(teamId, userId)));
+    }
+
+    function isActiveMember(teamId) {
+      return isSignedIn()
+        && membershipDoc(teamId, uid()).exists()
+        && membershipDoc(teamId, uid()).data.status == "ACTIVE";
+    }
+
+    function isTeamAdmin(teamId) {
+      return isActiveMember(teamId)
+        && (
+          membershipDoc(teamId, uid()).data.roleId == "TEAM_OWNER"
+          || membershipDoc(teamId, uid()).data.roleId == "TEAM_ADMIN"
+        );
+    }
+
+    // ─────────────────────────────────────────────
+    // Users (self access only)
+    // ─────────────────────────────────────────────
+    match /users/{userId} {
+      allow read: if isSignedIn() && uid() == userId;
+      allow create: if isSignedIn() && uid() == userId;
+      allow update: if isSignedIn() && uid() == userId;
+      allow delete: if false;
+    }
+
+    // ─────────────────────────────────────────────
+    // Teams (read requires ACTIVE membership)
+    // ─────────────────────────────────────────────
+    match /teams/{teamId} {
+      allow read: if isActiveMember(teamId);
+      // Team creation / mutation must be done via Cloud Functions
+      allow create, update, delete: if false;
+    }
+
+    // ─────────────────────────────────────────────
+    // Memberships (canonical)
+    // ─────────────────────────────────────────────
+    match /memberships/{membershipId} {
+      // Allow reading own membership doc (self) or team admin (moderation UIs).
+      allow read: if isSignedIn()
+        && (
+          resource.data.userId == uid()
+          || isTeamAdmin(resource.data.teamId)
+        );
+
+      // All membership status/role mutations must be via Cloud Functions.
+      allow create, update, delete: if false;
+    }
+
+    // ─────────────────────────────────────────────
+    // Join requests
+    // ─────────────────────────────────────────────
+    match /join_requests/{requestId} {
+      allow read: if isSignedIn()
+        && (
+          resource.data.userId == uid()
+          || isTeamAdmin(resource.data.teamId)
+        );
+
+      // A user can submit their own join request (APPROVAL policy) in a constrained shape.
+      allow create: if isSignedIn()
+        && request.resource.data.userId == uid()
+        && request.resource.data.teamId is string
+        && request.resource.data.status == "REQUESTED"
+        // deterministic docId: "{teamId}_{userId}"
+        && requestId == request.resource.data.teamId + "_" + request.resource.data.userId;
+
+      // Approve/reject/cancel are privileged (functions only).
+      allow update, delete: if false;
+    }
+
+    // ─────────────────────────────────────────────
+    // Invites (tokenHash only; no plaintext token)
+    // ─────────────────────────────────────────────
+    match /invites/{inviteId} {
+      // Accept / create / manage via Cloud Functions only.
+      allow read, write: if false;
+    }
+
+    // ─────────────────────────────────────────────
+    // Audits (append-only, functions only)
+    // ─────────────────────────────────────────────
+    match /audits/{auditId} {
+      allow read, write: if false;
+    }
+
+    // Default deny for any other collections until explicitly modeled.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
+
