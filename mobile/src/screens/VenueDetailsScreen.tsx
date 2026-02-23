@@ -73,7 +73,13 @@ export default function VenueDetailsScreen() {
         <View style={styles.placeholder} />
       </View>
 
-      <Image source={{ uri: venue.image || undefined }} style={styles.heroImage} />
+      {venue.image ? (
+        <Image source={{ uri: venue.image }} style={styles.heroImage} />
+      ) : (
+        <View style={[styles.heroImage, styles.heroImagePlaceholder]}>
+          <Icon name="soccer-field" size={56} color={colors.text.disabled} />
+        </View>
+      )}
       <View style={styles.heroOverlay} />
 
       <View style={styles.content}>
@@ -150,8 +156,13 @@ const styles = StyleSheet.create({
   placeholder: { width: 40 },
   heroImage: {
     width: '100%',
-    height: 200,
+    height: 220,
     backgroundColor: colors.surface,
+  },
+  heroImagePlaceholder: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: colors.background.secondary,
   },
   heroOverlay: {
     position: 'absolute',

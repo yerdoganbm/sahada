@@ -7,10 +7,10 @@ import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
   TouchableOpacity,
   Image,
   FlatList,
+  ActivityIndicator,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
@@ -26,9 +26,11 @@ export default function LeaderboardScreen() {
   const { user } = useAuth();
   const [players, setPlayers] = useState<Player[]>([]);
   const [filter, setFilter] = useState<'rating' | 'reliability'>('rating');
+  const [loading, setLoading] = useState(true);
 
   React.useEffect(() => {
-    getPlayers().then(setPlayers);
+    setLoading(true);
+    getPlayers().then(setPlayers).finally(() => setLoading(false));
   }, []);
 
   const sorted = useMemo(() => {
@@ -36,6 +38,15 @@ export default function LeaderboardScreen() {
     if (filter === 'rating') return [...list].sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0));
     return [...list].sort((a, b) => (b.reliability ?? 0) - (a.reliability ?? 0));
   }, [players, filter]);
+
+  if (loading) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={{ marginTop: 12, color: colors.text.secondary }}>Yükleniyor...</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>

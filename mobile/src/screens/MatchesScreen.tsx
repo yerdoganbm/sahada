@@ -148,25 +148,69 @@ export default function MatchesScreen() {
             </TouchableOpacity>
           </View>
         }
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            style={styles.matchCard}
-            onPress={() => navigation.navigate('MatchDetails', { matchId: item.id })}
-            activeOpacity={0.8}
-          >
-            <View style={styles.matchDate}>
-              <Icon name="calendar" size={16} color={colors.primary} />
-              <Text style={styles.matchDateText}>{formatDate(item.date)}</Text>
-            </View>
-            <Text style={styles.matchTime}>{item.time}</Text>
-            <Text style={styles.matchLocation}>
-              {item.venue || item.location || 'Saha'}
-            </Text>
-            {item.score != null && item.score !== '' && (
-              <Text style={styles.matchScore}>{item.score}</Text>
-            )}
-          </TouchableOpacity>
-        )}
+        renderItem={({ item }) => {
+          const yesCount = item.attendees?.filter((a) => a.status === 'YES').length ?? 0;
+          const total = item.capacity ?? 14;
+          const myRsvp = item.attendees?.find((a) => a.playerId === user?.id);
+          const isUpcomingMatch = isUpcoming(item);
+          return (
+            <TouchableOpacity
+              style={[styles.matchCard, isUpcomingMatch && styles.matchCardUpcoming]}
+              onPress={() => navigation.navigate('MatchDetails', { matchId: item.id })}
+              activeOpacity={0.8}
+            >
+              <View style={styles.matchCardHeader}>
+                <View style={styles.matchDate}>
+                  <Icon name="calendar" size={14} color={colors.primary} />
+                  <Text style={styles.matchDateText}>{formatDate(item.date)}</Text>
+                </View>
+                <View style={[
+                  styles.statusBadge,
+                  item.status === 'completed' ? styles.statusCompleted
+                    : item.status === 'cancelled' ? styles.statusCancelled
+                    : styles.statusUpcoming
+                ]}>
+                  <Text style={styles.statusText}>
+                    {item.status === 'completed' ? 'Tamamlandı'
+                      : item.status === 'cancelled' ? 'İptal'
+                      : 'Yaklaşan'}
+                  </Text>
+                </View>
+              </View>
+              <Text style={styles.matchTime}>{item.time}</Text>
+              <View style={styles.matchLocationRow}>
+                <Icon name="map-marker" size={14} color={colors.text.tertiary} />
+                <Text style={styles.matchLocation}>
+                  {item.venue || item.location || 'Saha'}
+                </Text>
+              </View>
+              {item.score != null && item.score !== '' && (
+                <Text style={styles.matchScore}>{item.score}</Text>
+              )}
+              {isUpcomingMatch && (
+                <View style={styles.matchCardFooter}>
+                  <View style={styles.attendeeRow}>
+                    <Icon name="account-group" size={14} color={colors.text.tertiary} />
+                    <Text style={styles.attendeeText}>{yesCount}/{total} katılımcı</Text>
+                  </View>
+                  {myRsvp && (
+                    <View style={[styles.myRsvpBadge,
+                      myRsvp.status === 'YES' ? styles.rsvpYes
+                        : myRsvp.status === 'NO' ? styles.rsvpNo
+                        : styles.rsvpMaybe
+                    ]}>
+                      <Text style={styles.myRsvpText}>
+                        {myRsvp.status === 'YES' ? '✓ Geliyorum'
+                          : myRsvp.status === 'NO' ? '✗ Gelmiyorum'
+                          : '? Belki'}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+              )}
+            </TouchableOpacity>
+          );
+        }}
       />
     </View>
   );
@@ -286,34 +330,71 @@ const styles = StyleSheet.create({
   },
   matchCard: {
     backgroundColor: colors.surface,
-    borderRadius: borderRadius.lg,
+    borderRadius: borderRadius.xl,
     padding: spacing.lg,
     marginBottom: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.border.light,
+  },
+  matchCardUpcoming: {
+    borderLeftWidth: 3,
+    borderLeftColor: colors.primary,
+  },
+  matchCardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.sm,
   },
   matchDate: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: spacing.sm,
+    gap: 4,
   },
   matchDateText: {
     fontSize: typography.fontSize.sm,
     color: colors.text.secondary,
-    marginLeft: spacing.xs,
   },
+  statusBadge: {
+    borderRadius: borderRadius.full,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+  },
+  statusUpcoming: { backgroundColor: `${colors.primary}20` },
+  statusCompleted: { backgroundColor: 'rgba(100,116,139,0.2)' },
+  statusCancelled: { backgroundColor: 'rgba(239,68,68,0.15)' },
+  statusText: { fontSize: 10, fontWeight: '700', color: colors.text.secondary },
   matchTime: {
-    fontSize: typography.fontSize.xl,
+    fontSize: typography.fontSize.xxxl,
     fontWeight: typography.fontWeight.bold,
     color: colors.text.primary,
-    marginBottom: spacing.xs,
+    marginBottom: 4,
   },
+  matchLocationRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 4 },
   matchLocation: {
-    fontSize: typography.fontSize.md,
+    fontSize: typography.fontSize.sm,
     color: colors.text.secondary,
   },
   matchScore: {
-    fontSize: typography.fontSize.lg,
+    fontSize: typography.fontSize.xxl,
     fontWeight: typography.fontWeight.bold,
     color: colors.primary,
     marginTop: spacing.sm,
   },
+  matchCardFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: spacing.md,
+    paddingTop: spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: colors.border.light,
+  },
+  attendeeRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  attendeeText: { fontSize: typography.fontSize.xs, color: colors.text.tertiary },
+  myRsvpBadge: { borderRadius: borderRadius.full, paddingHorizontal: 10, paddingVertical: 3 },
+  rsvpYes: { backgroundColor: `${colors.success}20` },
+  rsvpNo: { backgroundColor: 'rgba(239,68,68,0.15)' },
+  rsvpMaybe: { backgroundColor: 'rgba(245,158,11,0.15)' },
+  myRsvpText: { fontSize: 10, fontWeight: '700', color: colors.text.secondary },
 });
