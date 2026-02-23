@@ -13,5 +13,5 @@ cd "$ROOT_DIR"
 echo "→ git pull origin main"
 git pull origin main
 
-echo "→ cd mobile && npx expo start"
-cd mobile && npx expo start
+echo "→ cd mobile && npx expo start (Watchman kapalı, FSEvents hatası önlenir)"
+cd mobile && CI=1 npx expo start
