@@ -8,6 +8,7 @@ import { authorizeTeamAction } from './authz';
 import { randomTokenHex, sha256Hex } from './util/hash';
 import { paymentIdempotencyKey } from '../../mobile/src/domain/paymentIdempotency';
 import { enforceRateLimit } from './rateLimit';
+import { canAssignTeamRole } from '../../mobile/src/domain/roleHierarchy';
 
 admin.initializeApp();
 
@@ -417,6 +418,87 @@ export const approveJoinRequest = onCall(async (req) => {
 
     tx.update(jrRef, { status: 'APPROVED', approvedAt: admin.firestore.FieldValue.serverTimestamp(), approvedBy: actorId });
     tx.set(auditRef, { at: admin.firestore.FieldValue.serverTimestamp(), actorId, action: 'JOIN_REQUEST_APPROVE', scope: 'TEAM', scopeId: teamId, meta: { userId } });
+  });
+
+  return { ok: true };
+});
+
+export const changeMemberRole = onCall(async (req) => {
+  const actorId = requireAuth(req);
+  const { teamId, userId, roleId } = (req.data || {}) as { teamId?: string; userId?: string; roleId?: string };
+  if (!teamId || !userId || !roleId) throw invalidArg('Missing fields');
+
+  // Rate limit: role changes/min per admin
+  await enforceRateLimit({
+    key: `roleChange:${actorId}`,
+    limit: 30,
+    windowSeconds: 60,
+    meta: { fn: 'changeMemberRole' },
+  });
+
+  const { decision } = await authorizeTeamAction({
+    actorId,
+    teamId,
+    action: BuiltInPermissionId.MEMBER_ROLE_CHANGE,
+    resourceType: 'membership',
+    resourceId: `${teamId}_${userId}`,
+  });
+  if (!decision.allowed) {
+    await writeAudit({
+      actorId,
+      action: 'ROLE_CHANGE',
+      scope: 'TEAM',
+      scopeId: teamId,
+      decision,
+      meta: { userId, roleId },
+    });
+    throw permissionDenied(decision.reason);
+  }
+
+  const db = admin.firestore();
+  const actorMembershipRef = db.collection('memberships').doc(membershipDocId(teamId, actorId));
+  const targetMembershipRef = db.collection('memberships').doc(membershipDocId(teamId, userId));
+  const auditRef = db.collection('audits').doc();
+
+  await db.runTransaction(async (tx) => {
+    const [actorSnap, targetSnap] = await Promise.all([tx.get(actorMembershipRef), tx.get(targetMembershipRef)]);
+    if (!actorSnap.exists) throw new Error('actor_membership_missing');
+    if (!targetSnap.exists) throw new Error('target_membership_missing');
+
+    const actorM = (actorSnap.data() || {}) as Record<string, unknown>;
+    const targetM = (targetSnap.data() || {}) as Record<string, unknown>;
+
+    // Status gate (defense in depth)
+    if (actorM.status !== MS.ACTIVE) throw new Error('actor_membership_not_active');
+    if (targetM.status !== MS.ACTIVE) throw new Error('target_membership_not_active');
+
+    const actorRoleId = actorM.roleId as string | undefined;
+    const targetCurrentRoleId = targetM.roleId as string | undefined;
+
+    const assign = canAssignTeamRole({
+      actorRoleId,
+      targetCurrentRoleId,
+      desiredRoleId: roleId,
+    });
+    if (!assign.ok) throw new Error(`role_change_denied:${assign.reason}`);
+
+    if (targetCurrentRoleId === roleId) return; // idempotent
+
+    tx.update(targetMembershipRef, {
+      roleId,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      updatedBy: actorId,
+    });
+
+    tx.set(auditRef, {
+      at: admin.firestore.FieldValue.serverTimestamp(),
+      actorId,
+      action: 'ROLE_CHANGE',
+      scope: 'TEAM',
+      scopeId: teamId,
+      target: { type: 'membership', id: targetMembershipRef.id },
+      meta: { userId, from: targetCurrentRoleId ?? null, to: roleId },
+    });
   });
 
   return { ok: true };
