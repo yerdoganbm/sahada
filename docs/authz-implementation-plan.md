@@ -35,7 +35,7 @@
   - `mobile/src/services/inviteService.ts`  
   - `mobile/src/services/joinRequestService.ts`  
   - wired into `mobile/src/contexts/AuthContext.tsx` + `mobile/src/screens/JoinTeamScreen.tsx`
-- [ ] **P1.4 Owner transfer (two-phase commit)** (`mobile/src/services/ownerTransferService.ts`)  
+- [x] **P1.4 Owner transfer (two-phase commit)** (`mobile/src/services/ownerTransferService.ts`)  
 - [ ] **P1.5 Payment idempotency keys** (`mobile/src/services/paymentService.ts`)  
 - [ ] **P1.6 Rate limiting** (Cloud Functions design + client UX guard)
 
@@ -243,6 +243,53 @@
 - Race safety
   - While user submits join request, create an invite for the same user/team
   - Expect: join request is cancelled (superseded) and membership moves to `INVITED`
+
+---
+
+## P1.4 — Owner transfer (two-phase commit)
+
+### Files created/edited
+
+- **Created**
+  - `mobile/src/services/ownerTransferService.ts`
+
+- **Edited**
+  - `mobile/src/domain/roleRegistry.ts` (new permissions: `TEAM_OWNER_TRANSFER_START`, `TEAM_OWNER_TRANSFER_CONFIRM`)
+  - `mobile/src/domain/authorize.ts` (ABAC: only current owner can start; only target can confirm)
+  - `mobile/src/services/authz.ts` (support `resourceOwnerId` for ABAC checks)
+  - `mobile/src/services/firestore.ts` (team creation now sets `teams.ownerId` and founder membership role `TEAM_OWNER`)
+  - `docs/firestore-schema.md` (added `owner_transfers/{teamId}`)
+
+### Exact code (where to look)
+
+- `mobile/src/services/ownerTransferService.ts`
+  - `startOwnerTransfer(...)`:
+    - creates/overwrites `owner_transfers/{teamId}` with `expiresAt` (24h default)
+    - writes audit `OWNER_TRANSFER_START`
+    - bootstraps legacy teams missing `teams.ownerId` by setting it to the starter
+  - `confirmOwnerTransfer(...)`:
+    - verifies intent exists + not expired + target matches
+    - transactional update:
+      - `teams.ownerId = newOwnerId`
+      - old owner role → `TEAM_ADMIN`
+      - new owner role → `TEAM_OWNER`
+      - deletes intent
+    - writes audit `OWNER_TRANSFER_CONFIRM`
+
+### Manual test checklist
+
+- Seed a team with a valid owner:
+  - Create a new team (should set `teams.ownerId` and founder membership `TEAM_OWNER`)
+- Start transfer (owner user):
+  - Call `startOwnerTransfer({ teamId, currentOwnerId, newOwnerId })`
+  - Expect: `owner_transfers/{teamId}` exists with status `PENDING` and valid `expiresAt`
+- Confirm transfer (target user):
+  - Call `confirmOwnerTransfer({ teamId, newOwnerId })`
+  - Expect:
+    - `teams.ownerId == newOwnerId`
+    - old owner membership role `TEAM_ADMIN`
+    - new owner membership role `TEAM_OWNER`
+    - transfer intent doc deleted
 
 ---
 

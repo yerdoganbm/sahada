@@ -51,15 +51,17 @@ export async function authorizeTeamAction(args: {
   action: string;
   resourceType?: string;
   resourceId?: string;
+  resourceOwnerId?: string;
   context?: Partial<Context>;
 }): Promise<{ actor: Actor; resource: Resource; decision: { allowed: boolean; reason: string } }> {
-  const { actorId, teamId, action, resourceType, resourceId, context } = args;
+  const { actorId, teamId, action, resourceType, resourceId, resourceOwnerId, context } = args;
   const actor = await buildActorForTeam({ uid: actorId, teamId });
 
   const resource: Resource = {
     type: resourceType ?? 'team',
     id: resourceId ?? teamId,
     teamId,
+    ...(resourceOwnerId ? { ownerId: resourceOwnerId } : {}),
   };
 
   const decision = authorize(actor, resource, action, {

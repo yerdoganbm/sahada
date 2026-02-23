@@ -56,5 +56,34 @@ describe('authorize()', () => {
     expect(res.allowed).toBe(false);
     expect(res.reason).toBe('unknown_action');
   });
+
+  test('owner transfer start requires current owner (ABAC)', () => {
+    const actor: Actor = {
+      uid: 'admin1',
+      teamRoles: new Map([['t1', TeamRoleId.TEAM_ADMIN]]),
+      orgRoles: new Map(),
+      membershipStatusByTenant: new Map([['t1', MembershipStatus.ACTIVE]]),
+      subscription: 'premium',
+    };
+    const resource: Resource = { type: 'team', id: 't1', teamId: 't1', ownerId: 'someone_else' };
+
+    const res = authorize(actor, resource, BuiltInPermissionId.TEAM_OWNER_TRANSFER_START, baseContext());
+    expect(res.allowed).toBe(false);
+    expect(res.reason).toContain('owner_transfer_start_requires_current_owner');
+  });
+
+  test('owner transfer confirm requires target (ABAC)', () => {
+    const actor: Actor = {
+      uid: 'member1',
+      teamRoles: new Map([['t1', TeamRoleId.MEMBER]]),
+      orgRoles: new Map(),
+      membershipStatusByTenant: new Map([['t1', MembershipStatus.ACTIVE]]),
+      subscription: 'free',
+    };
+    const resource: Resource = { type: 'team', id: 't1', teamId: 't1', ownerId: 'member1' };
+
+    const res = authorize(actor, resource, BuiltInPermissionId.TEAM_OWNER_TRANSFER_CONFIRM, baseContext());
+    expect(res.allowed).toBe(true);
+  });
 });
 

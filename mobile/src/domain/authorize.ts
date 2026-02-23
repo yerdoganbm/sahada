@@ -75,6 +75,20 @@ export function authorize(
     }
   }
 
+  if (requiredPermission === BuiltInPermissionId.TEAM_OWNER_TRANSFER_START) {
+    // Only the current team owner can start an ownership transfer.
+    if (resource.ownerId && resource.ownerId !== actor.uid) {
+      return { allowed: false, reason: 'abac:owner_transfer_start_requires_current_owner' };
+    }
+  }
+
+  if (requiredPermission === BuiltInPermissionId.TEAM_OWNER_TRANSFER_CONFIRM) {
+    // Only the transfer target can confirm.
+    if (!resource.ownerId || resource.ownerId !== actor.uid) {
+      return { allowed: false, reason: 'abac:owner_transfer_confirm_requires_target' };
+    }
+  }
+
   // 7) Cross-tenant isolation
   const scope = resourceScope(resource);
   if (scope === 'TEAM' && resource.teamId) {
