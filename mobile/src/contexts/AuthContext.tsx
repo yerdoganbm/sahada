@@ -17,9 +17,15 @@ import {
   getUserByPhoneOrEmail,
   getUserById,
   createTeamAndUser,
+  getTeamById,
   getTeamByInviteCode,
   updateUserTeamId,
+  setUserActiveTeamId,
   updateUserInFirestore,
+  ensureLegacyMembership,
+  getActiveMembershipsForUser,
+  updateUserAuthzFields,
+  type MembershipItem,
 } from '../services/firestore';
 
 const TEAM_STORAGE_KEY = '@sahada_team';
@@ -29,6 +35,8 @@ const TOKEN_STORAGE_KEY = '@sahada_token';
 
 interface AuthContextType {
   user: Player | null;
+  memberships: MembershipItem[];
+  activeTeamId: string | null;
   isLoading: boolean;
   login: (userId: string) => Promise<void>;
   loginWithCredentials: (opts: { phone?: string; email?: string }) => Promise<void>;
@@ -37,17 +45,55 @@ interface AuthContextType {
   updateUser: (updates: Partial<Player>) => Promise<void>;
   createTeamAndLogin: (team: TeamProfile, founderName: string, founderEmail?: string) => Promise<void>;
   joinTeam: (inviteCode: string) => Promise<void>;
+  switchActiveTeam: (teamId: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<Player | null>(null);
+  const [memberships, setMemberships] = useState<MembershipItem[]>([]);
+  const [activeTeamId, setActiveTeamId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  const bootstrapMembershipState = useCallback(async (player: Player): Promise<Player> => {
+    // Migration: legacy users.teamId/users.role -> memberships
+    try {
+      const migrationVersion = player.authzMigrationVersion ?? 0;
+      if (player.teamId && migrationVersion < 1) {
+        await ensureLegacyMembership(player);
+        await updateUserAuthzFields(player.id, {
+          activeTeamId: player.activeTeamId ?? player.teamId,
+          authzMigrationVersion: 1,
+        });
+        const refreshed = await getUserById(player.id);
+        if (refreshed) player = refreshed;
+      }
+
+      const active = await getActiveMembershipsForUser(player.id);
+      setMemberships(active);
+
+      const inferredActiveTeamId =
+        player.activeTeamId ?? player.teamId ?? (active.length > 0 ? active[0].teamId : null);
+      setActiveTeamId(inferredActiveTeamId ?? null);
+
+      if (!player.activeTeamId && inferredActiveTeamId) {
+        await updateUserAuthzFields(player.id, { activeTeamId: inferredActiveTeamId });
+        player = { ...player, activeTeamId: inferredActiveTeamId };
+      }
+
+      return player;
+    } catch (e) {
+      console.warn('bootstrapMembershipState failed', e);
+      return player;
+    }
+  }, []);
 
   const logout = useCallback(async () => {
     try {
       setUser(null);
+      setMemberships([]);
+      setActiveTeamId(null);
       clearApiAuth();
       await AsyncStorage.removeItem(STORAGE_KEY);
       await AsyncStorage.removeItem(TOKEN_STORAGE_KEY);
@@ -77,7 +123,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       ]);
       if (savedUser) {
         const parsed = JSON.parse(savedUser) as Player;
-        setUser(parsed);
+        const bootstrapped = await bootstrapMembershipState(parsed);
+        setUser(bootstrapped);
         setApiAuthUserId(parsed.id);
         if (savedToken) {
           setApiAuthToken(savedToken);
@@ -85,6 +132,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } else {
           setApiAuthToken(null);
         }
+        await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(bootstrapped));
       } else {
         setApiAuthUserId(null);
         setApiAuthToken(null);
@@ -99,7 +147,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const loginWithCredentials = async (opts: { phone?: string; email?: string }) => {
     const { phone, email } = opts;
     if (!phone && !email) throw new Error('Telefon veya e-posta gerekli');
-    const player = await getUserByPhoneOrEmail(phone, email);
+    const found = await getUserByPhoneOrEmail(phone, email);
+    const player = found ? await bootstrapMembershipState(found) : null;
     if (!player) throw new Error('Kullanıcı bulunamadı');
     setUser(player);
     setApiAuthUserId(player.id);
@@ -112,7 +161,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const login = async (userId: string) => {
-    const foundUser = await getUserById(userId);
+    const foundUserRaw = await getUserById(userId);
+    const foundUser = foundUserRaw ? await bootstrapMembershipState(foundUserRaw) : null;
     if (!foundUser) throw new Error('Kullanıcı bulunamadı');
     setUser(foundUser);
     setApiAuthUserId(foundUser.id);
@@ -130,11 +180,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     ]);
     const parsed = savedUser ? (JSON.parse(savedUser) as Player) : null;
     if (parsed && parsed.id === userId) {
-      setUser(parsed);
+      const bootstrapped = await bootstrapMembershipState(parsed);
+      setUser(bootstrapped);
       setApiAuthUserId(parsed.id);
       setApiAuthToken(savedToken || null);
       registerPushTokenIfAvailable();
-      console.log('✅ Session restored:', parsed.name);
+      console.log('✅ Session restored:', bootstrapped.name);
     } else {
       await login(userId);
     }
@@ -161,10 +212,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     );
     const teamWithId = { ...team, id: teamId };
     await AsyncStorage.setItem(TEAM_STORAGE_KEY, JSON.stringify(teamWithId));
-    setUser(newUser);
+    const bootstrapped = await bootstrapMembershipState(newUser);
+    setUser(bootstrapped);
     setApiAuthUserId(newUser.id);
     setApiAuthToken(null);
-    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(newUser));
+    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(bootstrapped));
     await AsyncStorage.removeItem(TOKEN_STORAGE_KEY);
     await AsyncStorage.setItem(BIOMETRIC_USER_KEY, newUser.id);
     registerPushTokenIfAvailable();
@@ -190,7 +242,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const team = await getTeamByInviteCode(inviteCode);
     if (!team) throw new Error('Geçersiz davet kodu');
     await updateUserTeamId(user.id, team.id);
-    const updatedUser = { ...user, teamId: team.id };
+    await updateUserAuthzFields(user.id, { activeTeamId: team.id, authzMigrationVersion: 1 });
+    const updatedUser = await bootstrapMembershipState({ ...user, teamId: team.id, activeTeamId: team.id, authzMigrationVersion: 1 });
     setUser(updatedUser);
     await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updatedUser));
     await AsyncStorage.setItem(TEAM_STORAGE_KEY, JSON.stringify({
@@ -203,10 +256,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     console.log('✅ Takıma katıldı:', team.name);
   };
 
+  const switchActiveTeam = async (teamId: string) => {
+    if (!user) throw new Error('Giriş yapmanız gerekiyor');
+    const has = memberships.some((m) => m.teamId === teamId && m.status === 'ACTIVE');
+    if (!has) throw new Error('Bu takıma ait aktif üyelik bulunamadı');
+
+    await setUserActiveTeamId(user.id, teamId);
+    const updatedUser = { ...user, activeTeamId: teamId, teamId };
+    setUser(updatedUser);
+    setActiveTeamId(teamId);
+    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updatedUser));
+
+    const t = await getTeamById(teamId);
+    if (t) {
+      await AsyncStorage.setItem(TEAM_STORAGE_KEY, JSON.stringify({
+        id: t.id,
+        name: t.name,
+        shortName: t.shortName ?? t.name.slice(0, 3),
+        inviteCode: t.inviteCode,
+        colors: [t.primaryColor ?? '#10B981', t.secondaryColor ?? '#0B0F1A'],
+      }));
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
         user,
+        memberships,
+        activeTeamId,
         isLoading,
         login,
         loginWithCredentials,
@@ -215,6 +293,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         updateUser,
         createTeamAndLogin,
         joinTeam,
+        switchActiveTeam,
       }}
     >
       {children}
