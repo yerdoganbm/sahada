@@ -40,6 +40,31 @@ service cloud.firestore {
         );
     }
 
+    function matchDoc(matchId) {
+      return get(/databases/$(database)/documents/matches/$(matchId));
+    }
+
+    function matchTeamId(matchId) {
+      return matchDoc(matchId).data.teamId;
+    }
+
+    function isActiveMemberForMatch(matchId) {
+      return isSignedIn()
+        && matchDoc(matchId).exists()
+        && (matchTeamId(matchId) is string)
+        && isActiveMember(matchTeamId(matchId));
+    }
+
+    function isPaymentOwner() {
+      return isSignedIn() && resource.data.playerId == uid();
+    }
+
+    function onlyUpdatesPaymentProof() {
+      // Allow only proof URL updates by the payment owner.
+      return request.resource.data.diff(resource.data).affectedKeys()
+        .hasOnly(["proofUrl", "proofUpdatedAt", "updatedAt", "updatedBy"]);
+    }
+
     // ─────────────────────────────────────────────
     // Users (self access only)
     // ─────────────────────────────────────────────
@@ -57,6 +82,29 @@ service cloud.firestore {
       allow read: if isActiveMember(teamId);
       // Team creation / mutation must be done via Cloud Functions
       allow create, update, delete: if false;
+    }
+
+    // ─────────────────────────────────────────────
+    // Matches (P2: capacity + waitlist model)
+    // ─────────────────────────────────────────────
+    match /matches/{matchId} {
+      // Read match only for ACTIVE members of its team tenant.
+      allow read: if isSignedIn() && (resource.data.teamId is string) && isActiveMember(resource.data.teamId);
+
+      // All match writes should be privileged (Cloud Functions), including RSVP.
+      allow create, update, delete: if false;
+
+      // Participants subcollection (read-only for ACTIVE members; writes via functions)
+      match /participants/{userId} {
+        allow read: if isActiveMemberForMatch(matchId);
+        allow create, update, delete: if false;
+      }
+
+      // Waitlist subcollection (read-only for ACTIVE members; writes via functions)
+      match /waitlist/{userId} {
+        allow read: if isActiveMemberForMatch(matchId);
+        allow create, update, delete: if false;
+      }
     }
 
     // ─────────────────────────────────────────────
@@ -101,6 +149,30 @@ service cloud.firestore {
     // ─────────────────────────────────────────────
     match /invites/{inviteId} {
       // Accept / create / manage via Cloud Functions only.
+      allow read, write: if false;
+    }
+
+    // ─────────────────────────────────────────────
+    // Payments (read for active members; limited proof updates by owner)
+    // ─────────────────────────────────────────────
+    match /payments/{paymentId} {
+      allow read: if isSignedIn()
+        && (resource.data.teamId is string)
+        && isActiveMember(resource.data.teamId);
+
+      // Allow only the payment owner to attach proofUrl (everything else via functions).
+      allow update: if isPaymentOwner()
+        && resource.data.status == "PENDING"
+        && onlyUpdatesPaymentProof();
+
+      allow create, delete: if false;
+    }
+
+    // Idempotency docs and rate limit buckets must never be client-written/read.
+    match /payment_idempotency/{id} {
+      allow read, write: if false;
+    }
+    match /rate_limits/{id} {
       allow read, write: if false;
     }
 
