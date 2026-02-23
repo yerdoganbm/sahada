@@ -1,5 +1,6 @@
 import admin from 'firebase-admin';
 import { onCall } from 'firebase-functions/v2/https';
+import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { BuiltInPermissionId } from '../../mobile/src/domain/roleRegistry';
 import { MembershipStatus as MS, TeamRoleId } from '../../mobile/src/domain/model';
 import { requireAuth, invalidArg, permissionDenied } from './util/errors';
@@ -832,5 +833,153 @@ export const rsvp = onCall(async (req) => {
   });
 
   return { ok: true };
+});
+
+// ─────────────────────────────────────────────────────────────
+// Scheduled jobs (P3.3)
+// ─────────────────────────────────────────────────────────────
+
+async function jobAudit(args: { action: string; meta?: Record<string, unknown> }): Promise<void> {
+  await writeAudit({
+    actorId: 'system',
+    action: args.action,
+    scope: 'GLOBAL',
+    scopeId: 'system',
+    meta: args.meta,
+  });
+}
+
+export const expireInvites = onSchedule('every 15 minutes', async () => {
+  const db = admin.firestore();
+  const now = admin.firestore.Timestamp.now();
+  let processed = 0;
+
+  while (true) {
+    const snap = await db
+      .collection('invites')
+      .where('status', '==', 'INVITED')
+      .where('expiresAt', '<=', now)
+      .orderBy('expiresAt', 'asc')
+      .limit(400)
+      .get();
+
+    if (snap.empty) break;
+
+    const batch = db.batch();
+    for (const doc of snap.docs) {
+      batch.update(doc.ref, {
+        status: 'INVITE_EXPIRED',
+        expiredAt: admin.firestore.FieldValue.serverTimestamp(),
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        updatedBy: 'system',
+      });
+      processed++;
+    }
+    await batch.commit();
+  }
+
+  console.log(`[expireInvites] processed=${processed}`);
+  await jobAudit({ action: 'JOB_EXPIRE_INVITES', meta: { processed } });
+});
+
+export const liftTempBans = onSchedule('every 5 minutes', async () => {
+  const db = admin.firestore();
+  const now = admin.firestore.Timestamp.now();
+  let processed = 0;
+
+  while (true) {
+    const snap = await db
+      .collection('memberships')
+      .where('status', '==', MS.TEMP_BANNED)
+      .where('banEnd', '<=', now)
+      .orderBy('banEnd', 'asc')
+      .limit(300)
+      .get();
+
+    if (snap.empty) break;
+
+    const batch = db.batch();
+    for (const doc of snap.docs) {
+      const d = (doc.data() || {}) as Record<string, unknown>;
+      const roleId = d.roleId as string | undefined;
+      const snapshot = d.bannedRoleSnapshot as string | undefined;
+
+      batch.update(doc.ref, {
+        status: MS.ACTIVE,
+        previousStatus: MS.TEMP_BANNED,
+        version: admin.firestore.FieldValue.increment(1),
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        updatedBy: 'system',
+        ...(roleId === 'NONE' && snapshot ? { roleId: snapshot } : {}),
+        ...(snapshot ? { bannedRoleSnapshot: admin.firestore.FieldValue.delete() } : {}),
+      });
+      processed++;
+    }
+    await batch.commit();
+  }
+
+  console.log(`[liftTempBans] processed=${processed}`);
+  await jobAudit({ action: 'JOB_LIFT_TEMP_BANS', meta: { processed } });
+});
+
+export const invariantsHealthCheck = onSchedule('every 15 minutes', async () => {
+  const db = admin.firestore();
+  let teamsChecked = 0;
+  let violations = 0;
+
+  const pageSize = 200;
+  let last: admin.firestore.QueryDocumentSnapshot | undefined;
+
+  while (true) {
+    let q = db.collection('teams').limit(pageSize);
+    if (last) q = q.startAfter(last);
+    const snap = await q.get();
+    if (snap.empty) break;
+
+    for (const teamDoc of snap.docs) {
+      teamsChecked++;
+      const teamId = teamDoc.id;
+      const team = (teamDoc.data() || {}) as Record<string, unknown>;
+      const ownerId = team.ownerId as string | undefined;
+      if (!ownerId) {
+        violations++;
+        console.warn(`[invariants] team_missing_ownerId teamId=${teamId}`);
+        continue;
+      }
+
+      const ownerMembershipRef = db.collection('memberships').doc(membershipDocId(teamId, ownerId));
+      const ownerMembershipSnap = await ownerMembershipRef.get();
+      if (!ownerMembershipSnap.exists) {
+        violations++;
+        console.warn(`[invariants] owner_membership_missing teamId=${teamId} ownerId=${ownerId}`);
+        continue;
+      }
+      const ownerMembership = (ownerMembershipSnap.data() || {}) as Record<string, unknown>;
+      if (ownerMembership.status !== MS.ACTIVE || ownerMembership.roleId !== TeamRoleId.TEAM_OWNER) {
+        violations++;
+        console.warn(
+          `[invariants] owner_membership_invalid teamId=${teamId} ownerId=${ownerId} status=${String(ownerMembership.status)} roleId=${String(ownerMembership.roleId)}`
+        );
+      }
+
+      // DEG-01: at most one ACTIVE TEAM_OWNER membership.
+      const ownersSnap = await db
+        .collection('memberships')
+        .where('teamId', '==', teamId)
+        .where('status', '==', MS.ACTIVE)
+        .where('roleId', '==', TeamRoleId.TEAM_OWNER)
+        .limit(3)
+        .get();
+      if (ownersSnap.size !== 1) {
+        violations++;
+        console.warn(`[invariants] owner_count_invalid teamId=${teamId} count=${ownersSnap.size}`);
+      }
+    }
+
+    last = snap.docs[snap.docs.length - 1];
+  }
+
+  console.log(`[invariantsHealthCheck] teamsChecked=${teamsChecked} violations=${violations}`);
+  await jobAudit({ action: 'JOB_INVARIANTS_HEALTHCHECK', meta: { teamsChecked, violations } });
 });
 

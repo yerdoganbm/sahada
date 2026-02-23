@@ -169,7 +169,10 @@ Create these in Firestore (Console or `firestore.indexes.json` when added):
 
 - **`memberships`**: `userId` + `status`
 - **`memberships`**: `teamId` + `status`
+- **`memberships`**: `status` + `banEnd` (scheduled temp-ban lift)
+- **`memberships`**: `teamId` + `status` + `roleId` (invariants health check)
 - **`teams`**: `orgId`
+- **`invites`**: `status` + `expiresAt` (scheduled expiry)
 - **`invites`**: `tokenHash`
 - **`join_requests`**: `teamId` + `status`
 - **`owner_transfers`**: `expiresAt` (optional, for scheduled cleanup)

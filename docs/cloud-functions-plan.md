@@ -88,6 +88,7 @@ This repo contains a **Cloud Functions skeleton** under `functions/`. The plan b
   - `createInvite`, `acceptInvite`, `requestJoin`, `approveJoinRequest`
   - `startOwnerTransfer`, `confirmOwnerTransfer`
   - `markPayment`, `approvePayment`
+  - Scheduled: `expireInvites`, `liftTempBans`, `invariantsHealthCheck`
 - **Centralized authz reuse**:
   - `functions/src/authz.ts` wraps `authorize(...)` by importing from `mobile/src/domain/*`
 
