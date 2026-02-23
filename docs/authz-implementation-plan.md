@@ -48,7 +48,7 @@
 ### P3 — Production guardrails
 
 - [x] **P3.1 Firestore Rules baseline** (`firestore.rules`)  
-- [ ] **P3.2 Cloud Functions privileged mutations** (only if/when `functions/` exists)  
+- [x] **P3.2 Cloud Functions privileged mutations** (`functions/src/index.ts`)  
 - [ ] **P3.3 Scheduled jobs** (invite expiry, temp ban lift, invariants checks)
 
 ### P4 — Tests + docs
@@ -335,6 +335,39 @@
   - reading `teams/{teamId}` allowed
 - Without membership:
   - reading `teams/{teamId}` denied
+
+---
+
+## P3.2 — Cloud Functions privileged mutations
+
+### Files created/edited
+
+- **Created**
+  - `functions/src/index.ts`
+  - `functions/src/authz.ts`
+  - `functions/src/util/errors.ts`
+  - `functions/src/util/hash.ts`
+  - `functions/package.json`, `functions/tsconfig.json`
+
+- **Edited**
+  - `firebase.json` (declares functions source + firestore rules path)
+  - `docs/cloud-functions-plan.md`
+
+### Implemented callables (current)
+
+- Invites / joins:
+  - `createInvite`, `acceptInvite`, `requestJoin`, `approveJoinRequest`
+- Owner transfer:
+  - `startOwnerTransfer`, `confirmOwnerTransfer`
+- Payments:
+  - `markPayment`, `approvePayment`
+
+### Manual test checklist
+
+- Run via Firebase emulator or deployed functions:
+  - call `createInvite` as TEAM_ADMIN → expect token returned + invite doc created
+  - call `acceptInvite` as target → membership becomes ACTIVE, invite ACCEPTED
+  - call `markPayment` twice with same tuple → same paymentId (idempotent)
 
 ---
 

@@ -1,6 +1,6 @@
 # Cloud Functions Plan (Privileged Mutations + Scheduled Jobs)
 
-This repo currently has **no `functions/` directory**. The plan below describes what to implement once Cloud Functions are enabled.
+This repo contains a **Cloud Functions skeleton** under `functions/`. The plan below describes the intended production shape and what remains.
 
 ## Principles
 
@@ -81,4 +81,13 @@ This repo currently has **no `functions/` directory**. The plan below describes 
   - DEG-01: each team has exactly 1 ACTIVE OWNER
   - No duplicate ACTIVE membership for `(teamId,userId)`
   - Audit append-only integrity checks
+
+## Repo implementation status
+
+- **Implemented skeleton**: `functions/src/index.ts`
+  - `createInvite`, `acceptInvite`, `requestJoin`, `approveJoinRequest`
+  - `startOwnerTransfer`, `confirmOwnerTransfer`
+  - `markPayment`, `approvePayment`
+- **Centralized authz reuse**:
+  - `functions/src/authz.ts` wraps `authorize(...)` by importing from `mobile/src/domain/*`
 

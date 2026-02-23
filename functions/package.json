@@ -7,7 +7,8 @@
     "node": "18"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "clean": "rm -rf lib",
+    "build": "npm run clean && tsc -p tsconfig.json",
     "deploy": "npm run build && firebase deploy --only functions",
     "serve": "npm run build && firebase emulators:start --only functions"
   },
