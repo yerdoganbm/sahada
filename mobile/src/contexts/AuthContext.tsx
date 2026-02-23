@@ -206,7 +206,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         name: team.name,
         shortName: team.shortName,
         inviteCode: team.inviteCode ?? `${team.name.slice(0, 3).toUpperCase()}${Date.now().toString(36)}`,
-        colors: team.colors,
+        colors: [
+          team.colors?.[0] ?? '#10B981',
+          team.colors?.[1] ?? '#0B0F1A',
+        ] as [string, string],
       },
       founderName,
       founderEmail
@@ -238,7 +241,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const joinTeam = async (inviteCode: string) => {
+  const joinTeam = async (
+    inviteCode: string
+  ): Promise<{ status: 'ACTIVE' | 'REQUESTED'; teamId: string }> => {
     if (!user) throw new Error('Giriş yapmanız gerekiyor');
     const code = inviteCode.trim().toUpperCase();
     if (!code) throw new Error('Geçersiz davet kodu');
