@@ -1,5 +1,5 @@
-import type { Actor, MembershipStatus } from './model';
-import { MembershipStatus as MS } from './model';
+import type { Actor, MembershipStatus, OrgId, RoleId, TeamId, TenantId, UserId } from './model';
+import { MembershipStatus as MS, isBlockedStatus } from './model';
 
 export class MembershipTransitionError extends Error {
   readonly code:
@@ -153,5 +153,128 @@ export function validateTransition(args: {
   }
 
   return { ok: true };
+}
+
+export interface MembershipDocument {
+  tenantId: TenantId;
+  teamId?: TeamId;
+  orgId?: OrgId;
+  userId: UserId;
+  roleId: RoleId;
+  status: MembershipStatus;
+  version: number;
+  bannedRoleSnapshot?: RoleId;
+  leftAt?: Date;
+  rejectedAt?: Date;
+  banEnd?: Date;
+}
+
+export interface MembershipTransitionUpdate {
+  status: MembershipStatus;
+  version: number;
+  previousStatus: MembershipStatus;
+  updatedAt: Date;
+  updatedBy: UserId;
+  roleId?: RoleId;
+  bannedRoleSnapshot?: RoleId;
+  leftAt?: Date;
+  rejectedAt?: Date;
+  banEnd?: Date;
+}
+
+export interface MembershipAuditRecord {
+  action: 'MEMBERSHIP_STATUS_TRANSITION';
+  at: Date;
+  actorId: UserId;
+  subjectUserId: UserId;
+  tenantId: TenantId;
+  teamId?: TeamId;
+  orgId?: OrgId;
+  from: MembershipStatus;
+  to: MembershipStatus;
+  membershipVersion: number;
+  meta?: Record<string, unknown>;
+}
+
+export const NONE_ROLE_ID = 'NONE' as const satisfies RoleId;
+
+export function nextMembershipVersion(currentVersion: number, didChange: boolean): number {
+  const base = Number.isFinite(currentVersion) ? Math.trunc(currentVersion) : 0;
+  if (base < 0) {
+    throw new MembershipTransitionError(
+      'MISSING_METADATA',
+      'membership.version must be a non-negative integer',
+      { currentVersion }
+    );
+  }
+  return didChange ? base + 1 : base;
+}
+
+export function planMembershipTransition(args: {
+  membership: MembershipDocument;
+  nextStatus: MembershipStatus;
+  actor: Actor;
+  meta: TransitionMeta & { auditMeta?: Record<string, unknown> };
+}): { update: MembershipTransitionUpdate | null; audit: MembershipAuditRecord | null } {
+  const { membership, nextStatus, actor, meta } = args;
+
+  validateTransition({
+    current: membership.status,
+    next: nextStatus,
+    actor,
+    meta,
+  });
+
+  const didChange = membership.status !== nextStatus;
+  const nextVersion = nextMembershipVersion(membership.version, didChange);
+
+  if (!didChange) {
+    return { update: null, audit: null };
+  }
+
+  const update: MembershipTransitionUpdate = {
+    status: nextStatus,
+    version: nextVersion,
+    previousStatus: membership.status,
+    updatedAt: meta.now,
+    updatedBy: actor.uid,
+  };
+
+  if (nextStatus === MS.LEFT) update.leftAt = meta.now;
+  if (nextStatus === MS.REQUEST_REJECTED) update.rejectedAt = meta.now;
+  if (nextStatus === MS.TEMP_BANNED) {
+    if (!meta.banEnd) {
+      throw new MembershipTransitionError(
+        'MISSING_METADATA',
+        'banEnd is required when transitioning to TEMP_BANNED',
+        { nextStatus }
+      );
+    }
+    update.banEnd = meta.banEnd;
+  }
+
+  // Role resurrection prevention: snapshot on any blocked status, and force live role to NONE.
+  if (isBlockedStatus(nextStatus)) {
+    const liveRole = membership.roleId;
+    const snapshot = membership.bannedRoleSnapshot ?? (liveRole !== NONE_ROLE_ID ? liveRole : undefined);
+    if (snapshot) update.bannedRoleSnapshot = snapshot;
+    if (liveRole !== NONE_ROLE_ID) update.roleId = NONE_ROLE_ID;
+  }
+
+  const audit: MembershipAuditRecord = {
+    action: 'MEMBERSHIP_STATUS_TRANSITION',
+    at: meta.now,
+    actorId: actor.uid,
+    subjectUserId: membership.userId,
+    tenantId: membership.tenantId,
+    teamId: membership.teamId,
+    orgId: membership.orgId,
+    from: membership.status,
+    to: nextStatus,
+    membershipVersion: nextVersion,
+    meta: meta.auditMeta,
+  };
+
+  return { update, audit };
 }
 
