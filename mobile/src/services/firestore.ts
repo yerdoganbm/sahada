@@ -9,6 +9,7 @@ import type { Player, Match, Venue, Payment, Transaction, Poll } from '../types'
 const COLLECTIONS = {
   users: 'users',
   teams: 'teams',
+  memberships: 'memberships',
   matches: 'matches',
   venues: 'venues',
   notifications: 'notifications',
@@ -42,6 +43,7 @@ function docToUser(doc: DocSnap): Player {
     id: doc.id,
     name: d.name ?? '',
     teamId: d.teamId as string | undefined,
+    activeTeamId: d.activeTeamId as string | undefined,
     position: (d.position as Player['position']) ?? 'MID',
     rating: typeof d.rating === 'number' ? d.rating : 7,
     reliability: typeof d.reliability === 'number' ? d.reliability : 100,
@@ -53,6 +55,8 @@ function docToUser(doc: DocSnap): Player {
     isCaptain: d.isCaptain,
     shirtNumber: d.shirtNumber,
     whatsappEnabled: d.whatsappEnabled === true,
+    authzMigrationVersion:
+      typeof d.authzMigrationVersion === 'number' ? d.authzMigrationVersion : undefined,
   };
 }
 
@@ -269,6 +273,7 @@ export async function createTeamAndUser(
   const usersRef = firestore().collection(COLLECTIONS.users);
   const userRef = await usersRef.add({
     teamId,
+    activeTeamId: teamId,
     name: founderName,
     email: founderEmail ?? null,
     phone: founderPhone ?? null,
@@ -278,8 +283,26 @@ export async function createTeamAndUser(
     rating: 7,
     reliability: 100,
     avatar: `https://i.pravatar.cc/150?u=${founderName}`,
+    authzMigrationVersion: 1,
+    authzMigrationAt: firestore.FieldValue.serverTimestamp(),
     createdAt: firestore.FieldValue.serverTimestamp(),
   });
+
+  // Canonical membership doc (deterministic ID prevents duplicates).
+  const membershipId = membershipDocId(teamId, userRef.id);
+  await firestore().collection(COLLECTIONS.memberships).doc(membershipId).set({
+    teamId,
+    userId: userRef.id,
+    roleId: 'TEAM_ADMIN',
+    status: 'ACTIVE',
+    version: 1,
+    createdAt: firestore.FieldValue.serverTimestamp(),
+    updatedAt: firestore.FieldValue.serverTimestamp(),
+    updatedBy: userRef.id,
+    previousStatus: null,
+    bannedRoleSnapshot: null,
+  });
+
   const user = await getUserById(userRef.id);
   if (!user) throw new Error('User creation failed');
   return { teamId, user };
@@ -387,6 +410,126 @@ export async function getTeamIdForUser(userId: string): Promise<string | null> {
   const userDoc = await firestore().collection(COLLECTIONS.users).doc(userId).get();
   if (!userDoc.exists) return null;
   return (userDoc.data()?.teamId as string) ?? null;
+}
+
+// ─────────────────────────────────────────────
+// Memberships (new canonical model; legacy-compatible)
+// ─────────────────────────────────────────────
+
+export type MembershipStatusV1 =
+  | 'INVITED'
+  | 'INVITE_EXPIRED'
+  | 'REQUESTED'
+  | 'REQUEST_REJECTED'
+  | 'ACTIVE'
+  | 'SUSPENDED'
+  | 'BANNED'
+  | 'TEMP_BANNED'
+  | 'LEFT'
+  | 'TRANSFERRED';
+
+export interface MembershipItem {
+  id: string;
+  teamId: string;
+  userId: string;
+  roleId: string;
+  status: MembershipStatusV1;
+  version: number;
+  bannedRoleSnapshot?: string;
+  leftAt?: unknown;
+  rejectedAt?: unknown;
+  banEnd?: unknown;
+  createdAt?: unknown;
+  updatedAt?: unknown;
+  updatedBy?: string;
+  previousStatus?: MembershipStatusV1;
+}
+
+function membershipDocId(teamId: string, userId: string): string {
+  return `${teamId}_${userId}`;
+}
+
+function mapLegacyUserToTeamRoleId(user: Player): string {
+  // Legacy: role='admin' implies team admin (owner will be introduced later).
+  if (user.role === 'admin') return 'TEAM_ADMIN';
+  if (user.isCaptain === true) return 'CAPTAIN';
+  if (user.role === 'guest') return 'GUEST';
+  return 'MEMBER';
+}
+
+function docToMembership(doc: DocSnap): MembershipItem {
+  const d = (doc.data() || {}) as Record<string, unknown>;
+  return {
+    id: doc.id,
+    teamId: (d.teamId as string) ?? '',
+    userId: (d.userId as string) ?? '',
+    roleId: (d.roleId as string) ?? 'MEMBER',
+    status: ((d.status as string) ?? 'ACTIVE') as MembershipStatusV1,
+    version: typeof d.version === 'number' ? d.version : 0,
+    bannedRoleSnapshot: d.bannedRoleSnapshot as string | undefined,
+    leftAt: d.leftAt,
+    rejectedAt: d.rejectedAt,
+    banEnd: d.banEnd,
+    createdAt: d.createdAt,
+    updatedAt: d.updatedAt,
+    updatedBy: d.updatedBy as string | undefined,
+    previousStatus: d.previousStatus as MembershipStatusV1 | undefined,
+  };
+}
+
+export async function getMembership(teamId: string, userId: string): Promise<MembershipItem | null> {
+  const id = membershipDocId(teamId, userId);
+  const doc = await firestore().collection(COLLECTIONS.memberships).doc(id).get();
+  if (!doc.exists) return null;
+  return docToMembership(doc);
+}
+
+export async function getActiveMembershipsForUser(userId: string): Promise<MembershipItem[]> {
+  const snap = await firestore()
+    .collection(COLLECTIONS.memberships)
+    .where('userId', '==', userId)
+    .where('status', '==', 'ACTIVE')
+    .limit(50)
+    .get();
+  return snap.docs.map(docToMembership);
+}
+
+export async function ensureLegacyMembership(user: Player): Promise<MembershipItem | null> {
+  const teamId = user.teamId;
+  if (!teamId) return null;
+
+  const id = membershipDocId(teamId, user.id);
+  const ref = firestore().collection(COLLECTIONS.memberships).doc(id);
+  const existing = await ref.get();
+  if (existing.exists) return docToMembership(existing);
+
+  const roleId = mapLegacyUserToTeamRoleId(user);
+  await ref.set({
+    teamId,
+    userId: user.id,
+    roleId,
+    status: 'ACTIVE',
+    version: 1,
+    createdAt: firestore.FieldValue.serverTimestamp(),
+    updatedAt: firestore.FieldValue.serverTimestamp(),
+    updatedBy: user.id,
+    previousStatus: null,
+    bannedRoleSnapshot: null,
+  });
+
+  const created = await ref.get();
+  return created.exists ? docToMembership(created) : null;
+}
+
+export async function updateUserAuthzFields(
+  userId: string,
+  updates: { activeTeamId?: string | null; authzMigrationVersion?: number }
+): Promise<void> {
+  const payload: Record<string, unknown> = {};
+  if ('activeTeamId' in updates) payload.activeTeamId = updates.activeTeamId ?? null;
+  if ('authzMigrationVersion' in updates) payload.authzMigrationVersion = updates.authzMigrationVersion ?? 1;
+  payload.authzMigrationAt = firestore.FieldValue.serverTimestamp();
+  await firestore().collection(COLLECTIONS.users).doc(userId).update(payload);
 }
 
 /** Kullanıcının bildirimlerini getirir. (userId/teamId ileride filtre için – şu an tüm bildirimler) */

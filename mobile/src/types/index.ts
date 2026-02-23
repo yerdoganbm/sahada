@@ -21,6 +21,7 @@ export interface Player {
   id: string;
   name: string;
   teamId?: string;
+  activeTeamId?: string;
   position: PlayerPosition;
   rating: number;
   reliability: number;
@@ -34,6 +35,7 @@ export interface Player {
   contactNumber?: string;
   referredBy?: string;
   whatsappEnabled?: boolean;
+  authzMigrationVersion?: number;
   trialStatus?: 'pending_approval' | 'in_trial' | 'promoted' | 'rejected';
   attributes?: {
     pac: number;
