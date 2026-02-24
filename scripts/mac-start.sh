@@ -28,8 +28,6 @@ chmod +x "$STUB_DIR/watchman"
 export PATH="$STUB_DIR:$PATH"
 unset -v STUB_DIR
 
-export CI=1
-export EXPO_NO_WATCHMAN=1
-export WATCHMAN_SOCK=/dev/null
-echo "→ cd mobile && npx expo start (Watchman devre dışı, node crawler kullanılır)"
+# CI=1 kullanma: Metro CI modunda QR kod ve watch mode kapalı kalıyor, terminal asılı görünüyor
+echo "→ cd mobile && npx expo start"
 cd mobile && npx expo start
