@@ -43,6 +43,8 @@ export default function LoginScreen() {
     title: string;
     message: string;
     type?: 'info' | 'error' | 'warning' | 'success';
+    confirmText?: string;
+    onConfirm?: () => void;
     secondaryText?: string;
     onSecondary?: () => void;
   } | null>(null);
@@ -83,12 +85,25 @@ export default function LoginScreen() {
       await loginWithCredentials({ phone: phone.trim() });
     } catch (err) {
       console.error('Login error:', err);
-      const normalizedPhone = phone.trim().replace(/^0/, '').replace(/\D/g, '');
-      const phoneForPrefill = normalizedPhone.length >= 10 ? (normalizedPhone.startsWith('90') ? normalizedPhone : '90' + normalizedPhone) : phone.trim();
+      const digits = phone.trim().replace(/\D/g, '');
+      const phoneForPrefill =
+        digits.length >= 10
+          ? digits.startsWith('90')
+            ? digits
+            : digits.startsWith('0')
+              ? digits
+              : '0' + digits
+          : phone.trim();
       setAlert({
-        title: 'Giriş Yapılamadı',
-        message: 'Bu numarayla kayıtlı hesap yok. Takım kurarak yeni hesap oluşturabilir veya davet kodu ile takıma katılabilirsiniz.',
-        type: 'warning',
+        title: 'Hesabınız bulunamadı',
+        message:
+          'Bu numarayla kayıtlı hesap yok. Oyuna girmek için önce kayıt olun; ardından takım koduyla takıma katılabilir veya takım kurabilirsiniz.',
+        type: 'info',
+        confirmText: 'Kayıt Ol',
+        onConfirm: () => {
+          setAlert(null);
+          navigation.navigate('Register', { prefillPhone: phoneForPrefill || phone.trim() });
+        },
         secondaryText: 'Takım Kur',
         onSecondary: () => {
           setAlert(null);
@@ -129,8 +144,8 @@ export default function LoginScreen() {
       title={alert?.title ?? ''}
       message={alert?.message ?? ''}
       type={alert?.type ?? 'info'}
-      confirmText="Tamam"
-      onConfirm={() => setAlert(null)}
+      confirmText={alert?.confirmText ?? 'Tamam'}
+      onConfirm={alert?.onConfirm ?? (() => setAlert(null))}
       secondaryText={alert?.secondaryText}
       onSecondary={alert?.onSecondary}
     />

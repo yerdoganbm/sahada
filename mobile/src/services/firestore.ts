@@ -326,6 +326,52 @@ export async function createTeamAndUser(
   return { teamId, user };
 }
 
+/** Telefonu tek formatta saklamak icin; getUserByPhoneOrEmail ile bulunabilir olmali. */
+function canonicalPhone(p: string): string {
+  const s = p.replace(/\D/g, '');
+  if (s.startsWith('90') && s.length >= 12) return s.slice(0, 12);
+  if (s.startsWith('0') && s.length >= 11) return s.slice(1);
+  if (s.length >= 10) return s.length === 10 ? s : '90' + s.slice(-10);
+  return s;
+}
+
+/** Sadece kullanici olusturur (takimsiz). Oyuna kayit olup sonra takim kodu ile katilim icin. */
+export async function createUserOnly(
+  name: string,
+  phone?: string,
+  email?: string,
+  position?: 'GK' | 'DEF' | 'MID' | 'FWD',
+  shirtNumber?: number
+): Promise<Player> {
+  const usersRef = firestore().collection(COLLECTIONS.users);
+  const phoneNorm = phone?.trim() ? canonicalPhone(phone.trim()) : null;
+  if (phoneNorm) {
+    const existing = await getUserByPhoneOrEmail(phoneNorm);
+    if (existing) throw new Error('Bu telefon numarası zaten kayıtlı.');
+  }
+  if (email?.trim()) {
+    const existing = await getUserByPhoneOrEmail(undefined, email.trim());
+    if (existing) throw new Error('Bu e-posta adresi zaten kayıtlı.');
+  }
+  const userRef = await usersRef.add({
+    name: name.trim(),
+    phone: phoneNorm ?? null,
+    email: email?.trim() || null,
+    role: 'member',
+    position: position ?? 'MID',
+    shirtNumber: shirtNumber != null && shirtNumber >= 1 && shirtNumber <= 99 ? shirtNumber : null,
+    rating: 7,
+    reliability: 100,
+    avatar: `https://i.pravatar.cc/150?u=${name.trim().replace(/\s/g, '')}`,
+    authzMigrationVersion: 1,
+    authzMigrationAt: firestore.FieldValue.serverTimestamp(),
+    createdAt: firestore.FieldValue.serverTimestamp(),
+  });
+  const user = await getUserById(userRef.id);
+  if (!user) throw new Error('User creation failed');
+  return user;
+}
+
 /** Kullanici rolunu gunceller (admin/member). */
 export async function updateUserRole(userId: string, role: 'admin' | 'member'): Promise<void> {
   await firestore().collection(COLLECTIONS.users).doc(userId).update({ role });

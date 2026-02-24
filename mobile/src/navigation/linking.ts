@@ -12,7 +12,12 @@ export const linking: LinkingOptions<RootStackParamList> = {
     screens: {
       Welcome: 'welcome',
       Login: 'login',
+      Register: 'register',
       TeamSetup: 'team-setup',
+      JoinTeam: {
+        path: 'join/:inviteCode?',
+        parse: { inviteCode: (inviteCode: string) => inviteCode ?? '' },
+      },
       MainTabs: {
         screens: {
           Dashboard: 'dashboard',

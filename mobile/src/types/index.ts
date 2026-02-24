@@ -153,6 +153,7 @@ export interface JoinRequest {
 export type RootStackParamList = {
   Welcome: undefined;
   Login: undefined;
+  Register: { prefillPhone?: string; inviteCode?: string };
   MainTabs: NavigatorScreenParams<MainTabParamList> | undefined;
   MatchDetails: { matchId: string };
   VenueDetails: { venueId: string };
@@ -168,7 +169,7 @@ export type RootStackParamList = {
   EditProfile: undefined;
   // Web align – placeholder/ek ekranlar
   Leaderboard: undefined;
-  JoinTeam: undefined;
+  JoinTeam: { inviteCode?: string } | undefined;
   MemberManagement: undefined;
   ScoutReports: undefined;
   TalentPool: undefined;

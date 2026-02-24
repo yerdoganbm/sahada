@@ -2,7 +2,7 @@
  * JoinTeamScreen – Davet kodu ile takıma katılım (Firestore)
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -13,7 +13,7 @@ import {
   Platform,
   ActivityIndicator,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
@@ -23,17 +23,24 @@ import { hapticLight } from '../utils/haptic';
 import AlertModal from '../components/AlertModal';
 
 type JoinTeamNavProp = StackNavigationProp<RootStackParamList, 'JoinTeam'>;
+type JoinTeamRoute = RouteProp<RootStackParamList, 'JoinTeam'>;
 
 export default function JoinTeamScreen() {
   const navigation = useNavigation<JoinTeamNavProp>();
+  const route = useRoute<JoinTeamRoute>();
   const { user, joinTeam } = useAuth();
-  const [inviteCode, setInviteCode] = useState('');
+  const paramCode = route.params?.inviteCode?.trim().toUpperCase() ?? '';
+  const [inviteCode, setInviteCode] = useState(paramCode);
   const [loading, setLoading] = useState(false);
   const [alert, setAlert] = useState<{
     title: string;
     message: string;
     type?: 'info' | 'error' | 'success';
   } | null>(null);
+
+  useEffect(() => {
+    if (paramCode) setInviteCode(paramCode);
+  }, [paramCode]);
 
   const handleJoin = async () => {
     hapticLight();
@@ -53,9 +60,10 @@ export default function JoinTeamScreen() {
         });
       } else {
         setAlert({
-          title: 'İstek Gönderildi',
-          message: 'Katılım isteğiniz gönderildi. Yönetici onayladıktan sonra takıma erişebileceksiniz.',
-          type: 'info',
+          title: 'Katılım isteğiniz iletildi',
+          message:
+            'Takım admin, kaptan veya yöneticilerinden biri isteğinizi onayladığında takım bilgileriniz güncellenecek ve tüm takım akışlarına dahil olacaksınız.',
+          type: 'success',
         });
       }
     } catch (err) {
@@ -71,8 +79,9 @@ export default function JoinTeamScreen() {
   };
 
   const onAlertClose = () => {
+    const wasSuccess = alert?.type === 'success';
     setAlert(null);
-    if (alert?.type === 'success') {
+    if (wasSuccess) {
       navigation.getParent()?.goBack?.();
       navigation.navigate('MainTabs');
     }
@@ -81,9 +90,25 @@ export default function JoinTeamScreen() {
   if (!user) {
     return (
       <View style={styles.center}>
-        <Text style={styles.errorText}>Giriş yapmanız gerekiyor</Text>
-        <TouchableOpacity style={styles.btn} onPress={() => navigation.navigate('Login')}>
-          <Text style={styles.btnText}>Giriş Yap</Text>
+        <Icon name="account-plus-outline" size={56} color={colors.primary} style={styles.notLoggedIcon} />
+        <Text style={styles.notLoggedTitle}>Takıma katılmak için hesap gerekli</Text>
+        <Text style={styles.notLoggedSub}>
+          Davet koduyla takıma katılmak için önce kayıt olun. Hesabınız oluştuktan sonra katılım isteğiniz otomatik olarak takım yöneticilerine iletilecektir.
+        </Text>
+        <TouchableOpacity
+          style={styles.primaryBtn}
+          onPress={() => navigation.navigate('Register', { inviteCode: paramCode || undefined })}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.primaryBtnText}>Kayıt Ol</Text>
+          <Icon name="arrow-right" size={20} color={colors.secondary} />
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.secondaryBtn}
+          onPress={() => navigation.navigate('Login')}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.secondaryBtnText}>Zaten hesabım var, giriş yap</Text>
         </TouchableOpacity>
       </View>
     );
@@ -152,7 +177,45 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: colors.background.primary,
-    padding: spacing.lg,
+    padding: spacing.xl,
+  },
+  notLoggedIcon: { marginBottom: spacing.lg },
+  notLoggedTitle: {
+    ...typography.h3,
+    color: colors.text.primary,
+    textAlign: 'center',
+    marginBottom: spacing.sm,
+  },
+  notLoggedSub: {
+    ...typography.body,
+    color: colors.text.secondary,
+    textAlign: 'center',
+    marginBottom: spacing.xl,
+    lineHeight: 22,
+  },
+  primaryBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.primary,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.xl,
+    borderRadius: borderRadius.lg,
+    gap: spacing.sm,
+    width: '100%',
+    maxWidth: 280,
+    marginBottom: spacing.md,
+  },
+  primaryBtnText: {
+    ...typography.button,
+    color: colors.secondary,
+  },
+  secondaryBtn: {
+    paddingVertical: spacing.sm,
+  },
+  secondaryBtnText: {
+    ...typography.body,
+    color: colors.text.tertiary,
   },
   header: {
     flexDirection: 'row',

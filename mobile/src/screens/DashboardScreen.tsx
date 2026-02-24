@@ -51,7 +51,7 @@ interface QuickAction {
 
 export default function DashboardScreen() {
   const navigation = useNavigation<DashboardNavigationProp>();
-  const { user } = useAuth();
+  const { user, refreshUserFromServer } = useAuth();
   const [refreshing, setRefreshing] = useState(false);
   const [upcomingMatches, setUpcomingMatches] = useState<Match[]>([]);
   const [loadingMatches, setLoadingMatches] = useState(true);
@@ -74,9 +74,11 @@ export default function DashboardScreen() {
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
+    const hasTeam = !!(user?.activeTeamId || user?.teamId);
+    if (!hasTeam && user?.id) await refreshUserFromServer();
     await fetchUpcoming();
     setRefreshing(false);
-  }, [fetchUpcoming]);
+  }, [fetchUpcoming, user?.id, user?.activeTeamId, user?.teamId, refreshUserFromServer]);
 
   const isAdmin = canAccessAdminPanel(user);
   const isCaptain = user?.isCaptain;

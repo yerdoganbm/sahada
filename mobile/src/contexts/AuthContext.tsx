@@ -17,6 +17,7 @@ import {
   getUserByPhoneOrEmail,
   getUserById,
   createTeamAndUser,
+  createUserOnly,
   getTeamById,
   getTeamByInviteCode,
   setUserActiveTeamId,
@@ -46,8 +47,12 @@ interface AuthContextType {
   logout: () => Promise<void>;
   updateUser: (updates: Partial<Player>) => Promise<void>;
   createTeamAndLogin: (team: TeamProfile, founderName: string, founderEmail?: string) => Promise<void>;
+  registerAndLogin: (opts: { name: string; phone?: string; email?: string }) => Promise<void>;
+  registerOnly: (opts: { name: string; phone?: string; email?: string; position?: 'GK' | 'DEF' | 'MID' | 'FWD'; shirtNumber?: number }) => Promise<Player>;
+  completeRegistration: (user: Player) => Promise<void>;
   joinTeam: (inviteCode: string) => Promise<{ status: 'ACTIVE' | 'REQUESTED'; teamId: string }>;
   switchActiveTeam: (teamId: string) => Promise<void>;
+  refreshUserFromServer: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -244,6 +249,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const registerAndLogin = async (opts: { name: string; phone?: string; email?: string }) => {
+    const newUser = await registerOnly(opts);
+    await completeRegistration(newUser);
+  };
+
+  const registerOnly = async (opts: {
+    name: string;
+    phone?: string;
+    email?: string;
+    position?: 'GK' | 'DEF' | 'MID' | 'FWD';
+    shirtNumber?: number;
+  }): Promise<Player> => {
+    const { name, phone, email, position, shirtNumber } = opts;
+    if (!name.trim()) throw new Error('Ad soyad gerekli');
+    const newUser = await createUserOnly(name.trim(), phone?.trim(), email?.trim(), position, shirtNumber);
+    return newUser;
+  };
+
+  const completeRegistration = async (newUser: Player) => {
+    const bootstrapped = await bootstrapMembershipState(newUser);
+    setUser(bootstrapped);
+    setMemberships(await getActiveMembershipsForUser(bootstrapped.id));
+    setActiveTeamId(bootstrapped.activeTeamId ?? bootstrapped.teamId ?? null);
+    setApiAuthUserId(bootstrapped.id);
+    setApiAuthToken(null);
+    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(bootstrapped));
+    await AsyncStorage.removeItem(TOKEN_STORAGE_KEY);
+    await AsyncStorage.setItem(BIOMETRIC_USER_KEY, bootstrapped.id);
+    registerPushTokenIfAvailable();
+    console.log('✅ Kayıt tamamlandı ve giriş yapıldı:', bootstrapped.name);
+  };
+
   const joinTeam = async (
     inviteCode: string
   ): Promise<{ status: 'ACTIVE' | 'REQUESTED'; teamId: string }> => {
@@ -338,6 +375,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { status: 'ACTIVE', teamId: team.id };
   };
 
+  const refreshUserFromServer = async () => {
+    if (!user?.id) return;
+    try {
+      const fresh = await getUserById(user.id);
+      if (fresh) {
+        const bootstrapped = await bootstrapMembershipState(fresh);
+        setUser(bootstrapped);
+        setMemberships(await getActiveMembershipsForUser(bootstrapped.id));
+        setActiveTeamId(bootstrapped.activeTeamId ?? bootstrapped.teamId ?? null);
+        await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(bootstrapped));
+      }
+    } catch (e) {
+      console.warn('refreshUserFromServer failed', e);
+    }
+  };
+
   const switchActiveTeam = async (teamId: string) => {
     if (!user) throw new Error('Giriş yapmanız gerekiyor');
     const has = memberships.some((m) => m.teamId === teamId && m.status === 'ACTIVE');
@@ -376,8 +429,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         logout: logoutAsync,
         updateUser,
         createTeamAndLogin,
+        registerAndLogin,
+        registerOnly,
+        completeRegistration,
         joinTeam,
         switchActiveTeam,
+        refreshUserFromServer,
       }}
     >
       {children}
