@@ -21,7 +21,7 @@ config.resolver.resolveRequest = (context, moduleName, platform) => {
       return context.resolveRequest(context, 'react-native-web', platform);
     }
     if (moduleName.startsWith('@react-native-firebase/')) {
-      return { type: 'resolved', resolution: { type: 'sourceFile', filePath: FIREBASE_WEB_STUB } };
+      return { type: 'sourceFile', filePath: FIREBASE_WEB_STUB };
     }
   }
   return originalResolveRequest
