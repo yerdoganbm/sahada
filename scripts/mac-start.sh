@@ -30,4 +30,5 @@ unset -v STUB_DIR
 
 # CI=1 kullanma: Metro CI modunda QR kod ve watch mode kapalı kalıyor, terminal asılı görünüyor
 echo "→ cd mobile && npx expo start"
+echo "   (Web desteklenmiyor; terminalde i = iOS, a = Android)"
 cd mobile && npx expo start
