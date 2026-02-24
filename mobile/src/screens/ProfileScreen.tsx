@@ -106,7 +106,12 @@ export default function ProfileScreen() {
   }
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor: colors.background.primary }]} showsVerticalScrollIndicator={false}>
+    <ScrollView
+      style={[styles.container, { backgroundColor: colors.background.primary }]}
+      contentContainerStyle={styles.scrollContent}
+      showsVerticalScrollIndicator={true}
+      keyboardShouldPersistTaps="handled"
+    >
       {/* Header */}
       <View style={[styles.header, { backgroundColor: colors.background.primary }]}>
         {isOwnProfile ? (
@@ -282,6 +287,7 @@ export default function ProfileScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  scrollContent: { paddingBottom: 100 },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: spacing.xl },
   loadingText: { marginTop: spacing.md, fontSize: typography.fontSize.sm },
   header: {

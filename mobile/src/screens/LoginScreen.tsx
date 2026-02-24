@@ -13,7 +13,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
-  Alert,
+  ScrollView,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -39,7 +39,13 @@ export default function LoginScreen() {
   
   const [phone, setPhone] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [alert, setAlert] = useState<{ title: string; message: string; type?: 'info' | 'error' | 'warning' | 'success' } | null>(null);
+  const [alert, setAlert] = useState<{
+    title: string;
+    message: string;
+    type?: 'info' | 'error' | 'warning' | 'success';
+    secondaryText?: string;
+    onSecondary?: () => void;
+  } | null>(null);
   const [biometricAvailable, setBiometricAvailable] = useState(false);
   const [savedUserId, setSavedUserId] = useState<string | null>(null);
 
@@ -79,17 +85,16 @@ export default function LoginScreen() {
       console.error('Login error:', err);
       const normalizedPhone = phone.trim().replace(/^0/, '').replace(/\D/g, '');
       const phoneForPrefill = normalizedPhone.length >= 10 ? (normalizedPhone.startsWith('90') ? normalizedPhone : '90' + normalizedPhone) : phone.trim();
-      Alert.alert(
-        'Giriş Yapılamadı',
-        'Bu numarayla kayıtlı hesap yok. Takım kurarak yeni hesap oluşturabilir veya davet kodu ile takıma katılabilirsiniz.',
-        [
-          { text: 'Tamam' },
-          {
-            text: 'Takım Kur',
-            onPress: () => navigation.navigate('TeamSetup', { prefillPhone: phoneForPrefill || phone.trim() }),
-          },
-        ]
-      );
+      setAlert({
+        title: 'Giriş Yapılamadı',
+        message: 'Bu numarayla kayıtlı hesap yok. Takım kurarak yeni hesap oluşturabilir veya davet kodu ile takıma katılabilirsiniz.',
+        type: 'warning',
+        secondaryText: 'Takım Kur',
+        onSecondary: () => {
+          setAlert(null);
+          navigation.navigate('TeamSetup', { prefillPhone: phoneForPrefill || phone.trim() });
+        },
+      });
     } finally {
       setIsLoading(false);
     }
@@ -126,10 +131,13 @@ export default function LoginScreen() {
       type={alert?.type ?? 'info'}
       confirmText="Tamam"
       onConfirm={() => setAlert(null)}
+      secondaryText={alert?.secondaryText}
+      onSecondary={alert?.onSecondary}
     />
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
     >
       {/* Üst bar - geri butonu (logo ile çakışmayı önler) */}
       <View style={styles.header}>
@@ -145,6 +153,12 @@ export default function LoginScreen() {
         </TouchableOpacity>
       </View>
 
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={true}
+      >
       <View style={styles.content}>
         {/* Logo */}
         <View style={styles.logoContainer}>
@@ -251,6 +265,7 @@ export default function LoginScreen() {
           </Text>
         </View>
       </View>
+      </ScrollView>
     </KeyboardAvoidingView>
     </>
   );
@@ -270,10 +285,18 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.border.light,
   },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    paddingBottom: spacing.xxl,
+  },
   content: {
     flex: 1,
     padding: spacing.lg,
     justifyContent: 'center',
+    minHeight: 400,
   },
   backButton: {
     flexDirection: 'row',

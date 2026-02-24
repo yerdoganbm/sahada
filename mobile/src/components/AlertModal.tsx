@@ -21,6 +21,8 @@ export interface AlertModalProps {
   type?: 'info' | 'error' | 'warning' | 'success';
   confirmText?: string;
   onConfirm: () => void;
+  secondaryText?: string;
+  onSecondary?: () => void;
 }
 
 const typeConfig = {
@@ -37,6 +39,8 @@ export default function AlertModal({
   type = 'info',
   confirmText = 'Tamam',
   onConfirm,
+  secondaryText,
+  onSecondary,
 }: AlertModalProps) {
   const cfg = typeConfig[type];
   return (
@@ -61,13 +65,24 @@ export default function AlertModal({
           </View>
           <Text style={styles.title}>{title}</Text>
           <Text style={styles.message}>{message}</Text>
-          <TouchableOpacity
-            style={[styles.button, { backgroundColor: cfg.color }]}
-            onPress={onConfirm}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.buttonText}>{confirmText}</Text>
-          </TouchableOpacity>
+          <View style={styles.buttonRow}>
+            {secondaryText && onSecondary ? (
+              <TouchableOpacity
+                style={[styles.button, styles.buttonSecondary, { borderColor: cfg.color }]}
+                onPress={onSecondary}
+                activeOpacity={0.8}
+              >
+                <Text style={[styles.buttonText, { color: cfg.color }]}>{secondaryText}</Text>
+              </TouchableOpacity>
+            ) : null}
+            <TouchableOpacity
+              style={[styles.button, { backgroundColor: cfg.color }]}
+              onPress={onConfirm}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.buttonText}>{confirmText}</Text>
+            </TouchableOpacity>
+          </View>
         </TouchableOpacity>
       </TouchableOpacity>
     </Modal>
@@ -117,16 +132,26 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     marginBottom: spacing.xl,
   },
-  button: {
+  buttonRow: {
     width: '100%',
+    flexDirection: 'row',
+    gap: spacing.md,
+    marginTop: spacing.sm,
+  },
+  button: {
+    flex: 1,
     paddingVertical: spacing.md,
     borderRadius: borderRadius.lg,
     alignItems: 'center',
     ...(Platform.OS === 'web' && { cursor: 'pointer' }),
   },
+  buttonSecondary: {
+    backgroundColor: 'transparent',
+    borderWidth: 2,
+  },
   buttonText: {
     fontSize: typography.fontSize.md,
     fontWeight: typography.fontWeight.bold,
-    color: colors.secondary,
+    color: colors.secondary, // primary button text (overridden for secondary)
   },
 });

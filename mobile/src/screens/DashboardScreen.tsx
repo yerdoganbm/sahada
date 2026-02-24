@@ -147,7 +147,9 @@ export default function DashboardScreen() {
 
       <ScrollView
         style={styles.content}
-        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={true}
+        keyboardShouldPersistTaps="handled"
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
       >
         {/* No Team Banner */}
@@ -380,6 +382,7 @@ const styles = StyleSheet.create({
     borderColor: colors.surface,
   },
   content: { flex: 1, paddingHorizontal: spacing.lg },
+  scrollContent: { paddingBottom: 100 },
   // No Team Banner
   noTeamBanner: {
     flexDirection: 'row',
