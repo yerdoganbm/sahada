@@ -15,7 +15,7 @@ import {
   ActivityIndicator,
   ScrollView,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, CommonActions } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -158,7 +158,11 @@ export default function LoginScreen() {
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backButton}
-          onPress={() => navigation.goBack()}
+          onPress={() => {
+            navigation.dispatch(
+              CommonActions.reset({ index: 0, routes: [{ name: 'Welcome' }] })
+            );
+          }}
           activeOpacity={0.7}
           accessibilityLabel="Geri"
           accessibilityRole="button"

@@ -66,7 +66,11 @@ export default function SettingsScreen() {
   };
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor: colors.background.primary }]}>
+    <ScrollView
+      style={[styles.container, { backgroundColor: colors.background.primary }]}
+      contentContainerStyle={styles.scrollContent}
+      showsVerticalScrollIndicator={true}
+    >
       <View style={styles.header}>
         <TouchableOpacity
             style={[styles.backButton, { backgroundColor: colors.surface }]}
@@ -235,6 +239,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background.primary,
   },
+  scrollContent: { paddingBottom: 100 },
   header: {
     flexDirection: 'row',
     alignItems: 'center',

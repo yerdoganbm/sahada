@@ -148,7 +148,11 @@ export default function SubscriptionScreen() {
         <View style={{ width: 40 }} />
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+      <ScrollView
+        style={styles.scrollView}
+        showsVerticalScrollIndicator={true}
+        contentContainerStyle={styles.scrollContent}
+      >
         {/* Hero */}
         <View style={styles.hero}>
           <View style={styles.heroBadge}>
@@ -290,7 +294,8 @@ const styles = StyleSheet.create({
   },
   backBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
   headerTitle: { flex: 1, fontSize: 18, fontWeight: '700', color: colors.text.primary, textAlign: 'center' },
-  scrollContent: { paddingBottom: 32 },
+  scrollView: { flex: 1 },
+  scrollContent: { paddingBottom: 100 },
   // Hero
   hero: { padding: spacing.xl, paddingBottom: spacing.lg, alignItems: 'center' },
   heroBadge: {

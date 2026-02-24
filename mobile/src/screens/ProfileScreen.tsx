@@ -111,6 +111,7 @@ export default function ProfileScreen() {
       contentContainerStyle={styles.scrollContent}
       showsVerticalScrollIndicator={true}
       keyboardShouldPersistTaps="handled"
+      nestedScrollEnabled={true}
     >
       {/* Header */}
       <View style={[styles.header, { backgroundColor: colors.background.primary }]}>
