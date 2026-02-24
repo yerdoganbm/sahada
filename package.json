@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "mobile:start": "bash scripts/mac-start.sh",
+    "expo": "cd mobile && npx expo start",
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
