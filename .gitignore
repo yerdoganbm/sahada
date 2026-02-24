@@ -22,6 +22,9 @@ build/
 *.swo
 *~
 
+# Mac: sahte watchman (Metro node crawler kullanır)
+.watchman-stub/
+
 # OS
 .DS_Store
 Thumbs.db
