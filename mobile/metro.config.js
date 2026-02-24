@@ -7,10 +7,8 @@ const { getDefaultConfig } = require('expo/metro-config');
 
 const config = getDefaultConfig(__dirname);
 
-// Watchman kullanma (FSEvents hatası olan Mac'te node crawler kullan)
-config.server = config.server || {};
-config.server.watcher = config.server.watcher || {};
-config.server.watcher.watchman = { ...(config.server.watcher.watchman || {}), useWatchman: false };
+// Not: Metro config ile Watchman kapatma bu Expo sürümünde desteklenmiyor.
+// Watchman hatası devam ederse Mac'te: brew uninstall watchman
 
 // Web platformında react-native -> react-native-web (Expo bazen bunu atlıyor)
 const originalResolveRequest = config.resolver.resolveRequest;
