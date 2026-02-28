@@ -1566,10 +1566,10 @@ function App() {
           />
         )}
 
-        {/* Main Content */}
-        <div className={showBottomNav ? 'pb-[76px]' : ''}>
+        {/* Main Content - flex-grow ile kutuya hapsolmayı engeller */}
+        <main className={`flex-grow ${showBottomNav ? 'pb-[76px]' : ''}`}>
           {renderScreen()}
-        </div>
+        </main>
 
         {/* Bottom Navigation - Visible on main screens */}
         {showBottomNav && (

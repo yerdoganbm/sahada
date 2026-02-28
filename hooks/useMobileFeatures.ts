@@ -143,7 +143,7 @@ export function useInstallPWA() {
 
 /**
  * Viewport Height Hook (for mobile browsers)
- * Handles dynamic viewport height with address bar
+ * --vh CSS variable; modern Safari supports dvh, CSS prefers it.
  */
 export function useViewportHeight() {
   useEffect(() => {
@@ -153,13 +153,8 @@ export function useViewportHeight() {
     };
 
     setVH();
-    window.addEventListener('resize', setVH);
-    window.addEventListener('orientationchange', setVH);
-
-    return () => {
-      window.removeEventListener('resize', setVH);
-      window.removeEventListener('orientationchange', setVH);
-    };
+    window.addEventListener('resize', setVH, { passive: true });
+    return () => window.removeEventListener('resize', setVH);
   }, []);
 }
 
