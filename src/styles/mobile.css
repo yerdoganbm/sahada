@@ -1,25 +1,20 @@
 /* ===========================================
-   MOBILE-FIRST RESPONSIVE DESIGN  
-   iOS Safari Scroll - Final Fix
+   MOBILE-FIRST RESPONSIVE DESIGN
+   iOS Safari Scroll - Kesin Düzeltme
    
-   Yöntem: Body scroll (en güvenilir)
-   Neden: iOS Safari'de custom div scroll'u
-   -webkit-overflow-scrolling + position:sticky
-   kombinasyonuyla bozuluyor. Body scroll her
-   zaman en güvenli seçenek.
+   KURAL: html/body/root'ta HİÇ overflow:hidden OLMAYACAK.
+   Body doğal scroll yapacak. Sticky header body scroll'u ile çalışır.
    =========================================== */
 
-/* Hiçbir şeyi overflow:hidden ile kısıtlama */
+/* Global reset - overflow koyma */
 html {
   height: 100%;
 }
 
 body {
   min-height: 100%;
-  /* overflow-x:hidden SADECE body'de ve ayrı satırda — iOS bug: 
-     overflow shorthand body'de dikey scroll'u öldürür */
-  overflow-x: clip; /* clip, hidden'dan farklı olarak scroll'u bloke etmez */
   -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: none;
 }
 
 #root {
@@ -32,7 +27,7 @@ body {
     font-size: 14px;
   }
 
-  /* Safe Areas for Notch/Home Indicator */
+  /* Safe Areas */
   .safe-top {
     padding-top: max(env(safe-area-inset-top), 20px);
   }
@@ -41,16 +36,14 @@ body {
     padding-bottom: max(env(safe-area-inset-bottom), 20px);
   }
 
-  /* Mobile Container */
   .container {
     padding-left: 16px;
     padding-right: 16px;
   }
 
-  /* App container — scroll yok, body hallediyor */
+  /* App container - sadece layout wrapper, scroll YOK */
   .app-container {
     min-height: 100vh;
-    min-height: calc(var(--vh, 1vh) * 100);
   }
 
   /* Touch Targets */
@@ -60,43 +53,31 @@ body {
     min-width: 44px;
   }
 
-  /* Mobile Typography */
+  /* Typography */
   h1 { font-size: 24px; line-height: 1.2; }
   h2 { font-size: 20px; line-height: 1.3; }
   h3 { font-size: 18px; line-height: 1.4; }
   h4 { font-size: 16px; line-height: 1.4; }
-  p { font-size: 14px; line-height: 1.5; }
+  p  { font-size: 14px; line-height: 1.5; }
   small { font-size: 12px; }
 
-  /* Cards & Sections */
-  .card,
-  .section {
+  /* Cards */
+  .card, .section {
     margin-bottom: 16px;
     border-radius: 16px;
     padding: 16px;
   }
 
-  /* Grid Responsive */
+  /* Grid */
   .grid-responsive-4 { grid-template-columns: repeat(2, 1fr); }
   .grid-responsive-3 { grid-template-columns: repeat(2, 1fr); }
   .grid-responsive-2 { grid-template-columns: 1fr; }
 
-  /* Flex Responsive */
-  .flex-row-desktop {
-    flex-direction: column !important;
-  }
+  .flex-row-desktop { flex-direction: column !important; }
+  .desktop-only { display: none !important; }
+  .mobile-only { display: block !important; }
 
-  /* Hide on Mobile */
-  .desktop-only {
-    display: none !important;
-  }
-
-  /* Show on Mobile */
-  .mobile-only {
-    display: block !important;
-  }
-
-  /* Mobile Navigation — position:fixed, body scroll ile uyumlu */
+  /* Bottom Nav - fixed, body scroll ile uyumlu */
   .bottom-nav {
     position: fixed;
     bottom: 0;
@@ -138,7 +119,7 @@ body {
   .bottom-nav-icon { font-size: 24px; transition: transform 0.2s; }
   .bottom-nav-label { font-size: 10px; }
 
-  /* Mobile Header — position:sticky, body scroll ile çalışır */
+  /* Mobile Header - sticky, body scroll ile çalışır */
   .mobile-header {
     position: sticky;
     top: 0;
@@ -157,7 +138,7 @@ body {
     -webkit-backdrop-filter: blur(10px);
   }
 
-  /* Content area */
+  /* Mobile Content */
   .mobile-content {
     min-height: 100vh;
     min-height: calc(var(--vh, 1vh) * 100);
@@ -166,7 +147,7 @@ body {
     flex-direction: column;
   }
 
-  /* Yatay scroll listeler */
+  /* Yatay scroll - sadece yatay */
   .scroll-container {
     overflow-x: auto;
     overflow-y: hidden;
@@ -174,20 +155,16 @@ body {
     scroll-snap-type: x mandatory;
   }
 
-  .scroll-item {
-    scroll-snap-align: start;
-  }
+  .scroll-item { scroll-snap-align: start; }
 
-  /* Mobile Forms — 16px zoom engellemek için */
-  input,
-  select,
-  textarea {
+  /* Forms - iOS zoom önleme */
+  input, select, textarea {
     font-size: 16px !important;
     padding: 14px;
     border-radius: 12px;
   }
 
-  /* Mobile Modals */
+  /* Modals */
   .modal {
     width: 100vw !important;
     height: 100vh !important;
@@ -204,13 +181,11 @@ body {
     -webkit-overflow-scrolling: touch;
   }
 
-  /* Swipeable Cards */
   .swipeable {
     touch-action: pan-y;
     user-select: none;
   }
 
-  /* Pull to Refresh Hint */
   .ptr-hint {
     height: 60px;
     display: flex;
@@ -220,36 +195,31 @@ body {
     font-size: 12px;
   }
 
-  /* Match Cards Mobile */
   .match-card {
     height: 180px !important;
     padding: 20px !important;
   }
 
-  /* Avatar Sizes */
   .avatar-sm { width: 32px; height: 32px; }
   .avatar-md { width: 44px; height: 44px; }
   .avatar-lg { width: 64px; height: 64px; }
   .avatar-xl { width: 80px; height: 80px; }
 
-  /* Spacing */
   .space-y-4 > * + * { margin-top: 16px; }
   .space-y-6 > * + * { margin-top: 24px; }
   .gap-4 { gap: 16px; }
   .gap-6 { gap: 24px; }
 
-  /* Touch Feedback */
   .tap-highlight {
     -webkit-tap-highlight-color: rgba(16, 185, 129, 0.1);
   }
 
-  button:active,
-  .btn:active {
+  button:active, .btn:active {
     transform: scale(0.98);
     opacity: 0.9;
   }
 
-  /* Horizontal Scroll */
+  /* Horizontal Scroll Lists */
   .horizontal-scroll {
     display: flex;
     overflow-x: auto;
@@ -274,12 +244,8 @@ body {
     scroll-snap-align: start;
   }
 
-  img {
-    max-width: 100%;
-    height: auto;
-  }
+  img { max-width: 100%; height: auto; }
 
-  /* Loading States */
   .skeleton {
     background: linear-gradient(
       90deg,
@@ -297,7 +263,7 @@ body {
   }
 }
 
-/* Tablet Landscape */
+/* Tablet */
 @media (min-width: 768px) and (max-width: 1024px) {
   .container { max-width: 720px; margin: 0 auto; }
   .grid-responsive-4 { grid-template-columns: repeat(3, 1fr); }
@@ -313,24 +279,21 @@ body {
   .mobile-content { padding-top: 0; padding-bottom: 0; }
 }
 
-/* Landscape Mobile */
+/* Landscape */
 @media (max-height: 500px) and (orientation: landscape) {
   .mobile-header { height: 48px; padding-top: 0; }
   .bottom-nav { height: 56px; }
   .mobile-content { padding-top: 48px; padding-bottom: 72px; }
 }
 
-/* High DPI */
 @media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
   img { image-rendering: -webkit-optimize-contrast; }
 }
 
-/* Dark Mode */
 @media (prefers-color-scheme: dark) {
   .mobile-header, .bottom-nav { background: #0B0F1A; }
 }
 
-/* Reduced Motion */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
@@ -339,7 +302,6 @@ body {
   }
 }
 
-/* Print */
 @media print {
   .mobile-header, .bottom-nav, button { display: none !important; }
   body { background: white !important; color: black !important; }
