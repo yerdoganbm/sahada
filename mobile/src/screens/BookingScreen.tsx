@@ -94,7 +94,11 @@ export default function BookingScreen() {
         <Text style={styles.headerTitle}>Rezervasyon</Text>
         <View style={styles.placeholder} />
       </View>
-      <ScrollView style={styles.content} contentContainerStyle={styles.contentInner}>
+      <ScrollView
+        style={styles.content}
+        contentContainerStyle={styles.contentInner}
+        showsVerticalScrollIndicator={true}
+      >
         {loading ? (
           <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: spacing.xl }} />
         ) : (

@@ -125,7 +125,12 @@ export default function VenueAddScreen() {
           </TouchableOpacity>
         </View>
 
-        <ScrollView style={styles.scroll} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+        <ScrollView
+          style={styles.scroll}
+          contentContainerStyle={styles.content}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={true}
+        >
           <Text style={styles.label}>Saha Adı *</Text>
           <TextInput
             style={styles.input}
@@ -201,7 +206,7 @@ const styles = StyleSheet.create({
   saveBtnDisabled: { opacity: 0.6 },
   saveBtnText: { ...typography.button, color: colors.primary },
   scroll: { flex: 1 },
-  content: { padding: spacing.lg },
+  content: { padding: spacing.lg, paddingBottom: 100 },
   label: {
     ...typography.caption,
     color: colors.text.secondary,

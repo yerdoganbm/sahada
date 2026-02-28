@@ -141,7 +141,11 @@ export default function ReservationDetailsScreen() {
           <View style={styles.placeholder} />
         </View>
 
-        <ScrollView style={styles.content} contentContainerStyle={styles.contentInner}>
+        <ScrollView
+          style={styles.content}
+          contentContainerStyle={styles.contentInner}
+          showsVerticalScrollIndicator={true}
+        >
           <View style={styles.card}>
             <View style={styles.row}>
               <Text style={styles.label}>Saha</Text>
@@ -230,7 +234,7 @@ const styles = StyleSheet.create({
   headerTitle: { flex: 1, ...typography.h3, color: colors.text.primary, textAlign: 'center' },
   placeholder: { width: 40 },
   content: { flex: 1 },
-  contentInner: { padding: spacing.lg },
+  contentInner: { padding: spacing.lg, paddingBottom: 100 },
   card: {
     backgroundColor: colors.background.secondary,
     borderRadius: borderRadius.lg,

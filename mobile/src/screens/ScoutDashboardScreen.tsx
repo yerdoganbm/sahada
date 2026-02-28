@@ -75,6 +75,7 @@ export default function ScoutDashboardScreen() {
       <ScrollView
         style={styles.content}
         contentContainerStyle={styles.contentInner}
+        showsVerticalScrollIndicator={true}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
         <View style={styles.statsRow}>

@@ -12,6 +12,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
+  ScrollView,
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -135,7 +136,12 @@ export default function JoinTeamScreen() {
           <View style={styles.backBtn} />
         </View>
 
-        <View style={styles.content}>
+        <ScrollView
+          style={styles.scroll}
+          contentContainerStyle={styles.content}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={true}
+        >
           <Icon name="account-plus-outline" size={64} color={colors.primary} style={styles.icon} />
           <Text style={styles.subtitle}>
             Takım kaptanından aldığınız davet kodunu girin
@@ -164,7 +170,7 @@ export default function JoinTeamScreen() {
               <Text style={styles.btnText}>Takıma Katıl</Text>
             )}
           </TouchableOpacity>
-        </View>
+        </ScrollView>
       </KeyboardAvoidingView>
     </>
   );
@@ -232,10 +238,12 @@ const styles = StyleSheet.create({
     ...typography.h3,
     color: colors.text.primary,
   },
+  scroll: { flex: 1 },
   content: {
-    flex: 1,
+    flexGrow: 1,
     padding: spacing.xl,
     paddingTop: spacing.xxl,
+    paddingBottom: 100,
   },
   icon: { alignSelf: 'center', marginBottom: spacing.lg },
   subtitle: {

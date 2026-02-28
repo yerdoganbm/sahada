@@ -74,6 +74,20 @@ export default function LoginScreen() {
   }, []);
 
   const handleLogin = async () => {
+    // #region agent log
+    fetch('http://127.0.0.1:7748/ingest/ac5c5351-5103-4522-8149-3f9d9e41282d', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '9eeead' },
+      body: JSON.stringify({
+        sessionId: '9eeead',
+        location: 'LoginScreen.tsx:handleLogin',
+        message: 'handleLogin called',
+        data: { isLoading, phoneLength: phone.trim().length },
+        hypothesisId: 'H2',
+        timestamp: Date.now(),
+      }),
+    }).catch(() => {});
+    // #endregion
     hapticLight();
     if (!phone.trim()) {
       setAlert({ title: 'Hata', message: 'Lütfen telefon numaranızı giriniz.', type: 'warning' });
@@ -112,6 +126,20 @@ export default function LoginScreen() {
       });
     } finally {
       setIsLoading(false);
+      // #region agent log
+      fetch('http://127.0.0.1:7748/ingest/ac5c5351-5103-4522-8149-3f9d9e41282d', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '9eeead' },
+        body: JSON.stringify({
+          sessionId: '9eeead',
+          location: 'LoginScreen.tsx:handleLogin:finally',
+          message: 'Login loading ended',
+          data: {},
+          hypothesisId: 'H2',
+          timestamp: Date.now(),
+        }),
+      }).catch(() => {});
+      // #endregion
     }
   };
 
@@ -309,7 +337,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    paddingBottom: spacing.xxl,
+    paddingBottom: 100,
   },
   content: {
     flex: 1,

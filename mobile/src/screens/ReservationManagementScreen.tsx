@@ -93,6 +93,7 @@ export default function ReservationManagementScreen() {
       <ScrollView
         style={styles.content}
         contentContainerStyle={styles.contentInner}
+        showsVerticalScrollIndicator={true}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
         {filtered.length === 0 ? (

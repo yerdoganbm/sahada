@@ -67,11 +67,39 @@ export default function RegisterScreen() {
     const nameTrim = name.trim();
     if (!nameTrim || nameTrim.length < 2) {
       setAlert({ title: 'Eksik bilgi', message: 'Ad soyad en az 2 karakter olmalıdır.', type: 'error' });
+      // #region agent log
+      fetch('http://127.0.0.1:7748/ingest/ac5c5351-5103-4522-8149-3f9d9e41282d', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '9eeead' },
+        body: JSON.stringify({
+          sessionId: '9eeead',
+          location: 'RegisterScreen.tsx:validation',
+          message: 'Validation error shown',
+          data: { reason: 'nameTooShort' },
+          hypothesisId: 'H3',
+          timestamp: Date.now(),
+        }),
+      }).catch(() => {});
+      // #endregion
       return;
     }
     const phoneTrim = phone.trim().replace(/\D/g, '');
     if (phoneTrim.length < 10) {
       setAlert({ title: 'Eksik bilgi', message: 'Geçerli bir telefon numarası giriniz.', type: 'error' });
+      // #region agent log
+      fetch('http://127.0.0.1:7748/ingest/ac5c5351-5103-4522-8149-3f9d9e41282d', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '9eeead' },
+        body: JSON.stringify({
+          sessionId: '9eeead',
+          location: 'RegisterScreen.tsx:validation',
+          message: 'Validation error shown',
+          data: { reason: 'invalidPhone' },
+          hypothesisId: 'H3',
+          timestamp: Date.now(),
+        }),
+      }).catch(() => {});
+      // #endregion
       return;
     }
     setLoading(true);
@@ -133,6 +161,20 @@ export default function RegisterScreen() {
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Kayıt yapılamadı.';
       setAlert({ title: 'Kayıt başarısız', message: msg, type: 'error' });
+      // #region agent log
+      fetch('http://127.0.0.1:7748/ingest/ac5c5351-5103-4522-8149-3f9d9e41282d', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '9eeead' },
+        body: JSON.stringify({
+          sessionId: '9eeead',
+          location: 'RegisterScreen.tsx:catch',
+          message: 'Registration error shown',
+          data: { message: msg },
+          hypothesisId: 'H3',
+          timestamp: Date.now(),
+        }),
+      }).catch(() => {});
+      // #endregion
     } finally {
       setLoading(false);
     }
@@ -174,6 +216,7 @@ export default function RegisterScreen() {
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={true}
+          nestedScrollEnabled={true}
         >
           <View style={styles.iconWrap}>
             <Icon name="account-plus-outline" size={48} color={colors.primary} />
@@ -292,7 +335,7 @@ const styles = StyleSheet.create({
   scroll: { flex: 1 },
   scrollContent: {
     padding: spacing.lg,
-    paddingBottom: spacing.xxl,
+    paddingBottom: 100,
   },
   iconWrap: {
     width: 72,

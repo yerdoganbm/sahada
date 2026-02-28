@@ -86,6 +86,7 @@ export default function PollsScreen() {
       <ScrollView
         style={styles.content}
         contentContainerStyle={styles.contentInner}
+        showsVerticalScrollIndicator={true}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
         {polls.length === 0 ? (

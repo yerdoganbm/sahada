@@ -142,7 +142,12 @@ export default function EditProfileScreen() {
           if (alert?.type === 'success') navigation.goBack();
         }}
       />
-      <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={true}
+        keyboardShouldPersistTaps="handled"
+      >
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
@@ -268,7 +273,7 @@ export default function EditProfileScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background.primary },
-  scrollContent: { paddingBottom: 60 },
+  scrollContent: { paddingBottom: 100 },
   header: {
     flexDirection: 'row',
     alignItems: 'center',

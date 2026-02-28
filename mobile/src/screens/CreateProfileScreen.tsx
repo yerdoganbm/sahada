@@ -115,7 +115,12 @@ export default function CreateProfileScreen() {
             <Text style={styles.saveBtnText}>{saving ? 'Kaydediliyor...' : 'Ekle'}</Text>
           </TouchableOpacity>
         </View>
-        <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
+        <ScrollView
+          style={styles.scroll}
+          contentContainerStyle={styles.content}
+          showsVerticalScrollIndicator={true}
+          keyboardShouldPersistTaps="handled"
+        >
           <Text style={styles.label}>İsim</Text>
           <TextInput
             style={styles.input}
@@ -163,7 +168,7 @@ const styles = StyleSheet.create({
   saveBtnDisabled: { opacity: 0.6 },
   saveBtnText: { ...typography.button, color: colors.primary },
   scroll: { flex: 1 },
-  content: { padding: spacing.lg },
+  content: { padding: spacing.lg, paddingBottom: 100 },
   label: { ...typography.caption, color: colors.text.secondary, marginBottom: spacing.xs, marginTop: spacing.md },
   input: {
     backgroundColor: colors.background.secondary,

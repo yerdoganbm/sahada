@@ -308,6 +308,7 @@ export default function MemberManagementScreen() {
       <ScrollView
         style={styles.content}
         contentContainerStyle={styles.contentInner}
+        showsVerticalScrollIndicator={true}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
         {activeTab === 'members' && (

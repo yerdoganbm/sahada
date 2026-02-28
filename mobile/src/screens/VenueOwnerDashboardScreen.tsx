@@ -158,7 +158,8 @@ export default function VenueOwnerDashboardScreen() {
 
       <ScrollView
         style={styles.content}
-        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 100 }}
+        showsVerticalScrollIndicator={true}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
       >
         {/* Stats Row */}

@@ -198,6 +198,8 @@ export default function LineupManagerScreen() {
       <ScrollView
         style={styles.content}
         contentContainerStyle={styles.contentInner}
+        showsVerticalScrollIndicator={true}
+        nestedScrollEnabled={true}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
       >
         {matches.length === 0 ? (

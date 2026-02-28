@@ -189,7 +189,11 @@ export default function WhatsAppIntegrationScreen() {
           <View style={{ width: 40 }} />
         </View>
 
-        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          style={styles.content}
+          contentContainerStyle={{ paddingBottom: 100 }}
+          showsVerticalScrollIndicator={true}
+        >
           {/* Notification Toggle */}
           <View style={styles.card}>
             <View style={styles.cardHeader}>

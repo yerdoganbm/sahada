@@ -19,6 +19,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { TeamProfile } from '../types';
 import { RootStackParamList } from '../types';
 import { colors, spacing, borderRadius, typography } from '../theme';
+import { hapticLight } from '../utils/haptic';
 
 type TeamSetupRoute = RouteProp<RootStackParamList, 'TeamSetup'>;
 
@@ -36,6 +37,7 @@ export default function TeamSetupScreen() {
   const [founderEmail, setFounderEmail] = useState('');
   const [founderPhone, setFounderPhone] = useState(prefillPhone);
   const [primaryColor, setPrimaryColor] = useState(COLOR_OPTIONS[0]);
+  const [inlineError, setInlineError] = useState<string | null>(null);
 
   useEffect(() => {
     if (prefillPhone) setFounderPhone(prefillPhone);
@@ -44,6 +46,36 @@ export default function TeamSetupScreen() {
   const inviteCode = (shortName || name.slice(0, 3).toUpperCase()) + '-' + new Date().getFullYear();
 
   const handleNext = () => {
+    // #region agent log
+    const canNextNow =
+      (step === 1 && name.trim().length >= 2) ||
+      (step === 2 && founderName.trim().length >= 2) ||
+      step === 3;
+    if (!canNextNow) {
+      hapticLight();
+      const msg =
+        step === 1
+          ? 'Takım adı en az 2 karakter olmalı'
+          : step === 2
+          ? 'Kurucu adı en az 2 karakter olmalı'
+          : '';
+      setInlineError(msg);
+      fetch('http://127.0.0.1:7748/ingest/ac5c5351-5103-4522-8149-3f9d9e41282d', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '9eeead' },
+        body: JSON.stringify({
+          sessionId: '9eeead',
+          location: 'TeamSetupScreen.tsx:handleNext',
+          message: 'Devam tapped with invalid form',
+          data: { step, nameLen: name.trim().length, founderNameLen: founderName.trim().length, reason: msg },
+          hypothesisId: 'H1',
+          timestamp: Date.now(),
+        }),
+      }).catch(() => {});
+      return;
+    }
+    setInlineError(null);
+    // #endregion
     if (step === 1) {
       if (name.trim().length < 2) return;
       setStep(2);
@@ -96,8 +128,10 @@ export default function TeamSetupScreen() {
       </View>
 
       <ScrollView
+        style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={true}
       >
         <View style={styles.iconWrap}>
           <Icon
@@ -123,7 +157,7 @@ export default function TeamSetupScreen() {
             <TextInput
               style={styles.input}
               value={name}
-              onChangeText={setName}
+              onChangeText={(t) => { setName(t); setInlineError(null); }}
               placeholder="Örn: Kuzey Yıldızları"
               placeholderTextColor={colors.text.disabled}
               autoCapitalize="words"
@@ -146,7 +180,7 @@ export default function TeamSetupScreen() {
             <TextInput
               style={styles.input}
               value={founderName}
-              onChangeText={setFounderName}
+              onChangeText={(t) => { setFounderName(t); setInlineError(null); }}
               placeholder="Örn: Ahmet Yılmaz"
               placeholderTextColor={colors.text.disabled}
               autoCapitalize="words"
@@ -243,9 +277,10 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
   },
   placeholder: { width: 40 },
+  scrollView: { flex: 1 },
   scrollContent: {
     paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.xxl,
+    paddingBottom: 100,
   },
   iconWrap: {
     width: 72,
@@ -319,6 +354,12 @@ const styles = StyleSheet.create({
   },
   nextBtnDisabled: {
     opacity: 0.5,
+  },
+  inlineError: {
+    fontSize: typography.fontSize.sm,
+    color: colors.error,
+    marginBottom: spacing.sm,
+    textAlign: 'center',
   },
   nextBtnText: {
     fontSize: typography.fontSize.lg,

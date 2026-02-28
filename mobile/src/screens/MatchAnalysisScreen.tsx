@@ -326,7 +326,13 @@ export default function MatchAnalysisScreen() {
         ))}
       </View>
 
-      <ScrollView style={styles.content} contentContainerStyle={styles.contentInner} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        style={styles.content}
+        contentContainerStyle={styles.contentInner}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={true}
+        nestedScrollEnabled={true}
+      >
         {/* ────── GOALS TAB ────── */}
         {activeTab === 'goals' && (
           <>
