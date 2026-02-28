@@ -285,47 +285,41 @@ export default function RegisterScreen() {
                 </TouchableOpacity>
               ))}
             </View>
-            <Text style={styles.labelSmall}>Forma numarası</Text>
+            <Text style={styles.labelSmall}>Forma numarası (opsiyonel)</Text>
             <View style={styles.shirtNumberSection}>
               <View style={styles.quickNumbersRow}>
                 {QUICK_SHIRT_NUMBERS.map((n) => (
                   <TouchableOpacity
                     key={n}
                     style={[styles.shirtChip, shirtNumber === String(n) && styles.shirtChipActive]}
-                    onPress={() => !loading && setShirtNumber(shirtNumber === String(n) ? '' : String(n))}
+                    onPress={() => {
+                      if (loading) return;
+                      hapticLight();
+                      setShirtNumber(shirtNumber === String(n) ? '' : String(n));
+                    }}
                     activeOpacity={0.8}
                     disabled={loading}
+                    accessibilityLabel={`Forma ${n}`}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: shirtNumber === String(n) }}
                   >
                     <Text style={[styles.shirtChipText, shirtNumber === String(n) && styles.shirtChipTextActive]}>
                       {n}
                     </Text>
                   </TouchableOpacity>
                 ))}
-                <TouchableOpacity
-                  style={[styles.shirtChip, styles.shirtChipEmpty, !shirtNumber && styles.shirtChipActive]}
-                  onPress={() => !loading && setShirtNumber('')}
-                  activeOpacity={0.8}
-                  disabled={loading}
-                >
-                  <Text style={[styles.shirtChipText, !shirtNumber && styles.shirtChipTextActive]}>—</Text>
-                </TouchableOpacity>
               </View>
-              <View style={styles.shirtNumberInputWrap}>
-                <Text style={styles.shirtNumberHint}>veya 1–99 arası yazın</Text>
-                <View style={styles.jerseyBadge}>
-                  <TextInput
-                    style={styles.jerseyInput}
-                    value={shirtNumber}
-                    onChangeText={(t) => setShirtNumber(t.replace(/\D/g, '').slice(0, 2))}
-                    placeholder="—"
-                    placeholderTextColor={colors.text.disabled}
-                    keyboardType="number-pad"
-                    maxLength={2}
-                    editable={!loading}
-                    selectTextOnFocus
-                  />
-                </View>
-              </View>
+              <TextInput
+                style={styles.shirtNumberInput}
+                value={shirtNumber}
+                onChangeText={(t) => setShirtNumber(t.replace(/\D/g, '').slice(0, 2))}
+                placeholder="1–99 veya boş bırakın"
+                placeholderTextColor={colors.text.disabled}
+                keyboardType="number-pad"
+                maxLength={2}
+                editable={!loading}
+                accessibilityLabel="Forma numarası"
+              />
             </View>
           </View>
           <TouchableOpacity
@@ -340,7 +334,7 @@ export default function RegisterScreen() {
               <ActivityIndicator color={colors.secondary} />
             ) : (
               <>
-                <Text style={styles.submitBtnText}>Kayıt Ol</Text>
+                <Text style={styles.submitBtnText}>Hesap oluştur</Text>
                 <Icon name="arrow-right" size={20} color={colors.secondary} />
               </>
             )}
@@ -485,60 +479,40 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: spacing.sm,
-    marginBottom: spacing.md,
+    marginBottom: spacing.sm,
   },
   shirtChip: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    minWidth: 36,
+    height: 36,
+    paddingHorizontal: spacing.sm,
+    borderRadius: borderRadius.md,
     backgroundColor: colors.surface,
-    borderWidth: 1.5,
+    borderWidth: 1,
     borderColor: colors.border.light,
     alignItems: 'center',
     justifyContent: 'center',
   },
   shirtChipActive: {
-    backgroundColor: colors.primary,
     borderColor: colors.primary,
-  },
-  shirtChipEmpty: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    backgroundColor: 'rgba(16, 185, 129, 0.15)',
   },
   shirtChipText: {
     fontSize: typography.fontSize.sm,
-    fontWeight: typography.fontWeight.bold,
+    fontWeight: typography.fontWeight.semiBold,
     color: colors.text.secondary,
   },
   shirtChipTextActive: {
-    color: colors.secondary,
+    color: colors.primary,
   },
-  shirtNumberInputWrap: {
-    alignItems: 'center',
-  },
-  shirtNumberHint: {
-    fontSize: typography.fontSize.xs,
-    color: colors.text.tertiary,
-    marginBottom: spacing.sm,
-  },
-  jerseyBadge: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+  shirtNumberInput: {
     backgroundColor: colors.surface,
-    borderWidth: 2,
-    borderColor: colors.border.medium,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  jerseyInput: {
-    fontSize: 24,
-    fontWeight: typography.fontWeight.bold,
+    borderWidth: 1,
+    borderColor: colors.border.light,
+    borderRadius: borderRadius.lg,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    fontSize: typography.fontSize.lg,
     color: colors.text.primary,
-    padding: 0,
-    minWidth: 36,
-    textAlign: 'center',
   },
   submitBtn: {
     flexDirection: 'row',
@@ -546,8 +520,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: colors.primary,
     paddingVertical: spacing.lg,
+    minHeight: 56,
     borderRadius: borderRadius.lg,
     gap: spacing.sm,
+    marginTop: spacing.md,
     shadowColor: colors.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,

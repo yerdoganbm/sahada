@@ -100,6 +100,8 @@ export default function JoinTeamScreen() {
           style={styles.primaryBtn}
           onPress={() => navigation.navigate('Register', { inviteCode: paramCode || undefined })}
           activeOpacity={0.8}
+          accessibilityLabel="Kayıt ol"
+          accessibilityRole="button"
         >
           <Text style={styles.primaryBtnText}>Kayıt Ol</Text>
           <Icon name="arrow-right" size={20} color={colors.secondary} />
@@ -108,6 +110,8 @@ export default function JoinTeamScreen() {
           style={styles.secondaryBtn}
           onPress={() => navigation.navigate('Login')}
           activeOpacity={0.8}
+          accessibilityLabel="Zaten hesabım var, giriş yap"
+          accessibilityRole="button"
         >
           <Text style={styles.secondaryBtnText}>Zaten hesabım var, giriş yap</Text>
         </TouchableOpacity>
@@ -118,6 +122,8 @@ export default function JoinTeamScreen() {
             navigation.dispatch(CommonActions.reset({ index: 0, routes: [{ name: 'Welcome' }] }));
           }}
           activeOpacity={0.8}
+          accessibilityLabel="Ana sayfaya dön"
+          accessibilityRole="button"
         >
           <Icon name="home-outline" size={18} color={colors.text.tertiary} />
           <Text style={styles.homeBtnText}>Ana sayfaya dön</Text>
@@ -240,7 +246,12 @@ const styles = StyleSheet.create({
     color: colors.secondary,
   },
   secondaryBtn: {
-    paddingVertical: spacing.sm,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    borderRadius: borderRadius.lg,
+    borderWidth: 1,
+    borderColor: colors.border.medium,
+    marginBottom: spacing.sm,
   },
   homeBtn: {
     flexDirection: 'row',
@@ -249,6 +260,9 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     paddingVertical: spacing.lg,
     marginTop: spacing.sm,
+    borderRadius: borderRadius.lg,
+    borderWidth: 1,
+    borderColor: colors.border.light,
   },
   homeBtnText: {
     ...typography.body,

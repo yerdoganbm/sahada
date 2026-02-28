@@ -281,6 +281,30 @@ export default function LoginScreen() {
           </TouchableOpacity>
         )}
 
+        {/* Hesap oluştur - her zaman görünür */}
+        <TouchableOpacity
+          style={styles.registerButton}
+          onPress={() => {
+            hapticLight();
+            const digits = phone.replace(/\D/g, '');
+            const prefill =
+              digits.length >= 10
+                ? digits.startsWith('90')
+                  ? digits.slice(2)
+                  : digits.startsWith('0')
+                    ? digits.slice(1)
+                    : digits.slice(-10)
+                : '';
+            navigation.navigate('Register', { prefillPhone: prefill });
+          }}
+          activeOpacity={0.8}
+          accessibilityLabel="Hesap oluştur"
+          accessibilityRole="button"
+        >
+          <Icon name="account-plus-outline" size={20} color={colors.primary} />
+          <Text style={styles.registerButtonText}>Hesap oluştur</Text>
+        </TouchableOpacity>
+
         {/* Divider */}
         <View style={styles.divider}>
           <View style={styles.dividerLine} />
@@ -495,6 +519,23 @@ const styles = StyleSheet.create({
     color: colors.text.disabled,
     marginHorizontal: spacing.md,
     letterSpacing: 1.5,
+  },
+  registerButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: spacing.md,
+    marginBottom: spacing.sm,
+    borderRadius: borderRadius.lg,
+    borderWidth: 1,
+    borderColor: colors.primary,
+    backgroundColor: 'transparent',
+  },
+  registerButtonText: {
+    color: colors.primary,
+    fontSize: typography.fontSize.md,
+    fontWeight: typography.fontWeight.semiBold,
+    marginLeft: spacing.sm,
   },
   secondaryButton: {
     backgroundColor: colors.surface,

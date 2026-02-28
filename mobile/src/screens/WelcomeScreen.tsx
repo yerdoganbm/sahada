@@ -137,11 +137,23 @@ export default function WelcomeScreen() {
               style={styles.secondaryButton}
               onPress={() => navigation.navigate('JoinTeam')}
               activeOpacity={0.8}
+              accessibilityLabel="Takıma katıl"
+              accessibilityRole="button"
             >
               <Icon name="qrcode-scan" size={18} color={colors.text.secondary} />
               <Text style={styles.secondaryButtonText}>Takıma Katıl</Text>
             </TouchableOpacity>
           </View>
+
+          <TouchableOpacity
+            style={styles.registerLink}
+            onPress={() => navigation.navigate('Register')}
+            activeOpacity={0.8}
+            accessibilityLabel="Hesap oluştur"
+            accessibilityRole="button"
+          >
+            <Text style={styles.registerLinkText}>Hesabım yok, kayıt ol</Text>
+          </TouchableOpacity>
         </View>
 
         {/* Footer */}
@@ -280,6 +292,16 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.sm,
     fontWeight: typography.fontWeight.semiBold,
     marginLeft: spacing.sm,
+  },
+  registerLink: {
+    paddingVertical: spacing.md,
+    alignItems: 'center',
+    marginTop: spacing.sm,
+  },
+  registerLinkText: {
+    color: colors.primary,
+    fontSize: typography.fontSize.sm,
+    fontWeight: typography.fontWeight.semiBold,
   },
   footer: {
     color: colors.text.disabled,
