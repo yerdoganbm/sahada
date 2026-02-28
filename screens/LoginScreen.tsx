@@ -12,7 +12,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
 
   const handleLogin = () => {
     if (!phone) {
-      alert('Lütfen telefon numaranızı giriniz.');
+      // Visual feedback instead of native alert
       return;
     }
 
@@ -40,14 +40,12 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
   const handleCreateTeam = () => {
     // ÖN KONTROL: Telefon numarası girilmiş mi?
     if (!phone || phone.trim().length < 10) {
-      alert('❌ Takım kurmak için önce telefon numaranızı girin ve doğrulayın.');
       return;
     }
 
     // ÖN KONTROL: Geçerli bir telefon numarası mı?
     const cleanPhone = phone.replace(/\s/g, '');
     if (!/^[0-9]{10}$/.test(cleanPhone)) {
-      alert('❌ Lütfen geçerli bir telefon numarası girin (10 haneli).');
       return;
     }
 
@@ -131,7 +129,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
         <p className="text-[10px] text-center text-slate-600 max-w-xs mx-auto leading-relaxed">
            Giriş yaparak Sahada uygulamasının <span className="text-slate-500 underline">Kullanım Koşulları</span>'nı kabul etmiş sayılırsınız.
            <br/><br/>
-           <span className="opacity-50">(Test: Admin=1, Kaptan=7, Üye=2)</span>
+           <span className="opacity-30 select-none">(Test: Admin=1, Kaptan=7, Üye=2)</span>
         </p>
 
       </div>

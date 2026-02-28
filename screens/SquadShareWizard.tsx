@@ -57,7 +57,7 @@ sahada olalım! 🔥`;
   };
 
   return (
-    <div className="bg-secondary min-h-screen pb-24 flex flex-col">
+    <div className="bg-secondary min-h-screen pb-safe-bottom flex flex-col">
       {/* Header */}
       <div className="bg-surface border-b border-white/5 px-4 pt-4 pb-3 sticky top-0 z-50 safe-top flex justify-between items-center">
         <div className="flex items-center gap-3">

@@ -49,7 +49,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ onBack, players = [], 
   }, [players]);
 
   return (
-    <div className="bg-secondary min-h-screen pb-24 relative overflow-x-hidden">
+    <div className="bg-secondary min-h-screen pb-safe-bottom relative overflow-x-hidden">
       {/* Background Decor */}
       <div className="absolute top-0 left-0 w-full h-[500px] bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-800/50 via-secondary to-secondary pointer-events-none z-0"></div>
 

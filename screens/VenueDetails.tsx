@@ -18,7 +18,7 @@ export const VenueDetails: React.FC<VenueDetailsProps> = ({ venueId, venues, onB
   const canManage = currentUser.role === 'admin' || currentUser.tier === 'partner';
 
   return (
-    <div className="bg-secondary min-h-screen pb-24">
+    <div className="bg-secondary min-h-screen pb-safe-bottom">
       {/* Hero Image Section */}
       <div className="relative h-64 w-full">
          <img src={venue.image} className="w-full h-full object-cover" />

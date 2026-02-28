@@ -37,7 +37,7 @@ export const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ onBack
   };
 
   return (
-    <div className="bg-secondary min-h-screen pb-24">
+    <div className="bg-secondary min-h-screen pb-safe-bottom">
       {/* Header */}
       <div className="sticky top-0 z-50 bg-secondary/80 backdrop-blur-xl border-b border-white/5 px-4 pt-4 pb-3 flex justify-between items-center safe-top">
         <div className="flex items-center gap-3">

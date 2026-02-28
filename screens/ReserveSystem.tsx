@@ -43,7 +43,7 @@ export const ReserveSystem: React.FC<ReserveSystemProps> = ({ onBack, onNavigate
   };
 
   return (
-    <div className="bg-secondary min-h-screen pb-24">
+    <div className="bg-secondary min-h-screen pb-safe-bottom">
       <div className="sticky top-0 z-50 bg-secondary/80 backdrop-blur-xl border-b border-white/5 px-4 pt-4 pb-3 flex justify-between items-center safe-top">
          <button onClick={onBack} className="w-10 h-10 rounded-full flex items-center justify-center bg-surface border border-white/5 active:scale-95 transition-transform">
            <Icon name="arrow_back" className="text-white" />

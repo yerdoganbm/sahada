@@ -19,15 +19,15 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
   variant = 'default'
 }) => {
   const variantStyles = {
-    default: 'text-slate-600',
-    info: 'text-blue-600',
-    warning: 'text-yellow-600'
+    default: 'text-slate-400',
+    info: 'text-blue-400',
+    warning: 'text-yellow-400'
   };
 
   const bgStyles = {
-    default: 'bg-slate-50',
-    info: 'bg-blue-50',
-    warning: 'bg-yellow-50'
+    default: 'bg-slate-500/10',
+    info: 'bg-blue-500/10',
+    warning: 'bg-yellow-500/10'
   };
 
   return (
@@ -35,8 +35,8 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
       <div className={`w-20 h-20 rounded-full ${bgStyles[variant]} flex items-center justify-center mb-4`}>
         <Icon name={icon} size={40} className={variantStyles[variant]} />
       </div>
-      <h3 className="text-lg font-bold text-slate-800 mb-2">{title}</h3>
-      <p className="text-sm text-slate-500 mb-6 max-w-xs">{description}</p>
+      <h3 className="text-lg font-bold text-white mb-2">{title}</h3>
+      <p className="text-sm text-slate-400 mb-6 max-w-xs">{description}</p>
       {actionLabel && onAction && (
         <button
           onClick={onAction}

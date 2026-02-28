@@ -117,7 +117,7 @@ export const MemberManagement: React.FC<MemberManagementProps> = ({
   };
 
   return (
-    <div className="pb-24 bg-secondary min-h-screen relative">
+    <div className="pb-safe-bottom bg-secondary min-h-screen relative">
       <div className="sticky top-0 z-40 bg-secondary/80 backdrop-blur-xl border-b border-white/5 px-4 pt-4 pb-3 flex justify-between items-center safe-top">
         <button onClick={onBack} className="w-10 h-10 rounded-full flex items-center justify-center bg-surface border border-white/5 active:scale-95 transition-transform">
           <Icon name="arrow_back" className="text-white" />
