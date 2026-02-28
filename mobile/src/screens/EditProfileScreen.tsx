@@ -7,7 +7,6 @@ import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
   TouchableOpacity,
   TextInput,
   Image,
@@ -24,6 +23,7 @@ import storage from '@react-native-firebase/storage';
 import { useAuth } from '../contexts/AuthContext';
 import { RootStackParamList } from '../types';
 import { colors, spacing, borderRadius, typography, shadows } from '../theme';
+import AppScrollView from '../components/AppScrollView';
 import AlertModal from '../components/AlertModal';
 import type { PlayerPosition } from '../types';
 
@@ -142,10 +142,9 @@ export default function EditProfileScreen() {
           if (alert?.type === 'success') navigation.goBack();
         }}
       />
-      <ScrollView
+      <AppScrollView
         style={styles.container}
         contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={true}
         keyboardShouldPersistTaps="handled"
       >
         {/* Header */}
@@ -266,7 +265,7 @@ export default function EditProfileScreen() {
             />
           </View>
         </View>
-      </ScrollView>
+      </AppScrollView>
     </>
   );
 }

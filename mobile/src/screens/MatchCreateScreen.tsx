@@ -7,7 +7,6 @@ import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
   TouchableOpacity,
   TextInput,
   ActivityIndicator,
@@ -22,6 +21,7 @@ import { getVenues } from '../services/venues';
 import { createMatch } from '../services/matches';
 import { getTeamIdForUser } from '../services/players';
 import type { Venue } from '../types';
+import AppScrollView from '../components/AppScrollView';
 
 export default function MatchCreateScreen() {
   const navigation = useNavigation();
@@ -96,10 +96,9 @@ export default function MatchCreateScreen() {
   }
 
   return (
-    <ScrollView
+    <AppScrollView
       style={styles.container}
       contentContainerStyle={styles.scrollContent}
-      showsVerticalScrollIndicator={true}
     >
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
@@ -178,7 +177,7 @@ export default function MatchCreateScreen() {
           )}
         </TouchableOpacity>
       </View>
-    </ScrollView>
+    </AppScrollView>
   );
 }
 

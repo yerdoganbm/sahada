@@ -7,7 +7,6 @@ import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
   TouchableOpacity,
   RefreshControl,
   ActivityIndicator,
@@ -18,6 +17,7 @@ import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import { getTalentPool, getScoutReports } from '../services/talent';
 import { getTeamIdForUser } from '../services/players';
+import AppScrollView from '../components/AppScrollView';
 import { RootStackParamList } from '../types';
 import { colors, spacing, borderRadius, typography } from '../theme';
 
@@ -72,10 +72,9 @@ export default function ScoutDashboardScreen() {
         <Text style={styles.headerTitle}>Scout Paneli</Text>
         <View style={styles.placeholder} />
       </View>
-      <ScrollView
+      <AppScrollView
         style={styles.content}
         contentContainerStyle={styles.contentInner}
-        showsVerticalScrollIndicator={true}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
         <View style={styles.statsRow}>
@@ -116,7 +115,7 @@ export default function ScoutDashboardScreen() {
           <Text style={styles.menuText}>Scout Raporları</Text>
           <Icon name="chevron-right" size={24} color={colors.text.secondary} />
         </TouchableOpacity>
-      </ScrollView>
+      </AppScrollView>
     </View>
   );
 }

@@ -7,7 +7,6 @@ import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
   TouchableOpacity,
   Platform,
   Alert,
@@ -17,6 +16,7 @@ import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
+import AppScrollView from '../components/AppScrollView';
 import { RootStackParamList } from '../types';
 import { colors, spacing, borderRadius, typography, shadows } from '../theme';
 
@@ -148,9 +148,8 @@ export default function SubscriptionScreen() {
         <View style={{ width: 40 }} />
       </View>
 
-      <ScrollView
+      <AppScrollView
         style={styles.scrollView}
-        showsVerticalScrollIndicator={true}
         contentContainerStyle={styles.scrollContent}
       >
         {/* Hero */}
@@ -276,7 +275,7 @@ export default function SubscriptionScreen() {
         </View>
 
         <View style={{ height: 32 }} />
-      </ScrollView>
+      </AppScrollView>
     </View>
   );
 }

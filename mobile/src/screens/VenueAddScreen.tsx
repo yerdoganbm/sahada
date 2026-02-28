@@ -9,7 +9,6 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  ScrollView,
   Platform,
   KeyboardAvoidingView,
 } from 'react-native';
@@ -17,6 +16,7 @@ import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
+import AppScrollView from '../components/AppScrollView';
 import { RootStackParamList } from '../types';
 import { colors, spacing, borderRadius, typography } from '../theme';
 import { createVenue } from '../services/venues';
@@ -125,7 +125,7 @@ export default function VenueAddScreen() {
           </TouchableOpacity>
         </View>
 
-        <ScrollView
+        <AppScrollView
           style={styles.scroll}
           contentContainerStyle={styles.content}
           keyboardShouldPersistTaps="handled"
@@ -182,7 +182,7 @@ export default function VenueAddScreen() {
               </TouchableOpacity>
             ))}
           </View>
-        </ScrollView>
+        </AppScrollView>
       </KeyboardAvoidingView>
     </>
   );

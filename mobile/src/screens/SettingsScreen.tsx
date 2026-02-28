@@ -8,10 +8,10 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  ScrollView,
   Switch,
   Alert,
 } from 'react-native';
+import AppScrollView from '../components/AppScrollView';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -66,10 +66,9 @@ export default function SettingsScreen() {
   };
 
   return (
-    <ScrollView
+    <AppScrollView
       style={[styles.container, { backgroundColor: colors.background.primary }]}
       contentContainerStyle={styles.scrollContent}
-      showsVerticalScrollIndicator={true}
     >
       <View style={styles.header}>
         <TouchableOpacity
@@ -196,7 +195,7 @@ export default function SettingsScreen() {
       </View>
 
       <Text style={[styles.footer, { color: colors.text.disabled }]}>Sahada v1.0 • Ayarlar</Text>
-    </ScrollView>
+    </AppScrollView>
   );
 }
 

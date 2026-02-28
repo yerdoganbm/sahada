@@ -13,8 +13,8 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
-  ScrollView,
 } from 'react-native';
+import AppScrollView from '../components/AppScrollView';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
@@ -34,9 +34,6 @@ const POS_LABELS: Record<PlayerPosition, string> = {
   FWD: 'Forvet',
 };
 const POSITIONS: PlayerPosition[] = ['GK', 'DEF', 'MID', 'FWD'];
-
-/** Yaygın forma numaraları – hızlı seçim için */
-const QUICK_SHIRT_NUMBERS = [1, 7, 9, 10, 11, 17, 21, 77, 99];
 
 type RegisterRoute = RouteProp<RootStackParamList, 'Register'>;
 type RegisterNavProp = StackNavigationProp<RootStackParamList, 'Register'>;
@@ -90,9 +87,21 @@ export default function RegisterScreen() {
       setAlert({ title: 'Geçersiz e-posta', message: 'Lütfen geçerli bir e-posta adresi girin veya boş bırakın.', type: 'error' });
       return;
     }
+    const shirtTrim = shirtNumber.trim();
+    if (shirtTrim) {
+      const parsed = parseInt(shirtTrim.replace(/\D/g, ''), 10);
+      if (isNaN(parsed) || parsed < 1 || parsed > 99) {
+        setAlert({
+          title: 'Geçersiz forma numarası',
+          message: 'Forma numarası 1–99 arasında olmalı veya boş bırakın.',
+          type: 'error',
+        });
+        return;
+      }
+    }
     setLoading(true);
     setPendingUser(null);
-    const num = shirtNumber.trim() ? parseInt(shirtNumber.replace(/\D/g, ''), 10) : undefined;
+    const num = shirtTrim ? parseInt(shirtTrim.replace(/\D/g, ''), 10) : undefined;
     const validNum = num != null && !isNaN(num) && num >= 1 && num <= 99 ? num : undefined;
 
     try {
@@ -204,12 +213,10 @@ export default function RegisterScreen() {
           <Text style={styles.headerTitle}>Kayıt Ol</Text>
           <View style={styles.placeholder} />
         </View>
-        <ScrollView
+        <AppScrollView
           style={styles.scroll}
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={true}
-          nestedScrollEnabled={true}
         >
           <View style={styles.iconWrap}>
             <Icon name="account-plus-outline" size={48} color={colors.primary} />
@@ -285,49 +292,25 @@ export default function RegisterScreen() {
                 </TouchableOpacity>
               ))}
             </View>
-            <Text style={styles.labelSmall}>Forma numarası (opsiyonel)</Text>
-            <View style={styles.shirtNumberSection}>
-              <View style={styles.quickNumbersRow}>
-                {QUICK_SHIRT_NUMBERS.map((n) => (
-                  <TouchableOpacity
-                    key={n}
-                    style={[styles.shirtChip, shirtNumber === String(n) && styles.shirtChipActive]}
-                    onPress={() => {
-                      if (loading) return;
-                      hapticLight();
-                      setShirtNumber(shirtNumber === String(n) ? '' : String(n));
-                    }}
-                    activeOpacity={0.8}
-                    disabled={loading}
-                    accessibilityLabel={`Forma ${n}`}
-                    accessibilityRole="button"
-                    accessibilityState={{ selected: shirtNumber === String(n) }}
-                  >
-                    <Text style={[styles.shirtChipText, shirtNumber === String(n) && styles.shirtChipTextActive]}>
-                      {n}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-              <TextInput
-                style={styles.shirtNumberInput}
-                value={shirtNumber}
-                onChangeText={(t) => setShirtNumber(t.replace(/\D/g, '').slice(0, 2))}
-                placeholder="1–99 veya boş bırakın"
-                placeholderTextColor={colors.text.disabled}
-                keyboardType="number-pad"
-                maxLength={2}
-                editable={!loading}
-                accessibilityLabel="Forma numarası"
-              />
-            </View>
+            <Text style={styles.labelSmall}>Forma numarası (opsiyonel, 1–99)</Text>
+            <TextInput
+              style={styles.shirtNumberInput}
+              value={shirtNumber}
+              onChangeText={(t) => setShirtNumber(t.replace(/\D/g, '').slice(0, 2))}
+              placeholder="Örn: 10"
+              placeholderTextColor={colors.text.disabled}
+              keyboardType="number-pad"
+              maxLength={2}
+              editable={!loading}
+              accessibilityLabel="Forma numarası, en fazla 2 rakam"
+            />
           </View>
           <TouchableOpacity
             style={[styles.submitBtn, loading && styles.submitBtnDisabled]}
             onPress={handleRegister}
             disabled={loading}
             activeOpacity={0.8}
-            accessibilityLabel="Kayıt ol"
+            accessibilityLabel="Hesap oluştur"
             accessibilityRole="button"
           >
             {loading ? (
@@ -339,7 +322,7 @@ export default function RegisterScreen() {
               </>
             )}
           </TouchableOpacity>
-        </ScrollView>
+        </AppScrollView>
       </KeyboardAvoidingView>
     </>
   );
@@ -365,8 +348,9 @@ const styles = StyleSheet.create({
   placeholder: { width: 40 },
   scroll: { flex: 1 },
   scrollContent: {
+    flexGrow: 1,
     padding: spacing.lg,
-    paddingBottom: 100,
+    paddingBottom: 140,
   },
   iconWrap: {
     width: 72,
@@ -472,38 +456,6 @@ const styles = StyleSheet.create({
   positionChipTextActive: {
     color: colors.secondary,
   },
-  shirtNumberSection: {
-    marginBottom: spacing.md,
-  },
-  quickNumbersRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
-    marginBottom: spacing.sm,
-  },
-  shirtChip: {
-    minWidth: 36,
-    height: 36,
-    paddingHorizontal: spacing.sm,
-    borderRadius: borderRadius.md,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border.light,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  shirtChipActive: {
-    borderColor: colors.primary,
-    backgroundColor: 'rgba(16, 185, 129, 0.15)',
-  },
-  shirtChipText: {
-    fontSize: typography.fontSize.sm,
-    fontWeight: typography.fontWeight.semiBold,
-    color: colors.text.secondary,
-  },
-  shirtChipTextActive: {
-    color: colors.primary,
-  },
   shirtNumberInput: {
     backgroundColor: colors.surface,
     borderWidth: 1,
@@ -513,6 +465,7 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
     fontSize: typography.fontSize.lg,
     color: colors.text.primary,
+    marginBottom: spacing.md,
   },
   submitBtn: {
     flexDirection: 'row',
@@ -523,7 +476,8 @@ const styles = StyleSheet.create({
     minHeight: 56,
     borderRadius: borderRadius.lg,
     gap: spacing.sm,
-    marginTop: spacing.md,
+    marginTop: spacing.lg,
+    marginBottom: spacing.lg,
     shadowColor: colors.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,

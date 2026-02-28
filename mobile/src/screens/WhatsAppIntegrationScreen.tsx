@@ -9,7 +9,6 @@ import {
   StyleSheet,
   Switch,
   TouchableOpacity,
-  ScrollView,
   Platform,
   ActivityIndicator,
   Linking,
@@ -20,6 +19,7 @@ import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
+import AppScrollView from '../components/AppScrollView';
 import { RootStackParamList } from '../types';
 import { colors, spacing, borderRadius, typography } from '../theme';
 import AlertModal from '../components/AlertModal';
@@ -189,10 +189,9 @@ export default function WhatsAppIntegrationScreen() {
           <View style={{ width: 40 }} />
         </View>
 
-        <ScrollView
+        <AppScrollView
           style={styles.content}
-          contentContainerStyle={{ paddingBottom: 100 }}
-          showsVerticalScrollIndicator={true}
+          contentContainerStyle={{}}
         >
           {/* Notification Toggle */}
           <View style={styles.card}>
@@ -282,7 +281,7 @@ export default function WhatsAppIntegrationScreen() {
           </TouchableOpacity>
 
           <View style={{ height: 40 }} />
-        </ScrollView>
+        </AppScrollView>
       </View>
     </>
   );

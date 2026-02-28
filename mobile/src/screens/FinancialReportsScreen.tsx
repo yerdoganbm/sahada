@@ -7,7 +7,6 @@ import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
   TouchableOpacity,
   RefreshControl,
   ActivityIndicator,
@@ -22,6 +21,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { getTransactions, addTransaction } from '../services/finance';
 import { getTeamIdForUser } from '../services/players';
 import { canAccessAdminPanel } from '../utils/permissions';
+import AppScrollView from '../components/AppScrollView';
 import { RootStackParamList } from '../types';
 import { colors, spacing, borderRadius, typography } from '../theme';
 import type { Transaction } from '../types';
@@ -219,10 +219,9 @@ export default function FinancialReportsScreen() {
         </TouchableOpacity>
       </View>
 
-      <ScrollView
+      <AppScrollView
         style={styles.content}
         contentContainerStyle={styles.contentInner}
-        showsVerticalScrollIndicator={true}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
         {/* Summary */}
@@ -383,7 +382,7 @@ export default function FinancialReportsScreen() {
         )}
 
         <View style={{ height: 40 }} />
-      </ScrollView>
+      </AppScrollView>
     </View>
   );
 }

@@ -20,6 +20,7 @@ import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import firestore from '@react-native-firebase/firestore';
 import { useAuth } from '../contexts/AuthContext';
+import AppScrollView from '../components/AppScrollView';
 import { getMatch } from '../services/matches';
 import { getPlayers } from '../services/players';
 import { colors, spacing, borderRadius, typography } from '../theme';
@@ -326,12 +327,10 @@ export default function MatchAnalysisScreen() {
         ))}
       </View>
 
-      <ScrollView
+      <AppScrollView
         style={styles.content}
         contentContainerStyle={styles.contentInner}
         keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={true}
-        nestedScrollEnabled={true}
       >
         {/* ────── GOALS TAB ────── */}
         {activeTab === 'goals' && (
@@ -501,7 +500,7 @@ export default function MatchAnalysisScreen() {
             )}
           </>
         )}
-      </ScrollView>
+      </AppScrollView>
 
       {/* Comment Input */}
       {activeTab === 'comments' && (

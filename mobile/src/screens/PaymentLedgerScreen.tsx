@@ -7,7 +7,6 @@ import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
   TouchableOpacity,
   RefreshControl,
   ActivityIndicator,
@@ -17,6 +16,7 @@ import {
   Clipboard,
   Platform,
   Modal,
+  ScrollView,
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp as RNRouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -25,6 +25,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { getPayments, addPayment, uploadAndSetPaymentProof } from '../services/finance';
 import { getTeamIdForUser, getPlayers } from '../services/players';
 import { canAccessAdminPanel } from '../utils/permissions';
+import AppScrollView from '../components/AppScrollView';
 import { RootStackParamList } from '../types';
 import { colors, spacing, borderRadius, typography } from '../theme';
 import type { Payment } from '../types';
@@ -242,10 +243,9 @@ export default function PaymentLedgerScreen() {
         </TouchableOpacity>
       </View>
 
-      <ScrollView
+      <AppScrollView
         style={styles.content}
         contentContainerStyle={styles.contentInner}
-        showsVerticalScrollIndicator={true}
         nestedScrollEnabled={true}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
@@ -404,7 +404,7 @@ export default function PaymentLedgerScreen() {
             </TouchableOpacity>
           </>
         )}
-      </ScrollView>
+      </AppScrollView>
     </View>
   );
 }

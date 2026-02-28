@@ -7,7 +7,6 @@ import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
   TouchableOpacity,
   RefreshControl,
   ActivityIndicator,
@@ -102,7 +101,7 @@ export default function DebtListScreen() {
         <View style={styles.placeholder} />
       </View>
 
-      <ScrollView
+      <AppScrollView
         style={styles.content}
         contentContainerStyle={styles.contentInner}
         refreshControl={
@@ -166,7 +165,7 @@ export default function DebtListScreen() {
             </View>
           ))
         )}
-      </ScrollView>
+      </AppScrollView>
     </View>
   );
 }

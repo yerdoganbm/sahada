@@ -9,11 +9,11 @@ import {
   StyleSheet,
   TextInput,
   TouchableOpacity,
-  ScrollView,
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
 } from 'react-native';
+import AppScrollView from '../components/AppScrollView';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
@@ -164,11 +164,10 @@ export default function TeamSetupScreen() {
         <View style={styles.placeholder} />
       </View>
 
-      <ScrollView
+      <AppScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={true}
       >
         <View style={styles.iconWrap}>
           <Icon
@@ -307,7 +306,7 @@ export default function TeamSetupScreen() {
             </>
           )}
         </TouchableOpacity>
-      </ScrollView>
+      </AppScrollView>
     </KeyboardAvoidingView>
     </>
   );

@@ -7,7 +7,6 @@ import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
   TouchableOpacity,
   RefreshControl,
   ActivityIndicator,
@@ -18,6 +17,7 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { getVenues } from '../services/venues';
 import { getReservations } from '../services/finance';
+import AppScrollView from '../components/AppScrollView';
 import { RootStackParamList } from '../types';
 import { colors, spacing, borderRadius, typography, shadows } from '../theme';
 
@@ -156,10 +156,9 @@ export default function VenueOwnerDashboardScreen() {
         </View>
       </View>
 
-      <ScrollView
+      <AppScrollView
         style={styles.content}
-        contentContainerStyle={{ paddingBottom: 100 }}
-        showsVerticalScrollIndicator={true}
+        contentContainerStyle={{}}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
       >
         {/* Stats Row */}
@@ -281,7 +280,7 @@ export default function VenueOwnerDashboardScreen() {
         )}
 
         <View style={{ height: 40 }} />
-      </ScrollView>
+      </AppScrollView>
     </View>
   );
 }

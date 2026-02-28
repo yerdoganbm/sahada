@@ -7,7 +7,6 @@ import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
   TouchableOpacity,
   RefreshControl,
   ActivityIndicator,
@@ -19,6 +18,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { getNotifications } from '../services/notifications';
 import { markNotificationRead } from '../services/firestore';
 import type { NotificationItem } from '../services/notifications';
+import AppScrollView from '../components/AppScrollView';
 import { RootStackParamList } from '../types';
 import { colors, spacing, borderRadius, typography } from '../theme';
 
@@ -68,10 +68,9 @@ export default function NotificationsScreen() {
         <View style={styles.placeholder} />
       </View>
 
-      <ScrollView
+      <AppScrollView
         style={styles.content}
         contentContainerStyle={styles.contentInner}
-        showsVerticalScrollIndicator={true}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
@@ -110,7 +109,7 @@ export default function NotificationsScreen() {
             </TouchableOpacity>
           ))
         )}
-      </ScrollView>
+      </AppScrollView>
     </View>
   );
 }

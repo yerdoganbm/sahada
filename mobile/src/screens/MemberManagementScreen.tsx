@@ -7,7 +7,6 @@ import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
   TouchableOpacity,
   Image,
   Modal,
@@ -33,6 +32,7 @@ import { listActiveTeamMembers, type TeamMember } from '../services/teamMembers'
 import { changeMemberRole } from '../services/memberRoleService';
 import { getTeamById } from '../services/firestore';
 import { createInviteToken } from '../services/inviteFunctions';
+import AppScrollView from '../components/AppScrollView';
 import { colors, spacing, borderRadius, typography } from '../theme';
 import type { Player } from '../types';
 
@@ -305,10 +305,9 @@ export default function MemberManagementScreen() {
         </TouchableOpacity>
       </View>
 
-      <ScrollView
+      <AppScrollView
         style={styles.content}
         contentContainerStyle={styles.contentInner}
-        showsVerticalScrollIndicator={true}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
         {activeTab === 'members' && (
@@ -393,7 +392,7 @@ export default function MemberManagementScreen() {
             )}
           </View>
         )}
-      </ScrollView>
+      </AppScrollView>
 
       {/* Invite Modal */}
       <Modal visible={showInviteModal} transparent animationType="fade">

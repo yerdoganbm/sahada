@@ -10,12 +10,12 @@ import {
   TouchableOpacity,
   StyleSheet,
   Platform,
-  ScrollView,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
+import AppScrollView from '../components/AppScrollView';
 import { RootStackParamList } from '../types';
 import { colors, spacing, borderRadius, typography } from '../theme';
 import { addManualPlayer } from '../services/players';
@@ -115,10 +115,9 @@ export default function CreateProfileScreen() {
             <Text style={styles.saveBtnText}>{saving ? 'Kaydediliyor...' : 'Ekle'}</Text>
           </TouchableOpacity>
         </View>
-        <ScrollView
+        <AppScrollView
           style={styles.scroll}
           contentContainerStyle={styles.content}
-          showsVerticalScrollIndicator={true}
           keyboardShouldPersistTaps="handled"
         >
           <Text style={styles.label}>İsim</Text>
@@ -141,7 +140,7 @@ export default function CreateProfileScreen() {
               </TouchableOpacity>
             ))}
           </View>
-        </ScrollView>
+        </AppScrollView>
       </View>
     </>
   );

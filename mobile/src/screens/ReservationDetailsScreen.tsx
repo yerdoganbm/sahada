@@ -10,11 +10,11 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Platform,
-  ScrollView,
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
+import AppScrollView from '../components/AppScrollView';
 import { RootStackParamList } from '../types';
 import { colors, spacing, borderRadius, typography } from '../theme';
 import { getReservationById, updateReservationStatus, type Reservation } from '../services/firestore';
@@ -141,10 +141,9 @@ export default function ReservationDetailsScreen() {
           <View style={styles.placeholder} />
         </View>
 
-        <ScrollView
+        <AppScrollView
           style={styles.content}
           contentContainerStyle={styles.contentInner}
-          showsVerticalScrollIndicator={true}
         >
           <View style={styles.card}>
             <View style={styles.row}>
@@ -205,7 +204,7 @@ export default function ReservationDetailsScreen() {
               </TouchableOpacity>
             </View>
           )}
-        </ScrollView>
+        </AppScrollView>
       </View>
     </>
   );

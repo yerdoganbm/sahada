@@ -12,8 +12,8 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
-  ScrollView,
 } from 'react-native';
+import AppScrollView from '../components/AppScrollView';
 import { useNavigation, useRoute, RouteProp, CommonActions } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
@@ -153,11 +153,10 @@ export default function JoinTeamScreen() {
           <View style={styles.backBtn} />
         </View>
 
-        <ScrollView
+        <AppScrollView
           style={styles.scroll}
           contentContainerStyle={styles.content}
           keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={true}
         >
           <Icon name="account-plus-outline" size={64} color={colors.primary} style={styles.icon} />
           <Text style={styles.subtitle}>
@@ -199,7 +198,7 @@ export default function JoinTeamScreen() {
             <Icon name="home-outline" size={18} color={colors.text.tertiary} />
             <Text style={styles.homeBtnText}>Ana sayfaya dön</Text>
           </TouchableOpacity>
-        </ScrollView>
+        </AppScrollView>
       </KeyboardAvoidingView>
     </>
   );

@@ -7,7 +7,6 @@ import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
   TouchableOpacity,
   Image,
   ActivityIndicator,
@@ -22,6 +21,7 @@ import { RsvpStatus } from '../types';
 import { getMatch, updateMatchRSVP } from '../services/matches';
 import { getPlayers } from '../services/players';
 import { getMyParticipationState, listParticipants } from '../services/rsvpService';
+import AppScrollView from '../components/AppScrollView';
 import { hapticLight } from '../utils/haptic';
 import type { Match } from '../types';
 import type { Player } from '../types';
@@ -170,7 +170,7 @@ export default function MatchDetailsScreen() {
   }
 
   return (
-    <ScrollView
+    <AppScrollView
       style={styles.container}
       contentContainerStyle={styles.scrollContent}
       showsVerticalScrollIndicator={true}
@@ -268,7 +268,7 @@ export default function MatchDetailsScreen() {
           </View>
         ))}
       </View>
-    </ScrollView>
+    </AppScrollView>
   );
 }
 

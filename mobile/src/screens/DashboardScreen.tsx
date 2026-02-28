@@ -6,7 +6,6 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
-  ScrollView,
   TouchableOpacity,
   StyleSheet,
   Image,
@@ -15,6 +14,7 @@ import {
   Share,
   Dimensions,
 } from 'react-native';
+import AppScrollView from '../components/AppScrollView';
 import { CommonActions, useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
@@ -149,12 +149,10 @@ export default function DashboardScreen() {
         </View>
       </View>
 
-      <ScrollView
+      <AppScrollView
         style={styles.content}
         contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={true}
         keyboardShouldPersistTaps="handled"
-        nestedScrollEnabled={true}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
       >
         {/* No Team Banner */}
@@ -298,7 +296,7 @@ export default function DashboardScreen() {
         )}
 
         <View style={{ height: 32 }} />
-      </ScrollView>
+      </AppScrollView>
     </View>
   );
 }

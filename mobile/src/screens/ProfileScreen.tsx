@@ -9,7 +9,6 @@ import {
   StyleSheet,
   Image,
   TouchableOpacity,
-  ScrollView,
   ActivityIndicator,
   Share,
 } from 'react-native';
@@ -18,6 +17,7 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
+import AppScrollView from '../components/AppScrollView';
 import { RootStackParamList } from '../types';
 import { colors as staticColors, spacing, borderRadius, typography, shadows } from '../theme';
 import { getPlayer } from '../services/players';
@@ -106,12 +106,10 @@ export default function ProfileScreen() {
   }
 
   return (
-    <ScrollView
+    <AppScrollView
       style={[styles.container, { backgroundColor: colors.background.primary }]}
       contentContainerStyle={styles.scrollContent}
-      showsVerticalScrollIndicator={true}
       keyboardShouldPersistTaps="handled"
-      nestedScrollEnabled={true}
     >
       {/* Header */}
       <View style={[styles.header, { backgroundColor: colors.background.primary }]}>
@@ -282,7 +280,7 @@ export default function ProfileScreen() {
       )}
 
       <View style={{ height: 40 }} />
-    </ScrollView>
+    </AppScrollView>
   );
 }
 

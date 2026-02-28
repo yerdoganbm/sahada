@@ -7,7 +7,6 @@ import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
   TouchableOpacity,
   Alert,
 } from 'react-native';
@@ -21,6 +20,7 @@ import { getPlayers } from '../services/players';
 import { getMatches } from '../services/matches';
 import { getPayments } from '../services/finance';
 import { colors, spacing, borderRadius, typography } from '../theme';
+import AppScrollView from '../components/AppScrollView';
 import { RootStackParamList } from '../types';
 
 type AdminNavProp = StackNavigationProp<RootStackParamList, 'Admin'>;
@@ -81,10 +81,9 @@ export default function AdminDashboardScreen() {
   }
 
   return (
-    <ScrollView
+    <AppScrollView
       style={styles.container}
       contentContainerStyle={styles.scrollContent}
-      showsVerticalScrollIndicator={true}
     >
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
@@ -148,7 +147,7 @@ export default function AdminDashboardScreen() {
         <MenuRow icon="clipboard-check" label="Yoklama" onPress={() => navigation.navigate('Attendance')} />
         <MenuRow icon="calendar-month" label="Takvim" onPress={() => navigation.navigate('VenueCalendar')} />
       </View>
-    </ScrollView>
+    </AppScrollView>
   );
 }
 

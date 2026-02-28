@@ -7,7 +7,6 @@ import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
   TouchableOpacity,
   TextInput,
   Alert,
@@ -19,6 +18,7 @@ import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import { getVenues } from '../services/venues';
 import { createReservation } from '../services/finance';
+import AppScrollView from '../components/AppScrollView';
 import { RootStackParamList } from '../types';
 import { colors, spacing, borderRadius, typography } from '../theme';
 
@@ -94,10 +94,9 @@ export default function BookingScreen() {
         <Text style={styles.headerTitle}>Rezervasyon</Text>
         <View style={styles.placeholder} />
       </View>
-      <ScrollView
+      <AppScrollView
         style={styles.content}
         contentContainerStyle={styles.contentInner}
-        showsVerticalScrollIndicator={true}
       >
         {loading ? (
           <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: spacing.xl }} />
@@ -152,7 +151,7 @@ export default function BookingScreen() {
             </TouchableOpacity>
           </>
         )}
-      </ScrollView>
+      </AppScrollView>
     </View>
   );
 }

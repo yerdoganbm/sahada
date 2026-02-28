@@ -20,6 +20,7 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import { getMatches } from '../services/matches';
+import AppScrollView from '../components/AppScrollView';
 import { getPlayers, getTeamIdForUser } from '../services/players';
 import { RootStackParamList } from '../types';
 import { colors, spacing, borderRadius, typography } from '../theme';
@@ -195,11 +196,9 @@ export default function LineupManagerScreen() {
         </TouchableOpacity>
       </View>
 
-      <ScrollView
+      <AppScrollView
         style={styles.content}
         contentContainerStyle={styles.contentInner}
-        showsVerticalScrollIndicator={true}
-        nestedScrollEnabled={true}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
       >
         {matches.length === 0 ? (
@@ -355,7 +354,7 @@ export default function LineupManagerScreen() {
             })}
           </View>
         )}
-      </ScrollView>
+      </AppScrollView>
     </View>
   );
 }

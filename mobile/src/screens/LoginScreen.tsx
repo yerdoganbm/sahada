@@ -13,8 +13,8 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
-  ScrollView,
 } from 'react-native';
+import AppScrollView from '../components/AppScrollView';
 import { useNavigation, CommonActions } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
@@ -206,11 +206,10 @@ export default function LoginScreen() {
         </TouchableOpacity>
       </View>
 
-      <ScrollView
+      <AppScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={true}
       >
       <View style={styles.content}>
         {/* Logo */}
@@ -362,7 +361,7 @@ export default function LoginScreen() {
           </Text>
         </View>
       </View>
-      </ScrollView>
+      </AppScrollView>
     </KeyboardAvoidingView>
     </>
   );

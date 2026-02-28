@@ -7,13 +7,13 @@ import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
   TouchableOpacity,
   Image,
   ActivityIndicator,
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
+import AppScrollView from '../components/AppScrollView';
 import { RootStackParamList } from '../types';
 import { colors, spacing, borderRadius, typography } from '../theme';
 import { getVenue } from '../services/venues';
@@ -64,10 +64,9 @@ export default function VenueDetailsScreen() {
   }
 
   return (
-    <ScrollView
+    <AppScrollView
       style={styles.container}
       contentContainerStyle={styles.scrollContent}
-      showsVerticalScrollIndicator={true}
     >
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
@@ -113,7 +112,7 @@ export default function VenueDetailsScreen() {
           <Text style={styles.bookBtnText}>Rezervasyon Yap</Text>
         </TouchableOpacity>
       </View>
-    </ScrollView>
+    </AppScrollView>
   );
 }
 

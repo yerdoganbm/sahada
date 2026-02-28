@@ -7,7 +7,6 @@ import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
   TouchableOpacity,
   RefreshControl,
   ActivityIndicator,
@@ -19,6 +18,7 @@ import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import { getPolls, votePoll } from '../services/polls';
 import { getTeamIdForUser } from '../services/players';
+import AppScrollView from '../components/AppScrollView';
 import { RootStackParamList } from '../types';
 import { colors, spacing, borderRadius, typography } from '../theme';
 import type { Poll } from '../types';
@@ -83,10 +83,9 @@ export default function PollsScreen() {
         <View style={styles.placeholder} />
       </View>
 
-      <ScrollView
+      <AppScrollView
         style={styles.content}
         contentContainerStyle={styles.contentInner}
-        showsVerticalScrollIndicator={true}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
         {polls.length === 0 ? (
@@ -122,7 +121,7 @@ export default function PollsScreen() {
             );
           })
         )}
-      </ScrollView>
+      </AppScrollView>
     </View>
   );
 }

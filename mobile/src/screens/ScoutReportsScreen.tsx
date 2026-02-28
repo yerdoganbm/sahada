@@ -7,7 +7,6 @@ import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
   TouchableOpacity,
   RefreshControl,
   ActivityIndicator,
@@ -16,6 +15,7 @@ import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { getScoutReports } from '../services/talent';
+import AppScrollView from '../components/AppScrollView';
 import { RootStackParamList } from '../types';
 import { colors, spacing, borderRadius, typography } from '../theme';
 
@@ -69,10 +69,9 @@ export default function ScoutReportsScreen() {
         <Text style={styles.headerTitle}>Scout Raporları</Text>
         <View style={styles.placeholder} />
       </View>
-      <ScrollView
+      <AppScrollView
         style={styles.content}
         contentContainerStyle={styles.contentInner}
-        showsVerticalScrollIndicator={true}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
         {items.length === 0 ? (
@@ -113,7 +112,7 @@ export default function ScoutReportsScreen() {
             </View>
           ))
         )}
-      </ScrollView>
+      </AppScrollView>
     </View>
   );
 }
