@@ -33,6 +33,12 @@ type LoginScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Login'
 const getBiometrics = () =>
   Platform.OS === 'web' ? null : require('react-native-biometrics').default;
 
+const LOG = (msg: string, data?: object, hyp?: string) => {
+  const payload = { sessionId: '9eeead', location: 'LoginScreen', message: msg, data: data ?? {}, hypothesisId: hyp ?? 'H0', timestamp: Date.now() };
+  fetch('http://127.0.0.1:7748/ingest/ac5c5351-5103-4522-8149-3f9d9e41282d', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '9eeead' }, body: JSON.stringify(payload) }).catch(() => {});
+  if (__DEV__) console.warn('[DEBUG]', msg, data ?? '');
+};
+
 export default function LoginScreen() {
   const navigation = useNavigation<LoginScreenNavigationProp>();
   const { login, loginWithCredentials, restoreSession } = useAuth();
@@ -52,42 +58,43 @@ export default function LoginScreen() {
   const [savedUserId, setSavedUserId] = useState<string | null>(null);
 
   useEffect(() => {
-    const Biometrics = getBiometrics();
-    if (!Biometrics) return;
+    LOG('LoginScreen mounted', { platform: Platform.OS }, 'H4');
     let cancelled = false;
-    const rnBiometrics = new Biometrics();
-    (async () => {
-      try {
-        const [sensor, userId] = await Promise.all([
-          rnBiometrics.isSensorAvailable(),
-          AsyncStorage.getItem(BIOMETRIC_USER_KEY),
-        ]);
-        if (!cancelled && sensor.available && userId) {
-          setBiometricAvailable(true);
-          setSavedUserId(userId);
-        }
-      } catch {
-        if (!cancelled) setBiometricAvailable(false);
+    try {
+      const Biometrics = getBiometrics();
+      if (!Biometrics) {
+        LOG('getBiometrics returned null (web?)', { platform: Platform.OS }, 'H1');
+        return;
       }
-    })();
+      const rnBiometrics = new Biometrics();
+      (async () => {
+        try {
+          const [sensor, userId] = await Promise.all([
+            rnBiometrics.isSensorAvailable(),
+            AsyncStorage.getItem(BIOMETRIC_USER_KEY),
+          ]);
+          if (!cancelled) {
+            LOG('Biometrics check done', { available: sensor?.available, hasUserId: !!userId }, 'H1');
+            if (sensor?.available && userId) {
+              setBiometricAvailable(true);
+              setSavedUserId(userId);
+            }
+          }
+        } catch (e) {
+          if (!cancelled) {
+            LOG('Biometrics error', { err: String(e) }, 'H1');
+            setBiometricAvailable(false);
+          }
+        }
+      })();
+    } catch (e) {
+      LOG('getBiometrics/new Biometrics threw', { err: String(e), platform: Platform.OS }, 'H1');
+    }
     return () => { cancelled = true; };
   }, []);
 
   const handleLogin = async () => {
-    // #region agent log
-    fetch('http://127.0.0.1:7748/ingest/ac5c5351-5103-4522-8149-3f9d9e41282d', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '9eeead' },
-      body: JSON.stringify({
-        sessionId: '9eeead',
-        location: 'LoginScreen.tsx:handleLogin',
-        message: 'handleLogin called',
-        data: { isLoading, phoneLength: phone.trim().length },
-        hypothesisId: 'H2',
-        timestamp: Date.now(),
-      }),
-    }).catch(() => {});
-    // #endregion
+    LOG('handleLogin pressed', { phoneLen: phone.trim().length }, 'H2');
     hapticLight();
     const digits = phone.replace(/\D/g, '');
     if (!digits || digits.length < 10) {
@@ -132,20 +139,7 @@ export default function LoginScreen() {
       });
     } finally {
       setIsLoading(false);
-      // #region agent log
-      fetch('http://127.0.0.1:7748/ingest/ac5c5351-5103-4522-8149-3f9d9e41282d', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '9eeead' },
-        body: JSON.stringify({
-          sessionId: '9eeead',
-          location: 'LoginScreen.tsx:handleLogin:finally',
-          message: 'Login loading ended',
-          data: {},
-          hypothesisId: 'H2',
-          timestamp: Date.now(),
-        }),
-      }).catch(() => {});
-      // #endregion
+      LOG('handleLogin finished', {}, 'H2');
     }
   };
 
@@ -284,6 +278,7 @@ export default function LoginScreen() {
         <TouchableOpacity
           style={styles.registerButton}
           onPress={() => {
+            LOG('Register button pressed', {}, 'H3');
             hapticLight();
             const digits = phone.replace(/\D/g, '');
             const prefill =
@@ -349,6 +344,7 @@ export default function LoginScreen() {
                 key={d.phone}
                 style={styles.demoBtn}
                 onPress={() => {
+                  LOG('Demo button pressed', { phone: d.phone }, 'H3');
                   setPhone(d.phone);
                 }}
               >
