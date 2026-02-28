@@ -1,23 +1,24 @@
 /* ===========================================
-   MOBILE-FIRST RESPONSIVE DESIGN
+   MOBILE-FIRST RESPONSIVE DESIGN  
+   iOS Safari Scroll - Final Fix
+   
+   Yöntem: Body scroll (en güvenilir)
+   Neden: iOS Safari'de custom div scroll'u
+   -webkit-overflow-scrolling + position:sticky
+   kombinasyonuyla bozuluyor. Body scroll her
+   zaman en güvenli seçenek.
    =========================================== */
 
-/* 
- * iOS Safari Scroll Fix - v2
- * En güvenilir yöntem: body'nin doğal scroll yapmasına izin ver.
- * iOS Safari'de custom scroll container'lar (body dışı div'ler)
- * -webkit-overflow-scrolling: touch ile bile tutarsız çalışır.
- * Body scroll her zaman en güvenli seçenek.
- */
+/* Hiçbir şeyi overflow:hidden ile kısıtlama */
 html {
   height: 100%;
 }
 
 body {
-  height: 100%;
-  /* overflow-x'i body'den ayırma — iOS'ta overflow-x:hidden dikey scroll'u öldürür */
-  /* Bunun yerine içerik taşmasını max-width ile engelle */
-  max-width: 100vw;
+  min-height: 100%;
+  /* overflow-x:hidden SADECE body'de ve ayrı satırda — iOS bug: 
+     overflow shorthand body'de dikey scroll'u öldürür */
+  overflow-x: clip; /* clip, hidden'dan farklı olarak scroll'u bloke etmez */
   -webkit-overflow-scrolling: touch;
 }
 
@@ -27,10 +28,8 @@ body {
 
 /* Base Mobile Styles (320px+) */
 @media (max-width: 768px) {
-  /* Layout */
   body {
     font-size: 14px;
-    overflow-x: hidden;
   }
 
   /* Safe Areas for Notch/Home Indicator */
@@ -48,14 +47,13 @@ body {
     padding-right: 16px;
   }
 
-  /* App container - sadece layout, scroll body'de */
+  /* App container — scroll yok, body hallediyor */
   .app-container {
-    min-height: 100%;
-    overflow-x: hidden;
-    /* overflow-y yok — body scroll yapıyor */
+    min-height: 100vh;
+    min-height: calc(var(--vh, 1vh) * 100);
   }
 
-  /* Touch Targets (min 44x44px) - Only for primary interactive elements */
+  /* Touch Targets */
   .tap-target,
   .bottom-nav-item {
     min-height: 44px;
@@ -78,7 +76,7 @@ body {
     padding: 16px;
   }
 
-  /* Grid Responsive - Only for layout grids, not component grids */
+  /* Grid Responsive */
   .grid-responsive-4 { grid-template-columns: repeat(2, 1fr); }
   .grid-responsive-3 { grid-template-columns: repeat(2, 1fr); }
   .grid-responsive-2 { grid-template-columns: 1fr; }
@@ -98,7 +96,7 @@ body {
     display: block !important;
   }
 
-  /* Mobile Navigation */
+  /* Mobile Navigation — position:fixed, body scroll ile uyumlu */
   .bottom-nav {
     position: fixed;
     bottom: 0;
@@ -135,24 +133,12 @@ body {
     max-width: 100px;
   }
 
-  .bottom-nav-item.active {
-    color: #10B981;
-  }
+  .bottom-nav-item.active { color: #10B981; }
+  .bottom-nav-item.active .bottom-nav-icon { transform: scale(1.1); }
+  .bottom-nav-icon { font-size: 24px; transition: transform 0.2s; }
+  .bottom-nav-label { font-size: 10px; }
 
-  .bottom-nav-item.active .bottom-nav-icon {
-    transform: scale(1.1);
-  }
-
-  .bottom-nav-icon {
-    font-size: 24px;
-    transition: transform 0.2s;
-  }
-
-  .bottom-nav-label {
-    font-size: 10px;
-  }
-
-  /* Mobile Header */
+  /* Mobile Header — position:sticky, body scroll ile çalışır */
   .mobile-header {
     position: sticky;
     top: 0;
@@ -171,16 +157,16 @@ body {
     -webkit-backdrop-filter: blur(10px);
   }
 
-  /* Content Padding for Fixed Nav */
-  /* min-height DOĞRU — body scroll yaptığı için content büyümeli */
+  /* Content area */
   .mobile-content {
     min-height: 100vh;
     min-height: calc(var(--vh, 1vh) * 100);
     background: #0B0F1A;
-    /* overflow yok — body scroll yapıyor */
+    display: flex;
+    flex-direction: column;
   }
 
-  /* Touch Scroll - yatay scroll için */
+  /* Yatay scroll listeler */
   .scroll-container {
     overflow-x: auto;
     overflow-y: hidden;
@@ -192,11 +178,11 @@ body {
     scroll-snap-align: start;
   }
 
-  /* Mobile Forms */
+  /* Mobile Forms — 16px zoom engellemek için */
   input,
   select,
   textarea {
-    font-size: 16px !important; /* Prevents zoom on iOS */
+    font-size: 16px !important;
     padding: 14px;
     border-radius: 12px;
   }
@@ -246,7 +232,7 @@ body {
   .avatar-lg { width: 64px; height: 64px; }
   .avatar-xl { width: 80px; height: 80px; }
 
-  /* Spacing Mobile */
+  /* Spacing */
   .space-y-4 > * + * { margin-top: 16px; }
   .space-y-6 > * + * { margin-top: 24px; }
   .gap-4 { gap: 16px; }
@@ -263,7 +249,7 @@ body {
     opacity: 0.9;
   }
 
-  /* Horizontal Scroll Lists */
+  /* Horizontal Scroll */
   .horizontal-scroll {
     display: flex;
     overflow-x: auto;
@@ -274,9 +260,7 @@ body {
     scroll-padding: 0 16px;
   }
 
-  .horizontal-scroll::-webkit-scrollbar {
-    display: none;
-  }
+  .horizontal-scroll::-webkit-scrollbar { display: none; }
 
   .horizontal-scroll-item {
     flex-shrink: 0;
@@ -284,14 +268,12 @@ body {
     min-width: 90px;
   }
 
-  /* Quick Action Cards - Mobile optimized */
   .quick-action-card {
     flex-shrink: 0;
     width: 90px;
     scroll-snap-align: start;
   }
 
-  /* Image Optimization */
   img {
     max-width: 100%;
     height: auto;
@@ -315,95 +297,50 @@ body {
   }
 }
 
-/* Tablet Landscape (768px - 1024px) */
+/* Tablet Landscape */
 @media (min-width: 768px) and (max-width: 1024px) {
-  .container {
-    max-width: 720px;
-    margin: 0 auto;
-  }
-
+  .container { max-width: 720px; margin: 0 auto; }
   .grid-responsive-4 { grid-template-columns: repeat(3, 1fr); }
   .grid-responsive-3 { grid-template-columns: repeat(2, 1fr); }
-
-  /* Show bottom nav on tablet too */
-  .bottom-nav {
-    display: flex;
-  }
+  .bottom-nav { display: flex; }
 }
 
-/* Desktop (1024px+) */
+/* Desktop */
 @media (min-width: 1024px) {
-  .mobile-only {
-    display: none !important;
-  }
-
-  .desktop-only {
-    display: block !important;
-  }
-
-  .bottom-nav {
-    display: none; /* Hide mobile nav on desktop */
-  }
-
-  .mobile-content {
-    padding-top: 0;
-    padding-bottom: 0;
-  }
+  .mobile-only { display: none !important; }
+  .desktop-only { display: block !important; }
+  .bottom-nav { display: none; }
+  .mobile-content { padding-top: 0; padding-bottom: 0; }
 }
 
-/* Landscape Mobile Phones */
+/* Landscape Mobile */
 @media (max-height: 500px) and (orientation: landscape) {
-  .mobile-header {
-    height: 48px;
-    padding-top: 0;
-  }
-
-  .bottom-nav {
-    height: 56px;
-  }
-
-  .mobile-content {
-    padding-top: 48px;
-    padding-bottom: 72px;
-  }
+  .mobile-header { height: 48px; padding-top: 0; }
+  .bottom-nav { height: 56px; }
+  .mobile-content { padding-top: 48px; padding-bottom: 72px; }
 }
 
-/* High DPI Screens */
+/* High DPI */
 @media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
-  img {
-    image-rendering: -webkit-optimize-contrast;
-  }
+  img { image-rendering: -webkit-optimize-contrast; }
 }
 
-/* Dark Mode Adjustments for Mobile */
+/* Dark Mode */
 @media (prefers-color-scheme: dark) {
-  .mobile-header,
-  .bottom-nav {
-    background: #0B0F1A;
-  }
+  .mobile-header, .bottom-nav { background: #0B0F1A; }
 }
 
 /* Reduced Motion */
 @media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
+  *, *::before, *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
 }
 
-/* Print Styles */
+/* Print */
 @media print {
-  .mobile-header,
-  .bottom-nav,
-  button {
-    display: none !important;
-  }
-
-  body {
-    background: white !important;
-    color: black !important;
-  }
+  .mobile-header, .bottom-nav, button { display: none !important; }
+  body { background: white !important; color: black !important; }
 }
