@@ -38,13 +38,14 @@ export default function AppScrollView({
 
   return (
     <ScrollView
-      style={[{ flex: 1 }, style]}
+      style={[{ flex: 1, minHeight: 0 }, style]}
       contentContainerStyle={contentStyle}
       horizontal={horizontal}
       nestedScrollEnabled={nestedScrollEnabled}
       bounces={bounces}
       showsVerticalScrollIndicator={horizontal ? false : showsVerticalScrollIndicator}
       showsHorizontalScrollIndicator={false}
+      scrollEventThrottle={16}
       {...rest}
     />
   );
