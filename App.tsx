@@ -1552,7 +1552,7 @@ function App() {
   return (
     <ToastProvider>
       {/* iOS Safari Fix: app-container scroll container, mobile-content sadece layout */}
-      <div className="app-container mobile-content" style={{ touchAction: 'pan-y' }}>
+      <div className="app-container mobile-content" >
         {/* Mobile Header - Only for screens without their own header */}
         {showMobileHeader && (
           <MobileHeader

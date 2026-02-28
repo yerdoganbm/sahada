@@ -31,7 +31,7 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ onBack, 
   };
 
   return (
-    <div className="bg-secondary min-h-screen pb-safe-bottom relative overflow-x-hidden">
+    <div className="bg-secondary min-h-screen pb-safe-bottom relative ">
       {/* Background Ambience */}
       <div className="absolute top-0 left-0 right-0 h-[60vh] bg-gradient-to-b from-slate-900 to-secondary pointer-events-none" />
       <div className="absolute top-[-10%] left-[-20%] w-[60%] h-[60%] bg-primary/10 rounded-full blur-[100px] pointer-events-none" />

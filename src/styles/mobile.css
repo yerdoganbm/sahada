@@ -3,27 +3,26 @@
    =========================================== */
 
 /* 
- * iOS Safari Scroll Fix
- * html ve body'nin height:100% olması şart;
- * yoksa overflow-y:auto olan container scroll box oluşturmuyor.
+ * iOS Safari Scroll Fix - v2
+ * En güvenilir yöntem: body'nin doğal scroll yapmasına izin ver.
+ * iOS Safari'de custom scroll container'lar (body dışı div'ler)
+ * -webkit-overflow-scrolling: touch ile bile tutarsız çalışır.
+ * Body scroll her zaman en güvenli seçenek.
  */
 html {
   height: 100%;
-  /* iOS'ta elastik overscroll'u sadece body'de tut */
-  overflow: hidden;
 }
 
 body {
   height: 100%;
-  /* overflow-x: hidden tek başına bazen dikey scrollu da bloke eder, ayrı tanımla */
-  overflow-x: hidden;
-  overflow-y: hidden; /* scroll body değil, app-container'da */
+  /* overflow-x'i body'den ayırma — iOS'ta overflow-x:hidden dikey scroll'u öldürür */
+  /* Bunun yerine içerik taşmasını max-width ile engelle */
+  max-width: 100vw;
   -webkit-overflow-scrolling: touch;
 }
 
 #root {
-  height: 100%;
-  overflow: hidden;
+  min-height: 100%;
 }
 
 /* Base Mobile Styles (320px+) */
@@ -31,6 +30,7 @@ body {
   /* Layout */
   body {
     font-size: 14px;
+    overflow-x: hidden;
   }
 
   /* Safe Areas for Notch/Home Indicator */
@@ -48,14 +48,11 @@ body {
     padding-right: 16px;
   }
 
-  /* Ensure all screens can scroll properly */
-  /* iOS Safari Fix: height:100% zorunlu, min-height scroll box oluşturmaz */
+  /* App container - sadece layout, scroll body'de */
   .app-container {
-    height: 100%;
-    overflow-y: scroll; /* 'auto' değil 'scroll' — iOS'ta auto bazen çalışmaz */
+    min-height: 100%;
     overflow-x: hidden;
-    -webkit-overflow-scrolling: touch;
-    scroll-behavior: smooth;
+    /* overflow-y yok — body scroll yapıyor */
   }
 
   /* Touch Targets (min 44x44px) - Only for primary interactive elements */
@@ -175,17 +172,15 @@ body {
   }
 
   /* Content Padding for Fixed Nav */
-  /* iOS Safari Fix: min-height scroll container oluşturmaz, height kullanılmalı */
+  /* min-height DOĞRU — body scroll yaptığı için content büyümeli */
   .mobile-content {
-    height: 100%;
-    height: calc(var(--vh, 1vh) * 100);
+    min-height: 100vh;
+    min-height: calc(var(--vh, 1vh) * 100);
     background: #0B0F1A;
-    display: flex;
-    flex-direction: column;
-    /* Scroll bu eleman yerine .app-container'da (parent) oluyor */
+    /* overflow yok — body scroll yapıyor */
   }
 
-  /* Touch Scroll */
+  /* Touch Scroll - yatay scroll için */
   .scroll-container {
     overflow-x: auto;
     overflow-y: hidden;
@@ -220,6 +215,7 @@ body {
     background: var(--secondary, #0B0F1A);
     z-index: 1000;
     overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
   }
 
   /* Swipeable Cards */
