@@ -59,10 +59,7 @@
       body {
         background-color: #0B0F1A;
         color: #f8fafc;
-        margin: 0;
-        padding: 0;
         -webkit-tap-highlight-color: transparent;
-        overscroll-behavior-x: none;
       }
       .glass {
         background: rgba(21, 30, 50, 0.7);
@@ -143,6 +140,33 @@
   }
 }
 </script>
+
+  <!-- SCROLL FIX: Bu blok iOS Safari scroll sorununu çözer -->
+  <style id="scroll-fix">
+    html, body {
+      height: auto !important;
+      min-height: 100% !important;
+      overflow: visible !important;
+      overflow-x: hidden !important;
+      overflow-y: visible !important;
+      -webkit-overflow-scrolling: auto !important;
+    }
+    #root {
+      height: auto !important;
+      min-height: 100% !important;
+      overflow: visible !important;
+    }
+    .app-container {
+      height: auto !important;
+      min-height: 100vh !important;
+      overflow: visible !important;
+    }
+    .mobile-content {
+      height: auto !important;
+      min-height: 100vh !important;
+      overflow: visible !important;
+    }
+  </style>
 </head>
   <body>
     <div id="root"></div>
