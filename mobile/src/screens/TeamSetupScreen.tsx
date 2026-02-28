@@ -12,6 +12,7 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
@@ -20,6 +21,7 @@ import { TeamProfile } from '../types';
 import { RootStackParamList } from '../types';
 import { colors, spacing, borderRadius, typography } from '../theme';
 import { hapticLight } from '../utils/haptic';
+import AlertModal from '../components/AlertModal';
 
 type TeamSetupRoute = RouteProp<RootStackParamList, 'TeamSetup'>;
 
@@ -38,6 +40,8 @@ export default function TeamSetupScreen() {
   const [founderPhone, setFounderPhone] = useState(prefillPhone);
   const [primaryColor, setPrimaryColor] = useState(COLOR_OPTIONS[0]);
   const [inlineError, setInlineError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [alert, setAlert] = useState<{ title: string; message: string; type?: 'info' | 'error' | 'warning' } | null>(null);
 
   useEffect(() => {
     if (prefillPhone) setFounderPhone(prefillPhone);
@@ -45,59 +49,78 @@ export default function TeamSetupScreen() {
 
   const inviteCode = (shortName || name.slice(0, 3).toUpperCase()) + '-' + new Date().getFullYear();
 
-  const handleNext = () => {
-    // #region agent log
-    const canNextNow =
-      (step === 1 && name.trim().length >= 2) ||
-      (step === 2 && founderName.trim().length >= 2) ||
-      step === 3;
-    if (!canNextNow) {
-      hapticLight();
-      const msg =
-        step === 1
-          ? 'Takım adı en az 2 karakter olmalı'
-          : step === 2
-          ? 'Kurucu adı en az 2 karakter olmalı'
-          : '';
-      setInlineError(msg);
-      fetch('http://127.0.0.1:7748/ingest/ac5c5351-5103-4522-8149-3f9d9e41282d', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '9eeead' },
-        body: JSON.stringify({
-          sessionId: '9eeead',
-          location: 'TeamSetupScreen.tsx:handleNext',
-          message: 'Devam tapped with invalid form',
-          data: { step, nameLen: name.trim().length, founderNameLen: founderName.trim().length, reason: msg },
-          hypothesisId: 'H1',
-          timestamp: Date.now(),
-        }),
-      }).catch(() => {});
+  const handleNext = async () => {
+    hapticLight();
+    const canNextStep1 = step === 1 && name.trim().length >= 2;
+    const canNextStep2 = step === 2 && founderName.trim().length >= 2;
+    const canNextStep3 = step === 3;
+
+    if (step === 1) {
+      if (!canNextStep1) {
+        setInlineError('Takım adı en az 2 karakter olmalı');
+        return;
+      }
+      setInlineError(null);
+      setStep(2);
+      return;
+    }
+
+    if (step === 2) {
+      if (!canNextStep2) {
+        setInlineError('Kurucu adı en az 2 karakter olmalı');
+        return;
+      }
+      setInlineError(null);
+      setStep(3);
+      return;
+    }
+
+    // Step 3: validate founder phone and optional email before submit
+    const phoneTrim = founderPhone.trim();
+    if (!phoneTrim || phoneTrim.length < 10) {
+      setInlineError('Kurucu telefon numarası 10 haneli olmalıdır (5 ile başlayan).');
+      return;
+    }
+    if (phoneTrim.length > 10 || !/^5[0-9]{9}$/.test(phoneTrim)) {
+      setInlineError('Telefon numarası 5 ile başlayan 10 haneli olmalıdır (örn: 532 123 45 67).');
+      return;
+    }
+    const emailTrim = founderEmail.trim();
+    if (emailTrim && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailTrim)) {
+      setInlineError('Lütfen geçerli bir e-posta adresi girin veya boş bırakın.');
       return;
     }
     setInlineError(null);
-    // #endregion
-    if (step === 1) {
-      if (name.trim().length < 2) return;
-      setStep(2);
-    } else if (step === 2) {
-      if (founderName.trim().length < 2) return;
-      setStep(3);
-    } else {
-      const team: TeamProfile = {
-        id: `team_${Date.now()}`,
-        name: name.trim(),
-        shortName: shortName.trim() || name.slice(0, 3).toUpperCase(),
-        inviteCode,
-        colors: [primaryColor, colors.secondary],
-        founderName: founderName.trim(),
-        founderEmail: founderEmail.trim() || undefined,
-        foundedDate: new Date().toISOString().split('T')[0],
-      };
-      createTeamAndLogin(team, founderName.trim(), founderEmail.trim() || undefined, founderPhone.trim() || undefined);
+
+    const team: TeamProfile = {
+      id: `team_${Date.now()}`,
+      name: name.trim(),
+      shortName: shortName.trim() || name.slice(0, 3).toUpperCase(),
+      inviteCode,
+      colors: [primaryColor, colors.secondary],
+      founderName: founderName.trim(),
+      founderEmail: emailTrim || undefined,
+      foundedDate: new Date().toISOString().split('T')[0],
+    };
+
+    setLoading(true);
+    try {
+      await createTeamAndLogin(team, founderName.trim(), emailTrim || undefined, phoneTrim);
+    } catch (err) {
+      console.error('Team setup error:', err);
+      setAlert({
+        title: 'Hata',
+        message: err instanceof Error ? err.message : 'Takım kurulurken bir hata oluştu. Lütfen tekrar deneyin.',
+        type: 'error',
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleBack = () => {
+    hapticLight();
+    setInlineError(null);
     if (step > 1) setStep(step - 1);
     else navigation.goBack();
   };
@@ -108,12 +131,26 @@ export default function TeamSetupScreen() {
     step === 3;
 
   return (
+    <>
+    <AlertModal
+      visible={!!alert}
+      title={alert?.title ?? ''}
+      message={alert?.message ?? ''}
+      type={alert?.type ?? 'error'}
+      confirmText="Tamam"
+      onConfirm={() => setAlert(null)}
+    />
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <View style={styles.header}>
-        <TouchableOpacity onPress={handleBack} style={styles.backBtn}>
+        <TouchableOpacity
+          onPress={handleBack}
+          style={styles.backBtn}
+          accessibilityLabel="Geri"
+          accessibilityRole="button"
+        >
           <Icon name="arrow-left" size={24} color={colors.text.primary} />
         </TouchableOpacity>
         <View style={styles.progress}>
@@ -153,7 +190,7 @@ export default function TeamSetupScreen() {
 
         {step === 1 && (
           <View style={styles.form}>
-            <Text style={styles.label}>Takım Adı</Text>
+            <Text style={styles.label}>Takım Adı *</Text>
             <TextInput
               style={styles.input}
               value={name}
@@ -161,6 +198,8 @@ export default function TeamSetupScreen() {
               placeholder="Örn: Kuzey Yıldızları"
               placeholderTextColor={colors.text.disabled}
               autoCapitalize="words"
+              maxLength={60}
+              accessibilityLabel="Takım adı"
             />
             <Text style={styles.label}>Kısaltma (3 harf)</Text>
             <TextInput
@@ -170,13 +209,14 @@ export default function TeamSetupScreen() {
               placeholder="Örn: KZY"
               placeholderTextColor={colors.text.disabled}
               maxLength={3}
+              accessibilityLabel="Takım kısaltması"
             />
           </View>
         )}
 
         {step === 2 && (
           <View style={styles.form}>
-            <Text style={styles.label}>Adın Soyadın</Text>
+            <Text style={styles.label}>Adın Soyadın *</Text>
             <TextInput
               style={styles.input}
               value={founderName}
@@ -184,25 +224,40 @@ export default function TeamSetupScreen() {
               placeholder="Örn: Ahmet Yılmaz"
               placeholderTextColor={colors.text.disabled}
               autoCapitalize="words"
+              editable={!loading}
+              accessibilityLabel="Kurucu adı soyadı"
             />
-            <Text style={styles.label}>Telefon</Text>
-            <TextInput
-              style={styles.input}
-              value={founderPhone}
-              onChangeText={setFounderPhone}
-              placeholder="5XX XXX XX XX"
-              placeholderTextColor={colors.text.disabled}
-              keyboardType="phone-pad"
-            />
+            <Text style={styles.label}>Telefon *</Text>
+            <View style={styles.phoneInputWrapper}>
+              <Text style={styles.countryCode}>+90</Text>
+              <TextInput
+                style={styles.inputPhone}
+                value={founderPhone}
+                onChangeText={(t) => {
+                  const d = t.replace(/\D/g, '');
+                  const noLeadingZero = d.startsWith('0') ? d.slice(1) : d;
+                  setFounderPhone(noLeadingZero.slice(0, 10));
+                  setInlineError(null);
+                }}
+                placeholder="5XX XXX XX XX"
+                placeholderTextColor={colors.text.disabled}
+                keyboardType="phone-pad"
+                maxLength={10}
+                editable={!loading}
+                accessibilityLabel="Kurucu telefon numarası"
+              />
+            </View>
             <Text style={styles.label}>E-posta (opsiyonel)</Text>
             <TextInput
               style={styles.input}
               value={founderEmail}
-              onChangeText={setFounderEmail}
+              onChangeText={(t) => { setFounderEmail(t); setInlineError(null); }}
               placeholder="ahmet@example.com"
               placeholderTextColor={colors.text.disabled}
               keyboardType="email-address"
               autoCapitalize="none"
+              editable={!loading}
+              accessibilityLabel="Kurucu e-posta"
             />
           </View>
         )}
@@ -227,18 +282,34 @@ export default function TeamSetupScreen() {
           </View>
         )}
 
+        {inlineError ? (
+          <Text style={styles.inlineError}>{inlineError}</Text>
+        ) : null}
         <TouchableOpacity
-          style={[styles.nextBtn, !canNext && styles.nextBtnDisabled]}
+          style={[
+            styles.nextBtn,
+            (!canNext && step !== 3) && styles.nextBtnDisabled,
+            loading && styles.nextBtnDisabled,
+          ]}
           onPress={handleNext}
-          disabled={!canNext}
+          disabled={loading}
+          accessibilityLabel={step === 3 ? 'Tamamla' : 'Devam'}
+          accessibilityRole="button"
         >
-          <Text style={styles.nextBtnText}>
-            {step === 3 ? 'Tamamla' : 'Devam'}
-          </Text>
-          <Icon name="arrow-right" size={20} color={colors.secondary} />
+          {loading ? (
+            <ActivityIndicator color={colors.secondary} />
+          ) : (
+            <>
+              <Text style={styles.nextBtnText}>
+                {step === 3 ? 'Tamamla' : 'Devam'}
+              </Text>
+              <Icon name="arrow-right" size={20} color={colors.secondary} />
+            </>
+          )}
         </TouchableOpacity>
       </ScrollView>
     </KeyboardAvoidingView>
+    </>
   );
 }
 
@@ -321,6 +392,30 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.lg,
     color: colors.text.primary,
     marginBottom: spacing.md,
+  },
+  phoneInputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.lg,
+    borderWidth: 1,
+    borderColor: colors.border.light,
+    paddingHorizontal: spacing.md,
+    marginBottom: spacing.md,
+  },
+  countryCode: {
+    fontSize: typography.fontSize.lg,
+    fontWeight: typography.fontWeight.medium,
+    color: colors.text.secondary,
+    marginRight: spacing.sm,
+  },
+  inputPhone: {
+    flex: 1,
+    height: 52,
+    fontSize: typography.fontSize.lg,
+    fontWeight: typography.fontWeight.medium,
+    color: colors.text.primary,
+    paddingVertical: spacing.md,
   },
   inputShort: {
     textTransform: 'uppercase',

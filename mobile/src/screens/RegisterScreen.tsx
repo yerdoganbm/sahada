@@ -35,6 +35,9 @@ const POS_LABELS: Record<PlayerPosition, string> = {
 };
 const POSITIONS: PlayerPosition[] = ['GK', 'DEF', 'MID', 'FWD'];
 
+/** Yaygın forma numaraları – hızlı seçim için */
+const QUICK_SHIRT_NUMBERS = [1, 7, 9, 10, 11, 17, 21, 77, 99];
+
 type RegisterRoute = RouteProp<RootStackParamList, 'Register'>;
 type RegisterNavProp = StackNavigationProp<RootStackParamList, 'Register'>;
 
@@ -67,39 +70,24 @@ export default function RegisterScreen() {
     const nameTrim = name.trim();
     if (!nameTrim || nameTrim.length < 2) {
       setAlert({ title: 'Eksik bilgi', message: 'Ad soyad en az 2 karakter olmalıdır.', type: 'error' });
-      // #region agent log
-      fetch('http://127.0.0.1:7748/ingest/ac5c5351-5103-4522-8149-3f9d9e41282d', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '9eeead' },
-        body: JSON.stringify({
-          sessionId: '9eeead',
-          location: 'RegisterScreen.tsx:validation',
-          message: 'Validation error shown',
-          data: { reason: 'nameTooShort' },
-          hypothesisId: 'H3',
-          timestamp: Date.now(),
-        }),
-      }).catch(() => {});
-      // #endregion
+      return;
+    }
+    if (nameTrim.length > 100) {
+      setAlert({ title: 'Eksik bilgi', message: 'Ad soyad en fazla 100 karakter olabilir.', type: 'error' });
       return;
     }
     const phoneTrim = phone.trim().replace(/\D/g, '');
     if (phoneTrim.length < 10) {
-      setAlert({ title: 'Eksik bilgi', message: 'Geçerli bir telefon numarası giriniz.', type: 'error' });
-      // #region agent log
-      fetch('http://127.0.0.1:7748/ingest/ac5c5351-5103-4522-8149-3f9d9e41282d', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '9eeead' },
-        body: JSON.stringify({
-          sessionId: '9eeead',
-          location: 'RegisterScreen.tsx:validation',
-          message: 'Validation error shown',
-          data: { reason: 'invalidPhone' },
-          hypothesisId: 'H3',
-          timestamp: Date.now(),
-        }),
-      }).catch(() => {});
-      // #endregion
+      setAlert({ title: 'Eksik bilgi', message: 'Geçerli bir telefon numarası giriniz (10 hane).', type: 'error' });
+      return;
+    }
+    if (phoneTrim.length > 10 || !/^5[0-9]{9}$/.test(phoneTrim)) {
+      setAlert({ title: 'Geçersiz numara', message: 'Telefon numarası 5 ile başlayan 10 haneli olmalıdır (örn: 532 123 45 67).', type: 'error' });
+      return;
+    }
+    const emailTrim = email.trim();
+    if (emailTrim && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailTrim)) {
+      setAlert({ title: 'Geçersiz e-posta', message: 'Lütfen geçerli bir e-posta adresi girin veya boş bırakın.', type: 'error' });
       return;
     }
     setLoading(true);
@@ -205,7 +193,12 @@ export default function RegisterScreen() {
         keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
       >
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+          <TouchableOpacity
+            onPress={() => { hapticLight(); navigation.goBack(); }}
+            style={styles.backBtn}
+            accessibilityLabel="Geri"
+            accessibilityRole="button"
+          >
             <Icon name="arrow-left" size={24} color={colors.text.primary} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Kayıt Ol</Text>
@@ -226,7 +219,7 @@ export default function RegisterScreen() {
             Oyuna girmek için kayıt olun. Sonra takım kodunu girerek takıma katılabilir veya takım kurabilirsiniz.
           </Text>
           <View style={styles.form}>
-            <Text style={styles.label}>Ad Soyad</Text>
+            <Text style={styles.label}>Ad Soyad *</Text>
             <TextInput
               style={styles.input}
               value={name}
@@ -235,18 +228,25 @@ export default function RegisterScreen() {
               placeholderTextColor={colors.text.disabled}
               autoCapitalize="words"
               editable={!loading}
+              accessibilityLabel="Ad Soyad"
+              maxLength={100}
             />
-            <Text style={styles.label}>Telefon</Text>
+            <Text style={styles.label}>Telefon *</Text>
             <View style={styles.phoneRow}>
               <Text style={styles.countryCode}>+90</Text>
               <TextInput
                 style={styles.inputPhone}
                 value={phone}
-                onChangeText={setPhone}
+                onChangeText={(t) => {
+                  const d = t.replace(/\D/g, '');
+                  const noLeadingZero = d.startsWith('0') ? d.slice(1) : d;
+                  setPhone(noLeadingZero.slice(0, 10));
+                }}
                 placeholder="5XX XXX XX XX"
                 placeholderTextColor={colors.text.disabled}
                 keyboardType="phone-pad"
                 editable={!loading}
+                accessibilityLabel="Telefon numarası"
               />
             </View>
             <Text style={styles.label}>E-posta (opsiyonel)</Text>
@@ -259,6 +259,7 @@ export default function RegisterScreen() {
               keyboardType="email-address"
               autoCapitalize="none"
               editable={!loading}
+              accessibilityLabel="E-posta"
             />
 
             <Text style={[styles.label, styles.optionalSectionTitle]}>Oyun bilgileri (opsiyonel)</Text>
@@ -271,6 +272,9 @@ export default function RegisterScreen() {
                   onPress={() => !loading && setPosition(pos)}
                   activeOpacity={0.8}
                   disabled={loading}
+                  accessibilityLabel={POS_LABELS[pos]}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: position === pos }}
                 >
                   <Text
                     style={[styles.positionChipText, position === pos && styles.positionChipTextActive]}
@@ -282,22 +286,55 @@ export default function RegisterScreen() {
               ))}
             </View>
             <Text style={styles.labelSmall}>Forma numarası</Text>
-            <TextInput
-              style={styles.inputShort}
-              value={shirtNumber}
-              onChangeText={(t) => setShirtNumber(t.replace(/\D/g, '').slice(0, 2))}
-              placeholder="Boş bırakabilirsiniz"
-              placeholderTextColor={colors.text.disabled}
-              keyboardType="number-pad"
-              maxLength={2}
-              editable={!loading}
-            />
+            <View style={styles.shirtNumberSection}>
+              <View style={styles.quickNumbersRow}>
+                {QUICK_SHIRT_NUMBERS.map((n) => (
+                  <TouchableOpacity
+                    key={n}
+                    style={[styles.shirtChip, shirtNumber === String(n) && styles.shirtChipActive]}
+                    onPress={() => !loading && setShirtNumber(shirtNumber === String(n) ? '' : String(n))}
+                    activeOpacity={0.8}
+                    disabled={loading}
+                  >
+                    <Text style={[styles.shirtChipText, shirtNumber === String(n) && styles.shirtChipTextActive]}>
+                      {n}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+                <TouchableOpacity
+                  style={[styles.shirtChip, styles.shirtChipEmpty, !shirtNumber && styles.shirtChipActive]}
+                  onPress={() => !loading && setShirtNumber('')}
+                  activeOpacity={0.8}
+                  disabled={loading}
+                >
+                  <Text style={[styles.shirtChipText, !shirtNumber && styles.shirtChipTextActive]}>—</Text>
+                </TouchableOpacity>
+              </View>
+              <View style={styles.shirtNumberInputWrap}>
+                <Text style={styles.shirtNumberHint}>veya 1–99 arası yazın</Text>
+                <View style={styles.jerseyBadge}>
+                  <TextInput
+                    style={styles.jerseyInput}
+                    value={shirtNumber}
+                    onChangeText={(t) => setShirtNumber(t.replace(/\D/g, '').slice(0, 2))}
+                    placeholder="—"
+                    placeholderTextColor={colors.text.disabled}
+                    keyboardType="number-pad"
+                    maxLength={2}
+                    editable={!loading}
+                    selectTextOnFocus
+                  />
+                </View>
+              </View>
+            </View>
           </View>
           <TouchableOpacity
             style={[styles.submitBtn, loading && styles.submitBtnDisabled]}
             onPress={handleRegister}
             disabled={loading}
             activeOpacity={0.8}
+            accessibilityLabel="Kayıt ol"
+            accessibilityRole="button"
           >
             {loading ? (
               <ActivityIndicator color={colors.secondary} />
@@ -441,16 +478,66 @@ const styles = StyleSheet.create({
   positionChipTextActive: {
     color: colors.secondary,
   },
-  inputShort: {
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border.light,
-    borderRadius: borderRadius.lg,
-    padding: spacing.md,
-    fontSize: typography.fontSize.lg,
-    color: colors.text.primary,
+  shirtNumberSection: {
     marginBottom: spacing.md,
-    width: 88,
+  },
+  quickNumbersRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  shirtChip: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.surface,
+    borderWidth: 1.5,
+    borderColor: colors.border.light,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  shirtChipActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  shirtChipEmpty: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+  },
+  shirtChipText: {
+    fontSize: typography.fontSize.sm,
+    fontWeight: typography.fontWeight.bold,
+    color: colors.text.secondary,
+  },
+  shirtChipTextActive: {
+    color: colors.secondary,
+  },
+  shirtNumberInputWrap: {
+    alignItems: 'center',
+  },
+  shirtNumberHint: {
+    fontSize: typography.fontSize.xs,
+    color: colors.text.tertiary,
+    marginBottom: spacing.sm,
+  },
+  jerseyBadge: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: colors.surface,
+    borderWidth: 2,
+    borderColor: colors.border.medium,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  jerseyInput: {
+    fontSize: 24,
+    fontWeight: typography.fontWeight.bold,
+    color: colors.text.primary,
+    padding: 0,
+    minWidth: 36,
     textAlign: 'center',
   },
   submitBtn: {

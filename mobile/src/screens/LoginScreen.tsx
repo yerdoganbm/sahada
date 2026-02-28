@@ -89,8 +89,13 @@ export default function LoginScreen() {
     }).catch(() => {});
     // #endregion
     hapticLight();
-    if (!phone.trim()) {
-      setAlert({ title: 'Hata', message: 'Lütfen telefon numaranızı giriniz.', type: 'warning' });
+    const digits = phone.replace(/\D/g, '');
+    if (!digits || digits.length < 10) {
+      setAlert({
+        title: 'Hata',
+        message: 'Lütfen 10 haneli telefon numaranızı giriniz (5XX XXX XX XX).',
+        type: 'warning',
+      });
       return;
     }
 
@@ -100,13 +105,14 @@ export default function LoginScreen() {
     } catch (err) {
       console.error('Login error:', err);
       const digits = phone.trim().replace(/\D/g, '');
+      // +90 gösterildiği için prefill'de başta 0 olmasın; 10 hane (5xxxxxxxxx) kullan
       const phoneForPrefill =
         digits.length >= 10
           ? digits.startsWith('90')
-            ? digits
+            ? digits.slice(2)
             : digits.startsWith('0')
-              ? digits
-              : '0' + digits
+              ? digits.slice(1)
+              : digits.slice(-10)
           : phone.trim();
       setAlert({
         title: 'Hesabınız bulunamadı',
@@ -218,7 +224,7 @@ export default function LoginScreen() {
 
         {/* Phone Input */}
         <View style={styles.inputContainer}>
-          <Text style={styles.label}>TELEFON NUMARASI</Text>
+          <Text style={styles.label}>TELEFON NUMARASI *</Text>
           <View style={styles.phoneInputWrapper}>
             <Text style={styles.countryCode}>+90</Text>
             <TextInput
@@ -226,11 +232,17 @@ export default function LoginScreen() {
               placeholder="5XX XXX XX XX"
               placeholderTextColor={colors.text.disabled}
               value={phone}
-              onChangeText={setPhone}
+              onChangeText={(t) => {
+                const d = t.replace(/\D/g, '');
+                const noLeadingZero = d.startsWith('0') ? d.slice(1) : d;
+                setPhone(noLeadingZero.slice(0, 10));
+              }}
               keyboardType="phone-pad"
+              maxLength={10}
               autoFocus
               returnKeyType="done"
               onSubmitEditing={handleLogin}
+              accessibilityLabel="Telefon numarası"
             />
           </View>
         </View>
@@ -279,8 +291,22 @@ export default function LoginScreen() {
         {/* Create Team Button */}
         <TouchableOpacity
           style={styles.secondaryButton}
-          onPress={() => navigation.navigate('TeamSetup')}
+          onPress={() => {
+            hapticLight();
+            const digitsForPrefill = phone.replace(/\D/g, '');
+            const prefill =
+              digitsForPrefill.length >= 10
+                ? digitsForPrefill.startsWith('90')
+                  ? digitsForPrefill.slice(2)
+                  : digitsForPrefill.startsWith('0')
+                    ? digitsForPrefill.slice(1)
+                    : digitsForPrefill.slice(-10)
+                : '';
+            navigation.navigate('TeamSetup', { prefillPhone: prefill });
+          }}
           activeOpacity={0.8}
+          accessibilityLabel="Takımını sıfırdan kur"
+          accessibilityRole="button"
         >
           <Icon name="plus-circle-outline" size={20} color={colors.text.secondary} />
           <Text style={styles.secondaryButtonText}>Takımını Sıfırdan Kur</Text>
