@@ -1,0 +1,238 @@
+/* ===========================================
+   iOS SAFARI SCROLL FIX - GLOBAL SOLUTION
+   
+   Problem: iOS Safari'de scroll çalışmıyor
+   Sebep: Touch event'leri ve scroll container yapısı eksik
+   Çözüm: Body'yi scroll container yap, fixed elementler için düzeltmeler
+   =========================================== */
+
+/* ==================== GLOBAL ROOT FIX ==================== */
+html {
+  height: 100%;
+  /* iOS Safari için momentum scroll */
+  -webkit-overflow-scrolling: touch;
+  /* Yatay scroll'u engelle */
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+body {
+  /* Body her zaman scroll yapabilir */
+  min-height: 100vh;
+  overflow-x: hidden;
+  overflow-y: auto !important; /* CRITICAL: overflow:hidden olmamalı */
+  
+  /* iOS Safari momentum scroll */
+  -webkit-overflow-scrolling: touch;
+  
+  /* Yatay bounce'ı engelle, dikey scroll serbest */
+  overscroll-behavior-x: none;
+  overscroll-behavior-y: auto;
+  
+  /* Touch action - swipe navigation'ı engelle ama scroll'a izin ver */
+  touch-action: pan-y pinch-zoom;
+  
+  /* Position relative - fixed elementler için referans */
+  position: relative;
+}
+
+/* CRITICAL: Root div'in body scroll'una izin vermesi */
+#root {
+  min-height: 100vh;
+  /* overflow YOK - body scroll yapacak */
+  position: relative;
+}
+
+/* ==================== SCREEN CONTAINER FIX ==================== */
+/* Tüm ekranlar için base style */
+.screen-container,
+.app-container {
+  /* Min height - içerik az olsa bile scroll alanı var */
+  min-height: 100vh;
+  min-height: calc(var(--vh, 1vh) * 100);
+  
+  /* Padding için bottom nav yüksekliği */
+  padding-bottom: 76px;
+  
+  /* NO overflow - body scroll yapacak */
+  position: relative;
+}
+
+/* ==================== MOBILE HEADER FIX ==================== */
+.mobile-header {
+  /* Sticky position - body scroll ile çalışır */
+  position: sticky;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 90;
+  
+  /* iOS için backdrop blur fix */
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
+  
+  /* Safe area support */
+  padding-top: env(safe-area-inset-top);
+  
+  /* Touch events'i geçir */
+  pointer-events: auto;
+}
+
+/* ==================== BOTTOM NAV FIX ==================== */
+.bottom-nav {
+  /* Fixed position */
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  
+  /* iOS için backdrop blur fix */
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
+  
+  /* Safe area support */
+  padding-bottom: env(safe-area-inset-bottom);
+  
+  /* Touch events */
+  pointer-events: auto;
+}
+
+/* ==================== MODAL/DRAWER SCROLL LOCK ==================== */
+/* Modal açıkken body scroll'u kilitle */
+body.modal-open {
+  /* Scroll pozisyonunu kaydet ve kilitle */
+  overflow: hidden !important;
+  position: fixed !important;
+  top: var(--scroll-position, 0);
+  left: 0;
+  right: 0;
+  
+  /* iOS Safari bounce fix */
+  -webkit-overflow-scrolling: auto;
+}
+
+/* Modal içi scroll */
+.modal-container,
+.drawer-container {
+  /* Modal kendi içinde scroll yapabilir */
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  
+  /* Touch action */
+  touch-action: pan-y;
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  background: rgba(0, 0, 0, 0.5);
+  
+  /* Touch olaylarını yakala */
+  touch-action: none;
+}
+
+/* ==================== SCROLLABLE CONTENT AREAS ==================== */
+/* Eğer bir alan scroll yapacaksa (örn: chat history) */
+.scrollable-area {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+  
+  /* iOS için fix */
+  position: relative;
+}
+
+/* ==================== HORIZONTAL SCROLL FIX ==================== */
+/* Yatay scroll yapan elementler (örn: carousel) */
+.horizontal-scroll {
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x mandatory;
+  
+  /* Scrollbar gizle */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.horizontal-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+/* ==================== PULL TO REFRESH ==================== */
+/* Pull to refresh için overscroll behavior */
+body:not(.modal-open) {
+  overscroll-behavior-y: auto; /* Pull to refresh izin ver */
+}
+
+/* ==================== INPUT FIX ==================== */
+/* iOS Safari input focus scroll sorunları */
+input,
+textarea,
+select {
+  /* iOS zoom'u engelle */
+  font-size: 16px !important;
+  
+  /* Scroll position fix */
+  scroll-margin-top: 60px;
+}
+
+/* Input focus olduğunda sayfa pozisyonunu koru */
+input:focus,
+textarea:focus,
+select:focus {
+  scroll-margin-top: 60px;
+}
+
+/* ==================== SAFE AREA INSETS ==================== */
+/* iOS notch ve home indicator için safe area */
+@supports (padding: env(safe-area-inset-top)) {
+  .safe-top {
+    padding-top: calc(env(safe-area-inset-top) + 16px);
+  }
+  
+  .safe-bottom {
+    padding-bottom: calc(env(safe-area-inset-bottom) + 16px);
+  }
+  
+  .safe-left {
+    padding-left: calc(env(safe-area-inset-left) + 16px);
+  }
+  
+  .safe-right {
+    padding-right: calc(env(safe-area-inset-right) + 16px);
+  }
+}
+
+/* ==================== LANDSCAPE MODE ==================== */
+@media (max-height: 500px) and (orientation: landscape) {
+  /* Landscape modda header ve nav küçült */
+  .mobile-header {
+    height: 48px;
+    padding-top: 0;
+  }
+  
+  .bottom-nav {
+    height: 56px;
+  }
+  
+  .screen-container {
+    padding-bottom: 64px;
+  }
+}
+
+/* ==================== DEBUGGING ==================== */
+/* Geliştirme sırasında scroll sorunlarını görselleştir */
+/* body.debug-scroll * {
+  outline: 1px solid rgba(255, 0, 0, 0.2);
+}
+
+body.debug-scroll *:hover {
+  outline: 2px solid red;
+} */

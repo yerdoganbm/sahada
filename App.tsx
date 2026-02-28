@@ -5,6 +5,7 @@ import { BottomNav } from './components/BottomNav';
 import { MobileHeader } from './components/MobileHeader';
 import { InstallBanner } from './components/InstallBanner';
 import { useViewportHeight } from './hooks/useMobileFeatures';
+import { useViewportHeightFix } from './hooks/useIOSScrollFix';
 import { ScreenName, Venue, Player, Payment, Transaction, SubscriptionTier, RsvpStatus, Match, TransferRequest, Poll, TeamProfile, JoinRequest, Reservation, AppNotification } from './types';
 import { Dashboard } from './screens/Dashboard';
 import { TeamList } from './screens/TeamList';
@@ -66,7 +67,8 @@ function App() {
   
   // 📱 Mobile: Setup viewport height for mobile browsers
   useViewportHeight();
-  
+  useViewportHeightFix();
+
   // Browser back button desteği
   useEffect(() => {
     const handlePopState = (event: PopStateEvent) => {
@@ -1551,7 +1553,7 @@ function App() {
 
   return (
     <ToastProvider>
-      <div className="app-container mobile-content">
+      <div className="app-container mobile-content screen-container">
         {/* Mobile Header - Only for screens without their own header */}
         {showMobileHeader && (
           <MobileHeader
