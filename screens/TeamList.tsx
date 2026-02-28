@@ -34,7 +34,7 @@ export const TeamList: React.FC<TeamListProps> = ({ onBack, currentUser, onNavig
   });
 
   return (
-    <div className="pb-24 bg-secondary min-h-screen">
+    <div className="pb-safe-bottom bg-secondary min-h-screen">
       <div className="sticky top-0 z-40 bg-secondary/95 backdrop-blur-xl border-b border-white/5 safe-top">
          <div className="px-4 pt-4 pb-2 flex justify-between items-center">
             <div className="flex items-center gap-3">

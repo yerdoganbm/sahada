@@ -61,7 +61,7 @@ export const Polls: React.FC<PollsProps> = ({
   const pendingTransfers = transferRequests.filter(tr => tr.status === 'pending_captain');
 
   return (
-    <div className="bg-secondary min-h-screen pb-24">
+    <div className="bg-secondary min-h-screen pb-safe-bottom">
       {/* Header */}
       <div className="sticky top-0 z-40 bg-secondary/80 backdrop-blur-xl border-b border-white/5 px-4 pt-4 pb-3 flex justify-between items-center safe-top">
         <button onClick={onBack} className="w-10 h-10 rounded-full flex items-center justify-center bg-surface border border-white/5 active:scale-95 transition-transform">

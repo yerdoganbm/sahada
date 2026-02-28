@@ -18,7 +18,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onBack, onNavigate
   const isAdmin = currentUser.role === 'admin';
 
   return (
-    <div className="pb-24">
+    <div className="bg-secondary min-h-screen pb-safe-bottom">
       <Header 
         title="Profilim"
         onBack={onBack}
@@ -127,7 +127,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onBack, onNavigate
             highlight={isPremium && !isPartner}
           />
           
-          <ProfileMenuItem icon="support_agent" label="Destek" />
+          <ProfileMenuItem icon="support_agent" label="Destek" onClick={() => {/* TODO: Navigate to support screen */}} />
           
           <ProfileMenuItem 
             icon="logout" 
@@ -137,7 +137,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onBack, onNavigate
           />
         </div>
         
-        <span className="text-[10px] text-slate-600 font-mono">v1.2.0 • Release</span>
+        <span className="text-[10px] text-slate-600 font-mono">v1.2.0</span>
       </div>
     </div>
   );

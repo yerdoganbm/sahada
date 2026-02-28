@@ -46,30 +46,30 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const getTierInfo = () => {
     switch (currentUser.tier) {
       case 'partner':
-        return { label: 'Saha Partner', color: 'text-blue-600 bg-blue-50 border-blue-200' };
+        return { label: 'Saha Partner', color: 'text-blue-400 bg-blue-500/10 border-blue-500/30' };
       case 'premium':
-        return { label: 'Pro Baller', color: 'text-amber-500 bg-amber-50 border-amber-200' };
+        return { label: 'Pro Baller', color: 'text-amber-400 bg-amber-500/10 border-amber-500/30' };
       default:
-        return { label: 'Starter Üye', color: 'text-slate-400 bg-slate-50 border-slate-100' };
+        return { label: 'Starter Üye', color: 'text-slate-400 bg-slate-500/10 border-slate-500/30' };
     }
   };
 
   const tierInfo = getTierInfo();
 
   return (
-    <div className="pb-16 md:pb-24 bg-white min-h-screen text-slate-800 animate-fadeIn">
+    <div className="bg-secondary min-h-screen text-white animate-fadeIn">
       
       {/* Header Profile Section - Hide on mobile (MobileHeader will show) */}
-      <div className="desktop-only px-6 pt-8 pb-4 flex justify-between items-center bg-white sticky top-0 z-40 animate-fadeInDown">
+      <div className="desktop-only px-6 pt-8 pb-4 flex justify-between items-center bg-secondary sticky top-0 z-40 animate-fadeInDown">
         <div className="flex items-center gap-3 animate-slideInLeft">
           <div className="relative cursor-pointer hover-scale" onClick={() => onNavigate('profile')}>
-             <div className="w-10 h-10 rounded-xl bg-slate-100 overflow-hidden border border-slate-200 transition-all">
+             <div className="w-10 h-10 rounded-xl bg-surface overflow-hidden border border-white/10 transition-all">
                 <img src={currentUser.avatar} alt={currentUser.name} className="w-full h-full object-cover" />
              </div>
-             <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 border-2 border-white rounded-full animate-pulse"></div>
+             <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 border-2 border-secondary rounded-full animate-pulse"></div>
           </div>
           <div onClick={() => onNavigate('profile')} className="cursor-pointer">
-            <h1 className="text-sm font-bold text-slate-900 leading-tight">
+            <h1 className="text-sm font-bold text-white leading-tight">
                 {currentUser.name}
             </h1>
             <div className={`text-[9px] font-bold px-1.5 py-0.5 rounded border inline-block mt-0.5 ${tierInfo.color}`}>
@@ -86,31 +86,31 @@ export const Dashboard: React.FC<DashboardProps> = ({
         <div className="flex items-center gap-2 animate-slideInRight">
           <button 
               onClick={() => onNavigate('notifications')}
-              className={`w-10 h-10 rounded-full border flex items-center justify-center transition-all relative hover-scale btn-press ${hasNotification ? 'bg-slate-50 border-slate-100 text-slate-600' : 'bg-transparent border-transparent text-slate-300'}`}
+              className={`w-10 h-10 rounded-full border flex items-center justify-center transition-all relative hover-scale btn-press ${hasNotification ? 'bg-surface border-white/10 text-white' : 'bg-transparent border-transparent text-slate-400'}`}
           >
              <Icon name={hasNotification ? "notifications_active" : "notifications_off"} size={20} />
              {hasNotification && <div className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border border-white animate-pulse"></div>}
           </button>
           <button 
               onClick={() => onNavigate('settings')}
-              className="w-10 h-10 rounded-full border border-slate-100 bg-slate-50 flex items-center justify-center transition-all hover:bg-slate-100 hover-scale btn-press"
+              className="w-10 h-10 rounded-full border border-white/10 bg-surface flex items-center justify-center transition-all hover:bg-white/10 hover-scale btn-press"
           >
-             <Icon name="settings" size={20} className="text-slate-600" />
+             <Icon name="settings" size={20} className="text-slate-400" />
           </button>
         </div>
       </div>
 
       {/* Mobile Profile Banner - Show only on mobile */}
-      <div className="mobile-only px-4 pt-4 pb-2 bg-white">
+      <div className="mobile-only px-4 pt-4 pb-2 bg-secondary">
         <div className="flex items-center gap-3">
           <div className="relative" onClick={() => onNavigate('profile')}>
-             <div className="w-12 h-12 rounded-xl bg-slate-100 overflow-hidden border-2 border-slate-200">
+             <div className="w-12 h-12 rounded-xl bg-surface overflow-hidden border-2 border-white/10">
                 <img src={currentUser.avatar} alt={currentUser.name} className="w-full h-full object-cover" />
              </div>
-             <div className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-green-500 border-2 border-white rounded-full animate-pulse"></div>
+             <div className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-green-500 border-2 border-secondary rounded-full animate-pulse"></div>
           </div>
           <div className="flex-1">
-            <h1 className="text-base font-bold text-slate-900 leading-tight">
+            <h1 className="text-base font-bold text-white leading-tight">
                 {currentUser.name}
             </h1>
             <div className={`text-[9px] font-bold px-2 py-0.5 rounded border inline-block mt-0.5 ${tierInfo.color}`}>
@@ -131,7 +131,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
         {/* TEAM NAME BANNER */}
         {teamProfile && (
              <div className="text-center py-2 animate-fadeInUp">
-                 <h2 className="text-xl md:text-2xl font-black text-slate-800 uppercase tracking-tighter gradient-text" style={{ color: teamProfile.colors[0] }}>
+                 <h2 className="text-xl md:text-2xl font-black text-white uppercase tracking-tighter gradient-text" style={{ color: teamProfile.colors[0] }}>
                      {teamProfile.name}
                  </h2>
                  <p className="text-[10px] text-slate-400 font-bold tracking-widest">{allPlayers.length} OYUNCU</p>
@@ -204,18 +204,18 @@ export const Dashboard: React.FC<DashboardProps> = ({
         {isCaptain && pendingApprovals.length > 0 && (
             <div 
               onClick={() => onNavigate('polls')}
-              className="bg-yellow-50 border border-yellow-100 rounded-2xl p-4 flex items-center justify-between cursor-pointer btn-press hover-lift animate-slideInRight"
+              className="bg-yellow-500/10 border border-yellow-500/20 rounded-2xl p-4 flex items-center justify-between cursor-pointer btn-press hover-lift animate-slideInRight"
             >
                 <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-yellow-500/20 flex items-center justify-center text-yellow-600">
+                    <div className="w-10 h-10 rounded-full bg-yellow-500/20 flex items-center justify-center text-yellow-500">
                         <Icon name="gavel" />
                     </div>
                     <div>
-                        <h3 className="text-sm font-bold text-slate-800">Transfer Onayı Bekliyor</h3>
-                        <p className="text-[10px] text-slate-500">{pendingApprovals.length} oyuncu önerildi</p>
+                        <h3 className="text-sm font-bold text-white">Transfer Onayı Bekliyor</h3>
+                        <p className="text-[10px] text-slate-400">{pendingApprovals.length} oyuncu önerildi</p>
                     </div>
                 </div>
-                <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-slate-400">
+                <div className="w-8 h-8 rounded-full bg-surface flex items-center justify-center text-slate-400">
                     <Icon name="chevron_right" />
                 </div>
             </div>
@@ -257,10 +257,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
         {/* Match Prep Progress */}
         {!isPartner && hasMatches && (
-            <div className="bg-slate-50 rounded-3xl md:rounded-[28px] p-4 md:p-5 border border-slate-100 shadow-sm relative overflow-hidden glass-card animate-fadeInUp delay-400">
+            <div className="bg-surface rounded-3xl md:rounded-[28px] p-4 md:p-5 border border-white/5 shadow-sm relative overflow-hidden glass-card animate-fadeInUp delay-400">
                 <div className="absolute top-0 right-0 w-24 h-24 md:w-32 md:h-32 bg-primary/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
                 <div className="flex justify-between items-center mb-3 relative z-10">
-                    <span className="font-bold text-slate-900 text-sm flex items-center gap-2">
+                    <span className="font-bold text-white text-sm flex items-center gap-2">
                         <Icon name="fitness_center" size={16} className="text-slate-400" />
                         Maç Hazırlığı
                     </span>
@@ -268,28 +268,28 @@ export const Dashboard: React.FC<DashboardProps> = ({
                         {joinedCount}/{totalSlots} Hazır
                     </span>
                 </div>
-                <div className="h-2.5 md:h-3 w-full bg-slate-200 rounded-full overflow-hidden mb-4 md:mb-5 border border-slate-300/50">
+                <div className="h-2.5 md:h-3 w-full bg-slate-700 rounded-full overflow-hidden mb-4 md:mb-5 border border-white/5">
                     <div className="h-full bg-primary rounded-full transition-all duration-1000 animate-glow" style={{ width: `${percentage}%` }}></div>
                 </div>
                 <div className="flex justify-between items-center relative z-10">
                     <div className="flex -space-x-2">
                         {allPlayers.slice(0, 3).map(p => (
-                            <img key={p.id} src={p.avatar} className="w-7 h-7 md:w-8 md:h-8 rounded-full border-2 border-white shadow-sm" alt={p.name} />
+                            <img key={p.id} src={p.avatar} className="w-7 h-7 md:w-8 md:h-8 rounded-full border-2 border-secondary shadow-sm" alt={p.name} />
                         ))}
                         {allPlayers.length > 3 && (
-                            <div className="w-7 h-7 md:w-8 md:h-8 rounded-full border-2 border-white bg-slate-300 flex items-center justify-center text-[10px] font-bold text-slate-600">
+                            <div className="w-7 h-7 md:w-8 md:h-8 rounded-full border-2 border-secondary bg-slate-700 flex items-center justify-center text-[10px] font-bold text-slate-300">
                                 +{allPlayers.length - 3}
                             </div>
                         )}
                     </div>
                     <div className="flex gap-2">
-                        <button onClick={() => onRsvpChange('yes')} className={`w-8 h-8 rounded-full flex items-center justify-center transition-all hover-scale btn-press ${rsvpStatus === 'yes' ? 'bg-primary text-white shadow-lg' : 'bg-white text-slate-400 border border-slate-200'}`}>
+                        <button onClick={() => onRsvpChange('yes')} className={`w-8 h-8 rounded-full flex items-center justify-center transition-all hover-scale btn-press ${rsvpStatus === 'yes' ? 'bg-primary text-white shadow-lg' : 'bg-surface text-slate-400 border border-white/10'}`}>
                             <Icon name="check" size={16} />
                         </button>
-                        <button onClick={() => onRsvpChange('maybe')} className={`w-8 h-8 rounded-full flex items-center justify-center transition-all hover-scale btn-press ${rsvpStatus === 'maybe' ? 'bg-yellow-500 text-white shadow-lg' : 'bg-white text-slate-400 border border-slate-200'}`}>
+                        <button onClick={() => onRsvpChange('maybe')} className={`w-8 h-8 rounded-full flex items-center justify-center transition-all hover-scale btn-press ${rsvpStatus === 'maybe' ? 'bg-yellow-500 text-white shadow-lg' : 'bg-surface text-slate-400 border border-white/10'}`}>
                             <Icon name="question_mark" size={16} />
                         </button>
-                        <button onClick={() => onRsvpChange('no')} className={`w-8 h-8 rounded-full flex items-center justify-center transition-all hover-scale btn-press ${rsvpStatus === 'no' ? 'bg-red-500 text-white shadow-lg' : 'bg-white text-slate-400 border border-slate-200'}`}>
+                        <button onClick={() => onRsvpChange('no')} className={`w-8 h-8 rounded-full flex items-center justify-center transition-all hover-scale btn-press ${rsvpStatus === 'no' ? 'bg-red-500 text-white shadow-lg' : 'bg-surface text-slate-400 border border-white/10'}`}>
                             <Icon name="close" size={16} />
                         </button>
                     </div>
@@ -306,6 +306,6 @@ const QuickAction = ({ icon, label, color, onClick }: { icon: string; label: str
         <div className={`w-14 h-14 rounded-[20px] flex items-center justify-center shadow-sm ${color} transition-all hover-lift`}>
             <Icon name={icon} size={26} />
         </div>
-        <span className="text-[10px] font-bold text-slate-600">{label}</span>
+        <span className="text-[10px] font-bold text-slate-400">{label}</span>
     </button>
 );

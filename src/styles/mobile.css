@@ -25,13 +25,18 @@
     padding-right: 16px;
   }
 
-  /* Touch Targets (min 44x44px) */
-  button, 
-  a,
-  .clickable {
+  /* Ensure all screens can scroll properly */
+  .app-container {
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Touch Targets (min 44x44px) - Only for primary interactive elements */
+  .tap-target,
+  .bottom-nav-item {
     min-height: 44px;
     min-width: 44px;
-    padding: 12px;
   }
 
   /* Mobile Typography */
@@ -50,10 +55,10 @@
     padding: 16px;
   }
 
-  /* Grid Responsive */
-  .grid-cols-4 { grid-template-columns: repeat(2, 1fr) !important; }
-  .grid-cols-3 { grid-template-columns: repeat(2, 1fr) !important; }
-  .grid-cols-2 { grid-template-columns: 1fr !important; }
+  /* Grid Responsive - Only for layout grids, not component grids */
+  .grid-responsive-4 { grid-template-columns: repeat(2, 1fr); }
+  .grid-responsive-3 { grid-template-columns: repeat(2, 1fr); }
+  .grid-responsive-2 { grid-template-columns: 1fr; }
 
   /* Flex Responsive */
   .flex-row-desktop {
@@ -145,9 +150,13 @@
 
   /* Content Padding for Fixed Nav */
   .mobile-content {
-    padding-bottom: 20px; /* Removed bottom nav padding */
     min-height: 100vh;
+    min-height: calc(var(--vh, 1vh) * 100);
     background: #0B0F1A;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
   }
 
   /* Touch Scroll */
@@ -291,8 +300,8 @@
     margin: 0 auto;
   }
 
-  .grid-cols-4 { grid-template-columns: repeat(3, 1fr) !important; }
-  .grid-cols-3 { grid-template-columns: repeat(2, 1fr) !important; }
+  .grid-responsive-4 { grid-template-columns: repeat(3, 1fr); }
+  .grid-responsive-3 { grid-template-columns: repeat(2, 1fr); }
 
   /* Show bottom nav on tablet too */
   .bottom-nav {

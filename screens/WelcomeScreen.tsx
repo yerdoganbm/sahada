@@ -93,7 +93,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onNavigate }) => {
            
            <div className="grid grid-cols-2 gap-3">
               <button 
-                onClick={() => onNavigate('login')}
+                onClick={() => onNavigate('teamSetup')}
                 className="bg-secondary/50 hover:bg-secondary/80 border border-white/5 text-white py-3 rounded-xl font-bold text-xs transition-all active:scale-[0.98] flex items-center justify-center gap-2"
               >
                  <Icon name="add_circle" size={16} className="text-slate-400" />
@@ -111,7 +111,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onNavigate }) => {
 
         {/* Footer Legal */}
         <p className="text-[9px] text-center text-slate-500 pb-4 opacity-60">
-           Devam ederek Hizmet Şartları ve Gizlilik Politikasını kabul etmiş sayılırsınız. © 2024 Sahada App
+           Devam ederek Hizmet Şartları ve Gizlilik Politikasını kabul etmiş sayılırsınız. © 2025 Sahada App
         </p>
 
       </div>

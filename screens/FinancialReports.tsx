@@ -97,7 +97,7 @@ export const FinancialReports: React.FC<FinancialReportsProps> = ({ onBack, tran
   };
 
   return (
-    <div className="bg-secondary min-h-screen pb-24 text-slate-200">
+    <div className="bg-secondary min-h-screen pb-safe-bottom text-slate-200">
       {/* Header */}
       <div className="sticky top-0 z-40 bg-secondary/80 backdrop-blur-xl border-b border-white/5 px-4 pt-4 pb-3 flex justify-between items-center safe-top">
         <button onClick={onBack} className="w-10 h-10 rounded-full flex items-center justify-center bg-surface border border-white/5 active:scale-95 transition-transform">

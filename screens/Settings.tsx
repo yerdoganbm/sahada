@@ -33,7 +33,7 @@ export const Settings: React.FC<SettingsProps> = ({ onBack, currentUser, onUpdat
         shirtNumber: formData.shirtNumber ? parseInt(formData.shirtNumber) : undefined
       });
     }
-    alert('Ayarlar başarıyla kaydedildi.');
+    // TODO: Replace with Toast notification when available
     onBack();
   };
 
@@ -48,7 +48,7 @@ export const Settings: React.FC<SettingsProps> = ({ onBack, currentUser, onUpdat
   };
 
   return (
-    <div className="bg-secondary min-h-screen pb-24">
+    <div className="bg-secondary min-h-screen pb-safe-bottom">
       {/* Header */}
       <div className="sticky top-0 z-50 bg-secondary/80 backdrop-blur-xl border-b border-white/5 px-4 pt-4 pb-3 flex justify-between items-center safe-top">
         <div className="flex items-center gap-3">
@@ -71,7 +71,7 @@ export const Settings: React.FC<SettingsProps> = ({ onBack, currentUser, onUpdat
         <div className="flex flex-col items-center py-4">
           <div className="relative group cursor-pointer">
             <div className="w-24 h-24 rounded-full border-2 border-primary/50 p-1">
-              <img src="https://i.pravatar.cc/150?u=1" alt="Profile" className="w-full h-full rounded-full object-cover" />
+              <img src={currentUser.avatar || 'https://i.pravatar.cc/150?u=1'} alt="Profile" className="w-full h-full rounded-full object-cover" />
             </div>
             <div className="absolute bottom-0 right-0 bg-primary w-8 h-8 rounded-full flex items-center justify-center border border-secondary shadow-lg">
               <Icon name="photo_camera" size={16} className="text-secondary" />
@@ -203,7 +203,7 @@ export const Settings: React.FC<SettingsProps> = ({ onBack, currentUser, onUpdat
         </section>
 
         <div className="text-center pt-4 pb-8">
-           <p className="text-[10px] text-slate-600">Sahada App v1.0.4 • Build 2903</p>
+           <p className="text-[10px] text-slate-600">Sahada App v1.2.0 • Build 2903</p>
         </div>
 
       </div>

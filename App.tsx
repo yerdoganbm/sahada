@@ -212,14 +212,12 @@ function App() {
     if (protectedAdminScreens.includes(screen)) {
       if (!currentUser) {
         console.warn('⚠️ Giriş yapmanız gerekiyor!');
-        alert('Bu özelliğe erişmek için giriş yapmanız gerekiyor.');
         setCurrentScreen('login');
         return;
       }
       
       if (currentUser.role !== 'admin' && currentUser.tier !== 'partner') {
         console.warn('⚠️ Yetkiniz yok! Sadece yöneticiler erişebilir.');
-        alert('Bu özelliğe sadece yöneticiler erişebilir.');
         setCurrentScreen('dashboard');
         return;
       }
@@ -308,7 +306,7 @@ function App() {
     if (!currentUser) return;
     const match = matches.find(m => m.id === matchId);
     if (!match) {
-      alert('Maç bulunamadı.');
+      console.warn('Maç bulunamadı.');
       return;
     }
     // Match'in attendees array'ini güncelle
@@ -546,7 +544,7 @@ function App() {
     setPlayers(prev => [...prev, newPlayer]);
     
     console.log('✅ Oyuncu önerisi gönderildi! Admin onayı bekleniyor.');
-    alert(`${newPlayer.name} başarıyla önerildi! Admin onayından sonra deneme sürecine alınacak.`);
+    console.log(`${newPlayer.name} başarıyla önerildi! Admin onayından sonra deneme sürecine alınacak.`);
   };
 
   // 15. SCOUTING: DENEME SÜRECİNİ BAŞLAT (Admin)
@@ -626,7 +624,7 @@ function App() {
           : m
       ));
       
-      alert('✅ Maç iptal edildi! Takım üyelerine bildirim gönderildi.');
+      console.log('✅ Maç iptal edildi! Takım üyelerine bildirim gönderildi.');
       console.log('✅ Maç iptal edildi!');
     }
   };
@@ -642,7 +640,7 @@ function App() {
     ));
     
     console.log('✅ Dekont yüklendi, admin onayı bekleniyor.');
-    alert('Dekont yüklendi! Yönetici onayından sonra ödemeniz işlenecek.');
+    console.log('Dekont yüklendi! Yönetici onayından sonra ödemeniz işlenecek.');
   };
 
   // 20. FIX #2: FİNANSAL RAPOR - GELİR EKLEME
@@ -661,7 +659,7 @@ function App() {
         ? { ...r, status: 'confirmed' as const, confirmedAt: new Date().toISOString() }
         : r
     ));
-    alert('Rezervasyon onaylandı! Takıma bildirim gönderildi.');
+    console.log('Rezervasyon onaylandı! Takıma bildirim gönderildi.');
   };
 
   // Rezervasyon reddetme
@@ -678,7 +676,7 @@ function App() {
           }
         : r
     ));
-    alert('Rezervasyon reddedildi. Müşteriye bildirim gönderildi.');
+    console.log('Rezervasyon reddedildi. Müşteriye bildirim gönderildi.');
   };
 
   // =========================================== 
@@ -803,7 +801,7 @@ function App() {
         const hasVoted = currentVotes.some(v => v.voterId === currentUser.id);
         
         if (hasVoted) {
-          alert('Zaten oy kullandınız!');
+          console.warn('Zaten oy kullandınız!');
           return m;
         }
         
@@ -828,7 +826,7 @@ function App() {
       return m;
     }));
     
-    alert('Oyunuz kaydedildi! ✅');
+    console.log('Oyunuz kaydedildi! ✅');
   };
 
   // Settings Update Handler
@@ -913,7 +911,14 @@ function App() {
             onNavigate={navigateTo}
             currentUser={currentUser}
             rsvpStatus={rsvpStatus}
-            onRsvpChange={setRsvpStatus}
+            onRsvpChange={(status: RsvpStatus) => {
+              const upcomingMatch = matches.find(m => m.status === 'upcoming');
+              if (upcomingMatch) {
+                handleRsvpChange(upcomingMatch.id, status);
+              } else {
+                setRsvpStatus(status);
+              }
+            }}
             transferRequests={transferRequests}
             allMatches={matches}
             allPlayers={players}
@@ -1227,7 +1232,7 @@ function App() {
           return null;
         }
         if (currentUser.role !== 'admin' && currentUser.tier !== 'partner') {
-          alert('WhatsApp merkezi sadece yöneticiler için erişilebilir.');
+          console.warn('WhatsApp merkezi sadece yöneticiler için erişilebilir.');
           navigateTo('dashboard');
           return null;
         }
@@ -1287,7 +1292,7 @@ function App() {
           return null;
         }
         if (currentUser.role !== 'admin' && currentUser.tier !== 'partner') {
-          alert('Bu özelliğe sadece yöneticiler erişebilir.');
+          console.warn('Bu özelliğe sadece yöneticiler erişebilir.');
           navigateTo('dashboard');
           return null;
         }
@@ -1313,7 +1318,7 @@ function App() {
           return null;
         }
         if (currentUser.role !== 'admin' && currentUser.tier !== 'partner') {
-          alert('Maç oluşturma yetkisi sadece yöneticilere aittir.');
+          console.warn('Maç oluşturma yetkisi sadece yöneticilere aittir.');
           navigateTo('dashboard');
           return null;
         }
@@ -1333,7 +1338,7 @@ function App() {
           return null;
         }
         if (currentUser.role !== 'admin') {
-          alert('Borç listesine sadece yöneticiler erişebilir.');
+          console.warn('Borç listesine sadece yöneticiler erişebilir.');
           navigateTo('dashboard');
           return null;
         }
@@ -1351,7 +1356,7 @@ function App() {
           return null;
         }
         if (currentUser.role !== 'admin' && currentUser.tier !== 'partner') {
-          alert('Finansal raporlara sadece yöneticiler erişebilir.');
+          console.warn('Finansal raporlara sadece yöneticiler erişebilir.');
           navigateTo('dashboard');
           return null;
         }
@@ -1523,11 +1528,32 @@ function App() {
   // ===========================================
   // COMPONENT RENDER
   // ===========================================
+  // Screens that have their own header (don't show MobileHeader)
+  const screensWithOwnHeader: ScreenName[] = [
+    'welcome', 'login', 'createProfile', 'teamSetup',
+    'dashboard', 'profile', 'settings', 'matchDetails',
+    'booking', 'venueDetails', 'editProfile',
+    'venueOwnerDashboard', 'reservationManagement', 'reservationDetails',
+    'scoutDashboard', 'talentPool', 'scoutReports'
+  ];
+
+  // Screens where BottomNav should be visible
+  const screensWithBottomNav: ScreenName[] = [
+    'dashboard', 'venues', 'polls', 'profile', 'matches',
+    'team', 'leaderboard', 'tournament', 'admin'
+  ];
+
+  const showMobileHeader = currentUser 
+    && !screensWithOwnHeader.includes(currentScreen);
+
+  const showBottomNav = currentUser 
+    && screensWithBottomNav.includes(currentScreen);
+
   return (
     <ToastProvider>
       <div className="app-container mobile-content">
-        {/* Mobile Header - Show on mobile for logged-in users */}
-        {currentUser && currentScreen !== 'welcome' && currentScreen !== 'login' && (
+        {/* Mobile Header - Only for screens without their own header */}
+        {showMobileHeader && (
           <MobileHeader
             title={getScreenTitle(currentScreen)}
             showBack={screenHistory.length > 0 && currentScreen !== 'dashboard'}
@@ -1541,9 +1567,19 @@ function App() {
         )}
 
         {/* Main Content */}
-        {renderScreen()}
+        <div className={showBottomNav ? 'pb-[76px]' : ''}>
+          {renderScreen()}
+        </div>
 
-        {/* Bottom Navigation - REMOVED */}
+        {/* Bottom Navigation - Visible on main screens */}
+        {showBottomNav && (
+          <BottomNav
+            currentScreen={currentScreen}
+            onNavigate={navigateTo}
+            userRole={currentUser?.role as any}
+          />
+        )}
+
         {/* Install PWA Banner */}
         {currentUser && <InstallBanner />}
       </div>
@@ -1557,18 +1593,43 @@ function getScreenTitle(screen: ScreenName): string {
     dashboard: 'Ana Sayfa',
     team: 'Takım',
     matches: 'Maçlar',
+    matchDetails: 'Maç Detayı',
+    matchCreate: 'Maç Oluştur',
     profile: 'Profil',
+    editProfile: 'Profili Düzenle',
     settings: 'Ayarlar',
     admin: 'Yönetim',
     members: 'Üyeler',
     venues: 'Sahalar',
+    venueDetails: 'Saha Detayı',
+    venueAdd: 'Saha Ekle',
     payments: 'Ödemeler',
     polls: 'Anketler',
-    matchCreate: 'Maç Oluştur',
     financialReports: 'Finansal Raporlar',
-    whatsapp: 'WhatsApp',
+    debtList: 'Borç Listesi',
     notifications: 'Bildirimler',
-    // Add more as needed
+    booking: 'Rezervasyon',
+    tournament: 'Turnuvalar',
+    attendance: 'Katılım',
+    leaderboard: 'Sıralama',
+    subscription: 'Üyelik Paketleri',
+    lineupManager: 'Kadro Yöneticisi',
+    squadShare: 'Kadro Paylaş',
+    whatsappCenter: 'WhatsApp Merkezi',
+    reserveSystem: 'Yedek Sistemi',
+    messageLogs: 'Mesaj Geçmişi',
+    createProfile: 'Profil Oluştur',
+    teamSetup: 'Takım Kur',
+    joinTeam: 'Takıma Katıl',
+    venueOwnerDashboard: 'Saha Yönetimi',
+    reservationManagement: 'Rezervasyonlar',
+    reservationDetails: 'Rezervasyon Detayı',
+    venueCalendar: 'Saha Takvimi',
+    venueFinancialReports: 'Saha Finansları',
+    customerManagement: 'Müşteri Yönetimi',
+    scoutDashboard: 'Scout Paneli',
+    talentPool: 'Yetenek Havuzu',
+    scoutReports: 'Scout Raporları',
   };
   return titles[screen] || 'Sahada';
 }

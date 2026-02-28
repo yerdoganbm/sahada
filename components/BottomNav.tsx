@@ -16,6 +16,12 @@ interface BottomNavProps {
 export function BottomNav({ currentScreen, onNavigate, userRole = 'member' }: BottomNavProps) {
   const navItems = [
     {
+      id: 'dashboard' as ScreenName,
+      icon: 'home',
+      label: 'Ana Sayfa',
+      roles: ['admin', 'member', 'venue_owner', 'scout']
+    },
+    {
       id: 'venues' as ScreenName,
       icon: 'stadium',
       label: 'Sahalar', 
@@ -39,7 +45,7 @@ export function BottomNav({ currentScreen, onNavigate, userRole = 'member' }: Bo
   const filteredItems = navItems.filter(item => item.roles.includes(userRole));
 
   return (
-    <nav className="bottom-nav mobile-only safe-bottom">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-secondary/95 backdrop-blur-xl border-t border-white/10 flex justify-around items-center px-2 py-2 safe-bottom">
       {filteredItems.map((item) => (
         <button
           key={item.id}

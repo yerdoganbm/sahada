@@ -47,7 +47,14 @@ export const MatchDetails: React.FC<MatchDetailsProps> = ({
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   const match = allMatches.find(m => m.id === matchId) ?? allMatches[0] ?? null;
-  const isCompleted = match.status === 'completed';
+  const isCompleted = match ? match.status === 'completed' : false;
+
+  // Hook MUST be called before any conditional return (React Rules of Hooks)
+  useEffect(() => {
+      if (viewMode === 'chat') {
+          chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }
+  }, [messages, viewMode]);
 
   // P0: Guard against missing match (invalid id or empty list)
   if (!match) {
@@ -64,12 +71,6 @@ export const MatchDetails: React.FC<MatchDetailsProps> = ({
       </div>
     );
   }
-
-  useEffect(() => {
-      if (viewMode === 'chat') {
-          chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-      }
-  }, [messages, viewMode]);
 
   const handleSendMessage = () => {
       if (!newMessage.trim()) return;
@@ -115,7 +116,7 @@ export const MatchDetails: React.FC<MatchDetailsProps> = ({
 
   // --- Sub-Component: Chat View ---
   const ChatView = () => (
-      <div className="flex flex-col h-[calc(100vh-180px)]">
+      <div className="flex flex-col" style={{ height: 'calc(var(--vh, 1vh) * 100 - 180px)', minHeight: '300px' }}>
           <div className="flex-1 overflow-y-auto p-4 space-y-4">
               {messages.map(msg => (
                   <div key={msg.id} className={`flex ${msg.isMe ? 'justify-end' : 'justify-start'}`}>
@@ -191,7 +192,7 @@ export const MatchDetails: React.FC<MatchDetailsProps> = ({
   };
 
   return (
-    <div className="pb-8 bg-secondary min-h-screen">
+    <div className="bg-secondary min-h-screen flex flex-col">
       {/* Custom Header */}
       <div className="sticky top-0 z-50 bg-secondary/80 backdrop-blur-xl border-b border-white/5 px-4 pt-4 pb-3 flex justify-between items-center safe-top">
         <button onClick={() => viewMode !== 'overview' ? setViewMode('overview') : onBack()} className="w-10 h-10 rounded-full flex items-center justify-center bg-surface border border-white/5 active:scale-95 transition-transform">
@@ -208,7 +209,7 @@ export const MatchDetails: React.FC<MatchDetailsProps> = ({
         </button>
       </div>
 
-      <div className="p-4">
+      <div className="flex-1 overflow-y-auto p-4 pb-safe-bottom">
         {viewMode === 'overview' ? (
           <div className="animate-fade-in space-y-6">
             
