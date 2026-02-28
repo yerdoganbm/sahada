@@ -1,25 +1,37 @@
 /**
- * Yetki yönetimi - admin maksimum yetki, kaptan maç/kadro yönetimi
+ * Yetki yönetimi
+ * - Owner (role=admin): Uygulamayı kuran, en üst kademe → tüm yetkiler
+ * - Admin (takımı kuran): isCaptain / takım kurucusu → Yönetim, maç, üye yönetimi (takım kapsamında)
  */
 
 import type { Player } from '../types';
 
-/** Admin: tüm yetkiler maks seviyede */
+/** Owner: uygulamayı kuran, yöneten, en üst kademe (role=admin) */
+export function isAppOwner(user: Player | null | undefined): boolean {
+  return user?.role === 'admin';
+}
+
+/** Takımı kuran / takım yöneticisi (kaptan) */
+function isTeamAdmin(user: Player | null | undefined): boolean {
+  return user?.isCaptain === true;
+}
+
+/** Owner: tüm yetkiler maks seviyede, sadece uygulama sahibi */
 export function hasFullAdmin(user: Player | null | undefined): boolean {
-  return user?.role === 'admin';
+  return isAppOwner(user);
 }
 
-/** Maç oluşturma: admin veya kaptan */
+/** Maç oluşturma: owner veya takımı kuran (kaptan) */
 export function canCreateMatch(user: Player | null | undefined): boolean {
-  return user?.role === 'admin' || user?.isCaptain === true;
+  return isAppOwner(user) || isTeamAdmin(user);
 }
 
-/** Üye / kadro yönetimi: admin veya kaptan */
+/** Üye / kadro yönetimi: owner veya takımı kuran (kaptan) */
 export function canManageMembers(user: Player | null | undefined): boolean {
-  return user?.role === 'admin' || user?.isCaptain === true;
+  return isAppOwner(user) || isTeamAdmin(user);
 }
 
-/** Yönetim paneli: sadece admin */
+/** Yönetim paneli: owner veya takımı kuran (admin) */
 export function canAccessAdminPanel(user: Player | null | undefined): boolean {
-  return user?.role === 'admin';
+  return isAppOwner(user) || isTeamAdmin(user);
 }

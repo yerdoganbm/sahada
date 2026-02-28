@@ -23,7 +23,7 @@ import { RootStackParamList } from '../types';
 import { colors, spacing, borderRadius, typography, shadows } from '../theme';
 import { getMatches } from '../services/matches';
 import { hapticLight } from '../utils/haptic';
-import { canAccessAdminPanel, canCreateMatch, canManageMembers } from '../utils/permissions';
+import { canAccessAdminPanel, canCreateMatch, canManageMembers, isAppOwner } from '../utils/permissions';
 import type { Match } from '../types';
 
 const { width: SCREEN_W } = Dimensions.get('window');
@@ -80,6 +80,7 @@ export default function DashboardScreen() {
     setRefreshing(false);
   }, [fetchUpcoming, user?.id, user?.activeTeamId, user?.teamId, refreshUserFromServer]);
 
+  const isOwner = isAppOwner(user);
   const isAdmin = canAccessAdminPanel(user);
   const isCaptain = user?.isCaptain;
   const canManage = canManageMembers(user);
@@ -125,12 +126,13 @@ export default function DashboardScreen() {
         <View style={styles.profileInfo}>
           <Text style={styles.userName}>{user?.name ?? 'Hoşgeldin!'}</Text>
           <View style={styles.tierBadge}>
-            {(isAdmin || isCaptain) && <Text style={styles.captainIcon}>⚽ </Text>}
+            {(isOwner || isAdmin || isCaptain) && <Text style={styles.captainIcon}>⚽ </Text>}
             <Text style={styles.tierText}>
-              {isAdmin ? 'YÖNETİCİ' :
+              {isOwner ? 'OWNER' :
+               isCaptain ? 'KAPTAN' :
+               isAdmin ? 'YÖNETİCİ' :
                user?.tier === 'partner' ? 'SAHA PARTNER' :
                user?.tier === 'premium' ? 'PRO BALLER' :
-               isCaptain ? 'KAPTAN' :
                hasTeam ? 'STARTER ÜYE' : 'MISAFIR'}
             </Text>
           </View>

@@ -14,7 +14,7 @@ import {
   ActivityIndicator,
   ScrollView,
 } from 'react-native';
-import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp, CommonActions } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
@@ -111,6 +111,17 @@ export default function JoinTeamScreen() {
         >
           <Text style={styles.secondaryBtnText}>Zaten hesabım var, giriş yap</Text>
         </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.homeBtn}
+          onPress={() => {
+            hapticLight();
+            navigation.dispatch(CommonActions.reset({ index: 0, routes: [{ name: 'Welcome' }] }));
+          }}
+          activeOpacity={0.8}
+        >
+          <Icon name="home-outline" size={18} color={colors.text.tertiary} />
+          <Text style={styles.homeBtnText}>Ana sayfaya dön</Text>
+        </TouchableOpacity>
       </View>
     );
   }
@@ -170,6 +181,18 @@ export default function JoinTeamScreen() {
               <Text style={styles.btnText}>Takıma Katıl</Text>
             )}
           </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.homeBtn}
+            onPress={() => {
+              hapticLight();
+              navigation.dispatch(CommonActions.reset({ index: 0, routes: [{ name: 'MainTabs' }] }));
+            }}
+            activeOpacity={0.8}
+          >
+            <Icon name="home-outline" size={18} color={colors.text.tertiary} />
+            <Text style={styles.homeBtnText}>Ana sayfaya dön</Text>
+          </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
     </>
@@ -218,6 +241,18 @@ const styles = StyleSheet.create({
   },
   secondaryBtn: {
     paddingVertical: spacing.sm,
+  },
+  homeBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    paddingVertical: spacing.lg,
+    marginTop: spacing.sm,
+  },
+  homeBtnText: {
+    ...typography.body,
+    color: colors.text.tertiary,
   },
   secondaryBtnText: {
     ...typography.body,
