@@ -2,6 +2,7 @@
   "name": "SahadaMobile",
   "version": "1.0.0",
   "private": true,
+  "main": "index.js",
   "scripts": {
     "postinstall": "patch-package",
     "fix:expo": "expo install --fix",
