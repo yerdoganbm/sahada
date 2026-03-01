@@ -7,12 +7,14 @@ const RNFB_WARNINGS_FIX = `
   # With useFrameworks: "static", RNFB headers trigger non-modular-include warnings.
   # These warnings cascade into 40+ errors (unknown type RCT_EXTERN, implicit-int, etc.)
   # because -Werror stops compilation before React macros are resolved.
-  # GCC_WARN_INHIBIT_ALL_WARNINGS fully suppresses warnings so the build succeeds.
+  # -Wno-error=implicit-int: Xcode 15/16 C99 strictness, "type specifier missing, defaults to int"
   installer.pods_project.targets.each do |target|
     if target.name.start_with?('RNFB')
       target.build_configurations.each do |config|
         config.build_settings['GCC_WARN_INHIBIT_ALL_WARNINGS'] = 'YES'
         config.build_settings['GCC_TREAT_WARNINGS_AS_ERRORS'] = 'NO'
+        flags = config.build_settings['OTHER_CFLAGS'] || '$(inherited)'
+        config.build_settings['OTHER_CFLAGS'] = (flags.is_a?(Array) ? flags.join(' ') : flags.to_s) + ' -Wno-error=implicit-int'
       end
     end
   end
