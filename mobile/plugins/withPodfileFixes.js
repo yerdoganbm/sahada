@@ -56,9 +56,13 @@ function withPodfileFixes(config) {
           result.push('    end');
           result.push('  end');
           result.push('');
-          result.push('  # SAHADA: Disable -Werror on all pod targets');
+          result.push('  # SAHADA: Allow non-modular includes in framework modules');
+          result.push('  # This is the CRITICAL fix: inhibit_all_warnings! only suppresses the WARNING');
+          result.push('  # but the #import <React/RCTBridgeModule.h> still FAILS inside framework modules.');
+          result.push('  # CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES makes the import SUCCEED.');
           result.push('  installer.pods_project.targets.each do |target|');
           result.push('    target.build_configurations.each do |config|');
+          result.push('      config.build_settings[\'CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES\'] = \'YES\'');
           result.push('      config.build_settings[\'GCC_TREAT_WARNINGS_AS_ERRORS\'] = \'NO\'');
           result.push('    end');
           result.push('  end');
