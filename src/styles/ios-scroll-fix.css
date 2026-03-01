@@ -26,15 +26,19 @@ body {
   overflow-x: hidden;
   /* CRITICAL: overflow-y BELIRTME - native viewport scroll kullanilsin */
   /* overflow-y: auto !important; silindi - bu iOS'ta scroll'u kiriyordu */
-  
+
   /* Yatay bounce'i engelle */
   overscroll-behavior-x: none;
-  
+
   /* Touch action - scroll ve zoom'a izin ver */
   touch-action: manipulation;
-  
+
   /* Position relative - fixed elementler icin referans */
   position: relative;
+
+  /* Webkit user select */
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 /* CRITICAL: Root div'in scroll'u engellememesi */
@@ -43,6 +47,7 @@ body {
   min-height: 100dvh;
   /* overflow YOK - viewport scroll yapacak */
   position: relative;
+  width: 100%;
 }
 
 /* ==================== SCREEN CONTAINER FIX ==================== */
@@ -52,12 +57,14 @@ body {
   /* Min height - icerik az olsa bile scroll alani var */
   min-height: 100vh;
   min-height: 100dvh;
-  
+
   /* Padding icin bottom nav yuksekligi */
   padding-bottom: 76px;
-  
+
   /* NO overflow - viewport scroll yapacak */
   position: relative;
+  width: 100%;
+  overflow-x: hidden;
 }
 
 /* ==================== MOBILE HEADER FIX ==================== */
@@ -174,9 +181,13 @@ textarea,
 select {
   /* iOS zoom'u engelle */
   font-size: 16px !important;
-  
+
   /* Scroll position fix */
   scroll-margin-top: 60px;
+
+  /* Touch events'i izin ver */
+  -webkit-touch-callout: none;
+  -webkit-user-select: text;
 }
 
 /* Input focus olduğunda sayfa pozisyonunu koru */

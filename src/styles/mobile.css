@@ -20,6 +20,8 @@ body {
   /* -webkit-overflow-scrolling: touch kaldirildi - deprecated */
   /* overscroll-behavior-y: contain kaldirildi - iOS'ta scroll'u engelliyor */
   position: relative;
+  /* overflow-y, -webkit-overflow-scrolling, overscroll-behavior-y, touch-action */
+  /* Bu ayarlar ios-scroll-fix.css'te yapiliyor - burada tekrar etme */
 }
 
 #root {
