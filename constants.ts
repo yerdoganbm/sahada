@@ -41,6 +41,36 @@ export const MOCK_PLAYERS: Player[] = [
   { id: '14', name: 'Orkun Kökçü', position: 'MID', rating: 8.0, reliability: 84, avatar: 'https://i.pravatar.cc/150?u=14', role: 'member', tier: 'free', goals: 6, assists: 9, mvpCount: 1, matchesPlayed: 14 },
   { id: '15', name: 'Yusuf Yazıcı', position: 'MID', rating: 7.7, reliability: 65, avatar: 'https://i.pravatar.cc/150?u=15', role: 'member', tier: 'free', goals: 7, assists: 3, mvpCount: 0, matchesPlayed: 11 },
   { id: '16', name: 'Enes Ünal', position: 'FWD', rating: 7.5, reliability: 70, avatar: 'https://i.pravatar.cc/150?u=16', role: 'member', tier: 'free', goals: 11, assists: 4, mvpCount: 1, matchesPlayed: 12 },
+  // UYGULAMA SAHİBİ (Owner)
+  {
+    id: 'owner_yunus',
+    name: 'Yunus Erdoğan',
+    position: 'MID',
+    rating: 9.8,
+    reliability: 100,
+    avatar: 'https://i.pravatar.cc/150?u=owner_yunus',
+    isCaptain: true,
+    role: 'admin',
+    tier: 'partner',
+    phone: '5528804641',
+    marketValue: '10M',
+    attributes: { pac: 90, sho: 90, pas: 92, dri: 88, def: 75, phy: 80 },
+    goals: 45, assists: 30, mvpCount: 12, matchesPlayed: 20,
+    venueOwnerInfo: {
+      venueIds: ['v1', 'v2', 'v3'],
+      businessInfo: {
+        companyName: 'Sahada App Ltd. Şti.',
+        taxNumber: '9876543210',
+        iban: 'TR000000000000000000000000',
+        bankName: 'Sahada Bank',
+        accountHolder: 'Yunus Erdoğan'
+      },
+      commissionRate: 0,
+      totalRevenue: 500000,
+      totalReservations: 1000,
+      responseTime: 5
+    }
+  },
   // SAHA SAHİBİ
   { 
     id: 'venue_owner_1', 
