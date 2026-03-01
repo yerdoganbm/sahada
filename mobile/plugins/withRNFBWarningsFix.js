@@ -3,16 +3,16 @@ const fs = require('fs');
 const path = require('path');
 
 const RNFB_WARNINGS_FIX = `
-  # RNFB fix: suppress non-modular-include warnings for @react-native-firebase pods
-  # These warnings are treated as errors with -Werror and break the build
-  # when using useFrameworks: "static"
+  # RNFB fix: suppress ALL warnings for @react-native-firebase pods
+  # With useFrameworks: "static", RNFB headers trigger non-modular-include warnings.
+  # These warnings cascade into 40+ errors (unknown type RCT_EXTERN, implicit-int, etc.)
+  # because -Werror stops compilation before React macros are resolved.
+  # GCC_WARN_INHIBIT_ALL_WARNINGS fully suppresses warnings so the build succeeds.
   installer.pods_project.targets.each do |target|
     if target.name.start_with?('RNFB')
       target.build_configurations.each do |config|
-        existing = config.build_settings['OTHER_CFLAGS'] || '$(inherited)'
-        unless existing.include?('-Wno-non-modular-include-in-framework-module')
-          config.build_settings['OTHER_CFLAGS'] = existing + ' -Wno-non-modular-include-in-framework-module'
-        end
+        config.build_settings['GCC_WARN_INHIBIT_ALL_WARNINGS'] = 'YES'
+        config.build_settings['GCC_TREAT_WARNINGS_AS_ERRORS'] = 'NO'
       end
     end
   end
@@ -25,10 +25,21 @@ function withRNFBWarningsFix(config) {
       const podfilePath = path.join(config.modRequest.platformProjectRoot, 'Podfile');
       let contents = fs.readFileSync(podfilePath, 'utf8');
 
-      // Inject RNFB warnings fix at start of post_install block
-      const postInstallRegex = /(post_install do \|installer\|)\s*\n/;
-      if (postInstallRegex.test(contents)) {
-        contents = contents.replace(postInstallRegex, `$1\n${RNFB_WARNINGS_FIX}\n`);
+      // Find the 'end' of post_install block and inject before it.
+      // This approach works regardless of what other plugins have already injected.
+      const marker = '# RNFB_WARNINGS_FIX';
+      if (contents.includes(marker)) {
+        return config; // Already injected
+      }
+
+      // Strategy 1: Find post_install block and inject at the beginning
+      const postInstallMatch = contents.match(/post_install do \|installer\|/);
+      if (postInstallMatch) {
+        const insertIdx = contents.indexOf(postInstallMatch[0]) + postInstallMatch[0].length;
+        contents =
+          contents.slice(0, insertIdx) +
+          '\n' + marker + '\n' + RNFB_WARNINGS_FIX +
+          contents.slice(insertIdx);
         fs.writeFileSync(podfilePath, contents);
       }
 
