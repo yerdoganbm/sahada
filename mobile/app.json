@@ -29,8 +29,7 @@
           }
         }
       ],
-      "./plugins/withBoringSSLFix",
-      "./plugins/withRNFBWarningsFix"
+      "./plugins/withPodfileFixes"
     ],
     "extra": {
       "eas": {
