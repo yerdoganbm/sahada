@@ -3,21 +3,23 @@
    iOS Safari Scroll - Kökten çözüm (dvh, -webkit-fill-available, body scroll)
    =========================================== */
 
-/* 1. Root seviyesinde Safari'nin adres çubuğuyla barışık yapı */
+/* 1. Root seviyesinde Safari'nin adres cubuguyla barisik yapi */
+/* NOT: html ve body scroll ayarlari ios-scroll-fix.css'te yapilir */
+/* Burada sadece layout ile ilgili ayarlar var */
 html {
-  height: -webkit-fill-available;
   overflow-x: hidden;
 }
 
 body {
   min-height: 100vh;
+  min-height: 100dvh;
   min-height: -webkit-fill-available;
   height: auto;
-  overflow-y: auto;
   overflow-x: hidden;
+  /* overflow-y belirtilmiyor - native viewport scroll kullanilsin */
+  /* -webkit-overflow-scrolling: touch kaldirildi - deprecated */
+  /* overscroll-behavior-y: contain kaldirildi - iOS'ta scroll'u engelliyor */
   position: relative;
-  -webkit-overflow-scrolling: touch;
-  overscroll-behavior-y: contain;
 }
 
 #root {

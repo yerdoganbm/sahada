@@ -1,60 +1,62 @@
 /* ===========================================
    iOS SAFARI SCROLL FIX - GLOBAL SOLUTION
    
-   Problem: iOS Safari'de scroll çalışmıyor
-   Sebep: Touch event'leri ve scroll container yapısı eksik
-   Çözüm: Body'yi scroll container yap, fixed elementler için düzeltmeler
+   Problem: iOS Safari'de scroll calismiyordu
+   Sebep: html elementine height:100% + overflow-y:auto verilmesi
+          iOS'ta viewport scrolling yerine element-level scroll olusturuyordu
+          ve touch event'leri bu scroll container'a ulasamiyordu.
+   Cozum: html/body'de explicit scroll container olusturmak yerine
+          native viewport scrolling'e izin ver.
    =========================================== */
 
 /* ==================== GLOBAL ROOT FIX ==================== */
 html {
-  height: 100%;
-  /* iOS Safari için momentum scroll */
-  -webkit-overflow-scrolling: touch;
-  /* Yatay scroll'u engelle */
+  /* CRITICAL: height:100% KULLANMA - iOS'ta scroll'u kirar */
+  /* CRITICAL: overflow-y:auto KULLANMA - element-level scroll olusturur */
+  /* Sadece yatay overflow'u engelle, dikey scroll viewport'a birakilir */
   overflow-x: hidden;
-  overflow-y: auto;
+  /* -webkit-overflow-scrolling: touch KALDIRILDI - deprecated ve iOS'ta sorunlu */
 }
 
 body {
-  /* Body her zaman scroll yapabilir */
+  /* Body minimum viewport yuksekligi kadar olsun */
   min-height: 100vh;
+  min-height: 100dvh;
+  min-height: -webkit-fill-available;
   overflow-x: hidden;
-  overflow-y: auto !important; /* CRITICAL: overflow:hidden olmamalı */
+  /* CRITICAL: overflow-y BELIRTME - native viewport scroll kullanilsin */
+  /* overflow-y: auto !important; silindi - bu iOS'ta scroll'u kiriyordu */
   
-  /* iOS Safari momentum scroll */
-  -webkit-overflow-scrolling: touch;
-  
-  /* Yatay bounce'ı engelle, dikey scroll serbest */
+  /* Yatay bounce'i engelle */
   overscroll-behavior-x: none;
-  overscroll-behavior-y: auto;
   
-  /* Touch action - swipe navigation'ı engelle ama scroll'a izin ver */
-  touch-action: pan-y pinch-zoom;
+  /* Touch action - scroll ve zoom'a izin ver */
+  touch-action: manipulation;
   
-  /* Position relative - fixed elementler için referans */
+  /* Position relative - fixed elementler icin referans */
   position: relative;
 }
 
-/* CRITICAL: Root div'in body scroll'una izin vermesi */
+/* CRITICAL: Root div'in scroll'u engellememesi */
 #root {
   min-height: 100vh;
-  /* overflow YOK - body scroll yapacak */
+  min-height: 100dvh;
+  /* overflow YOK - viewport scroll yapacak */
   position: relative;
 }
 
 /* ==================== SCREEN CONTAINER FIX ==================== */
-/* Tüm ekranlar için base style */
+/* Tum ekranlar icin base style */
 .screen-container,
 .app-container {
-  /* Min height - içerik az olsa bile scroll alanı var */
+  /* Min height - icerik az olsa bile scroll alani var */
   min-height: 100vh;
-  min-height: calc(var(--vh, 1vh) * 100);
+  min-height: 100dvh;
   
-  /* Padding için bottom nav yüksekliği */
+  /* Padding icin bottom nav yuksekligi */
   padding-bottom: 76px;
   
-  /* NO overflow - body scroll yapacak */
+  /* NO overflow - viewport scroll yapacak */
   position: relative;
 }
 
@@ -107,9 +109,7 @@ body.modal-open {
   top: var(--scroll-position, 0);
   left: 0;
   right: 0;
-  
-  /* iOS Safari bounce fix */
-  -webkit-overflow-scrolling: auto;
+  width: 100%;
 }
 
 /* Modal içi scroll */
@@ -165,11 +165,7 @@ body.modal-open {
   display: none;
 }
 
-/* ==================== PULL TO REFRESH ==================== */
-/* Pull to refresh için overscroll behavior */
-body:not(.modal-open) {
-  overscroll-behavior-y: auto; /* Pull to refresh izin ver */
-}
+/* Pull to refresh - overscroll-behavior body'de belirtilmez, viewport handle eder */
 
 /* ==================== INPUT FIX ==================== */
 /* iOS Safari input focus scroll sorunları */
@@ -227,12 +223,12 @@ select:focus {
   }
 }
 
-/* ==================== DEBUGGING ==================== */
-/* Geliştirme sırasında scroll sorunlarını görselleştir */
-/* body.debug-scroll * {
-  outline: 1px solid rgba(255, 0, 0, 0.2);
+/* ==================== iOS TOUCH SCROLL ENHANCEMENT ==================== */
+/* iOS'ta tum scrollable alanlarda native scroll davranisi */
+@supports (-webkit-touch-callout: none) {
+  /* iOS-only styles */
+  body {
+    /* iOS Safari adres cubugu icin */
+    min-height: -webkit-fill-available;
+  }
 }
-
-body.debug-scroll *:hover {
-  outline: 2px solid red;
-} */
