@@ -23,7 +23,10 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
         setIsLoading(false);
         
         // Mock Logic for Testing Roles based on input
-        if (phone.includes('admin') || phone === '1') {
+        const cleanPhone = phone.replace(/\s/g, '').replace(/^\+90/, '').replace(/^0/, '');
+        if (cleanPhone === '5528804641') {
+            onLogin('owner_yunus'); // App Owner (Yunus)
+        } else if (phone.includes('admin') || phone === '1') {
             onLogin('1'); // Admin (Ahmet)
         } else if (phone.includes('kaptan') || phone === '7') {
              onLogin('7'); // Captain (Burak)

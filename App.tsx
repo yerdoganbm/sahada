@@ -155,7 +155,11 @@ function App() {
       });
       
       // Sabit Test Senaryoları:
-      if (userId === '1') {
+      if (userId === 'owner_yunus') {
+        // Uygulama Sahibi (Yunus Erdoğan) - Tüm özellikler açık
+        console.log('👑 Uygulama sahibi olarak giriş yapıldı:', user.name);
+        setCurrentScreen('dashboard');
+      } else if (userId === '1') {
         // Admin (Ahmet Yılmaz)
         console.log('✅ Yönetici olarak giriş yapıldı:', user.name);
         setCurrentScreen('dashboard');
