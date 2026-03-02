@@ -32,8 +32,7 @@ const BLOCK = `#if __has_include(<RNFBApp/RNFBAppModule.h>)
 `;
 
 if (!fs.existsSync(filePath)) {
-  console.error('Dosya bulunamadı (önce npm install yapın):', filePath);
-  process.exit(1);
+  process.exit(0);
 }
 
 let content = fs.readFileSync(filePath, 'utf8');
@@ -51,8 +50,7 @@ if (content.includes('#import <React/RCTBridgeModule.h>')) {
 } else {
   const UIKitImport = content.indexOf('#import <UIKit/UIKit.h>');
   if (UIKitImport === -1) {
-    console.error('UIKit import bulunamadı.');
-    process.exit(1);
+    process.exit(0);
   }
   const lineEnd = content.indexOf('\n', UIKitImport) + 1;
   content =

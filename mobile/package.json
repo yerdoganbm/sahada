@@ -4,8 +4,9 @@
   "private": true,
   "main": "index.js",
   "scripts": {
-    "postinstall": "patch-package",
+    "postinstall": "patch-package && node scripts/fix-rnfb-messaging-header.js && node scripts/fix-rnfb-storage-header.js",
     "fix:rnfb-messaging-header": "node scripts/fix-rnfb-messaging-header.js",
+    "fix:rnfb-storage-header": "node scripts/fix-rnfb-storage-header.js",
     "fix:expo": "expo install --fix",
     "android": "expo run:android",
     "ios": "expo run:ios",
