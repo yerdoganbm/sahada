@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "postinstall": "patch-package",
+    "fix:rnfb-messaging-header": "node scripts/fix-rnfb-messaging-header.js",
     "fix:expo": "expo install --fix",
     "android": "expo run:android",
     "ios": "expo run:ios",
