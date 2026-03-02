@@ -28,8 +28,7 @@
             "useFrameworks": "static"
           }
         }
-      ],
-      "./plugins/withPodfileFixes"
+      ]
     ],
     "extra": {
       "eas": {
