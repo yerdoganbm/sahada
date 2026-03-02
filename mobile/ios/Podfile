@@ -9,7 +9,6 @@ target 'Sahada' do
 
   pod 'Firebase/Analytics', '10.3.0'
   pod 'Firebase/Auth', '10.3.0'
-  pod 'Firebase/Firestore', '10.3.0'
   pod 'Firebase/Functions', '10.3.0'
   pod 'Firebase/Messaging', '10.3.0'
   pod 'Firebase/Storage', '10.3.0'
