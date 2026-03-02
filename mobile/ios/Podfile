@@ -18,6 +18,7 @@ target 'Sahada' do
         config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.1'
         config.build_settings['CLANG_CXX_LANGUAGE_STANDARD'] = 'c++17'
         config.build_settings['CLANG_CXX_LIBRARY'] = 'libc++'
+        config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] ||= ['$(inherited)']
         
         if target.name.start_with?('gRPC') || target.name == 'BoringSSL-GRPC'
           config.build_settings['GCC_WARN_INHIBIT_ALL_WARNINGS'] = 'YES'
