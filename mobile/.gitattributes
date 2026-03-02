@@ -1,0 +1,2 @@
+# Patch files must use LF so patch-package parses correctly on all platforms
+*.patch text eol=lf
