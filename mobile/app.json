@@ -21,7 +21,6 @@
       "package": "com.sahada.mobile"
     },
     "plugins": [
-      "@react-native-firebase/app",
       [
         "expo-build-properties",
         {
@@ -30,8 +29,7 @@
           }
         }
       ],
-      "./plugins/withPodfileFixes",
-      "./plugins/withRNFBWarningsFix"
+      "./plugins/withPodfileFixes"
     ],
     "extra": {
       "eas": {
