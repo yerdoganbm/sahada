@@ -1,0 +1,22 @@
+diff --git a/node_modules/@react-native-firebase/messaging/ios/RNFBMessaging/RNFBMessaging+AppDelegate.h b/node_modules/@react-native-firebase/messaging/ios/RNFBMessaging/RNFBMessaging+AppDelegate.h
+index 2c3d4e5..7f8a9b0 100644
+--- a/node_modules/@react-native-firebase/messaging/ios/RNFBMessaging/RNFBMessaging+AppDelegate.h
++++ b/node_modules/@react-native-firebase/messaging/ios/RNFBMessaging/RNFBMessaging+AppDelegate.h
+@@ -17,8 +17,19 @@
+ 
+ #import <Foundation/Foundation.h>
+-#import <React/RCTBridgeModule.h>
+ #import <UIKit/UIKit.h>
+ 
++#if __has_include(<RNFBApp/RNFBAppModule.h>)
++#import <RNFBApp/RNFBAppModule.h>
++#endif
++
++#if __has_include(<React/RCTBridgeModule.h>)
++#import <React/RCTBridgeModule.h>
++#elif __has_include(<React-Core/RCTBridgeModule.h>)
++#import <React-Core/RCTBridgeModule.h>
++#endif
++
+ NS_ASSUME_NONNULL_BEGIN
+
