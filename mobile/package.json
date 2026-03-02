@@ -9,6 +9,8 @@
     "android": "expo run:android",
     "ios": "expo run:ios",
     "start": "react-native start",
+    "start:expo-go": "cross-env EXPO_GO_STUBS=1 expo start",
+    "start:expo-go:tunnel": "cross-env EXPO_GO_STUBS=1 expo start --tunnel",
     "test": "jest",
     "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
     "clean": "cd android && ./gradlew clean && cd ../ios && xcodebuild clean",
@@ -40,6 +42,7 @@
     "js-sha256": "^0.11.1",
     "react": "19.1.0",
     "react-dom": "19.1.0",
+    "react-native-url-polyfill": "^2.0.0",
     "react-native": "0.81.5",
     "react-native-biometrics": "^3.0.1",
     "react-native-contacts": "^7.0.8",
@@ -56,6 +59,7 @@
     "react-native-worklets": "0.5.1"
   },
   "devDependencies": {
+    "cross-env": "^7.0.3",
     "@babel/core": "^7.23.7",
     "@babel/preset-env": "^7.23.7",
     "@babel/runtime": "^7.23.7",

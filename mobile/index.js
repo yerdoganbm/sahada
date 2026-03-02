@@ -1,7 +1,9 @@
 /**
  * React Native App Entry Point
  * @format
+ * URL polyfill first – prevents "Cannot assign to property 'protocol' which has only a getter" in Hermes/Expo Go.
  */
+import 'react-native-url-polyfill/auto';
 
 import { AppRegistry, Platform } from 'react-native';
 import App from './src/App';

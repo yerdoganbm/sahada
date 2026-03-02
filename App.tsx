@@ -872,6 +872,7 @@ function App() {
         return (
           <LoginScreen 
             onLogin={handleLogin}
+            onNavigate={navigateTo}
           />
         );
 

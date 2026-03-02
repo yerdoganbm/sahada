@@ -4,9 +4,10 @@ import { Icon } from '../components/Icon';
 
 interface LoginScreenProps {
   onLogin: (userId: string, isNewTeam?: boolean) => void;
+  onNavigate?: (screen: string) => void;
 }
 
-export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
+export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onNavigate }) => {
   const [phone, setPhone] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -108,6 +109,17 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
                 )}
             </button>
         </div>
+
+        {/* Hesap oluştur */}
+        {onNavigate && (
+          <button
+            onClick={() => onNavigate('createProfile')}
+            className="w-full bg-transparent hover:bg-white/5 border border-primary text-primary py-3.5 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
+          >
+            <Icon name="person_add" size={18} className="text-primary" />
+            Hesap oluştur
+          </button>
+        )}
 
         {/* Divider */}
         <div className="flex items-center gap-4">
