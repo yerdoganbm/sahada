@@ -8,6 +8,11 @@ const { getDefaultConfig } = require('expo/metro-config');
 
 const config = getDefaultConfig(__dirname);
 
+// Remove deprecated watcher.unstable_workerThreads to fix validation warning
+if (config.watcher && 'unstable_workerThreads' in config.watcher) {
+  delete config.watcher.unstable_workerThreads;
+}
+
 // Not: Metro config ile Watchman kapatma bu Expo sürümünde desteklenmiyor.
 // Watchman hatası devam ederse Mac'te: brew uninstall watchman
 
