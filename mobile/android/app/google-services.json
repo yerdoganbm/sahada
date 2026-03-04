@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "556584358467",
+    "project_id": "sahada-16b2d",
+    "storage_bucket": "sahada-16b2d.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:556584358467:android:817163401811b93bbabaf6",
+        "android_client_info": {
+          "package_name": "com.sahada.mobile"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAyhRJKm0fK6X-O8sej_U8caKZRMw5Xqhs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

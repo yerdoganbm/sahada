@@ -18,7 +18,8 @@
       }
     },
     "android": {
-      "package": "com.sahada.mobile"
+      "package": "com.sahada.mobile",
+      "versionCode": 2
     },
     "plugins": [
       [
