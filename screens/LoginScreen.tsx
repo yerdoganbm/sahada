@@ -12,8 +12,9 @@ interface LoginScreenProps {
   userType?: UserType;
 }
 
-// Mock OTP for demo
+// Mock OTP for demo — accept both 6-digit and 4-digit for convenience
 const MOCK_OTP = '123456';
+const MOCK_OTP_SHORT = '1234';
 
 export const LoginScreen: React.FC<LoginScreenProps> = ({
   onLogin,
@@ -120,8 +121,8 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
     setTimeout(() => {
       setIsLoading(false);
 
-      if (entered !== MOCK_OTP) {
-        setError('Doğrulama kodu hatalı. Tekrar deneyin.');
+      if (entered !== MOCK_OTP && entered !== MOCK_OTP_SHORT) {
+        setError(`Doğrulama kodu hatalı. Demo: ${MOCK_OTP} veya ${MOCK_OTP_SHORT}`);
         setOtp(['', '', '', '', '', '']);
         otpRefs.current[0]?.focus();
         return;
@@ -293,17 +294,8 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
               )}
             </button>
 
-            {/* Demo hints */}
-            <div className="bg-white/3 border border-white/5 rounded-xl p-3">
-              <p className="text-[10px] text-slate-600 font-bold uppercase tracking-wider mb-2">Demo Giriş</p>
-              <div className="space-y-1">
-                <DemoHint phone="5000000001" label="Admin" accent={accent.text} onSelect={(p) => setPhone(formatPhone(p))} />
-                <DemoHint phone="5000000099" label="Saha Sahibi (Kemal)" accent={accent.text} onSelect={(p) => setPhone(formatPhone(p))} />
-                <DemoHint phone="5000000098" label="Saha Personeli" accent={accent.text} onSelect={(p) => setPhone(formatPhone(p))} />
-                <DemoHint phone="5000000097" label="Saha Muhasebecisi" accent={accent.text} onSelect={(p) => setPhone(formatPhone(p))} />
-                <DemoHint phone="5000000002" label="Üye" accent={accent.text} onSelect={(p) => setPhone(formatPhone(p))} />
-              </div>
-            </div>
+            {/* Demo hints — collapsible */}
+            <DemoPanel accent={accent} onSelect={(p) => setPhone(formatPhone(p))} />
           </div>
         )}
 
@@ -374,12 +366,34 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
             {/* Demo OTP hint */}
             <div className="bg-white/3 border border-white/5 rounded-xl p-3 text-center">
               <p className="text-[10px] text-slate-600">
-                Demo kodu: <span className={`font-black ${accent.text} tracking-widest`}>1 2 3 4 5 6</span>
+                Demo kodu: <span className={`font-black ${accent.text} tracking-widest`}>123456</span> <span className="text-slate-700">veya</span> <span className={`font-black ${accent.text} tracking-widest`}>1234</span>
               </p>
             </div>
           </div>
         )}
       </div>
+    </div>
+  );
+};
+
+const DemoPanel: React.FC<{ accent: any; onSelect: (p: string) => void }> = ({ accent, onSelect }) => {
+  const [open, setOpen] = React.useState(false);
+  return (
+    <div className="bg-white/3 border border-white/5 rounded-xl overflow-hidden">
+      <button onClick={() => setOpen(o => !o)} className="w-full flex items-center justify-between px-3 py-2 hover:bg-white/5 transition-colors">
+        <span className="text-[10px] text-slate-600 font-bold uppercase tracking-wider">Demo Giriş</span>
+        <span className={`text-[10px] text-slate-700 transition-transform ${open ? 'rotate-180' : ''}`}>▼</span>
+      </button>
+      {open && (
+        <div className="px-3 pb-3 space-y-1 border-t border-white/5 pt-2">
+          <DemoHint phone="5000000001" label="Admin" accent={accent.text} onSelect={onSelect} />
+          <DemoHint phone="5000000099" label="Saha Sahibi (Kemal)" accent={accent.text} onSelect={onSelect} />
+          <DemoHint phone="5000000098" label="Saha Personeli" accent={accent.text} onSelect={onSelect} />
+          <DemoHint phone="5000000097" label="Saha Muhasebecisi" accent={accent.text} onSelect={onSelect} />
+          <DemoHint phone="5000000007" label="Kaptan (Ali)" accent={accent.text} onSelect={onSelect} />
+          <DemoHint phone="5000000002" label="Üye (Ahmet)" accent={accent.text} onSelect={onSelect} />
+        </div>
+      )}
     </div>
   );
 };

@@ -101,7 +101,7 @@ export const VenueOwnerOnboarding: React.FC<VenueOwnerOnboardingProps> = ({ phon
       if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) errs.email = 'Geçerli e-posta girin';
     }
     if (step === 1) {
-      if (!form.companyName.trim()) errs.companyName = 'Şirket adı gerekli';
+      // Company info is optional — don't block on empty
       if (form.taxNumber && !/^\d{10}$/.test(form.taxNumber.replace(/\s/g, ''))) errs.taxNumber = 'Vergi no 10 haneli olmalı';
     }
     if (step === 2) {
@@ -113,9 +113,8 @@ export const VenueOwnerOnboarding: React.FC<VenueOwnerOnboardingProps> = ({ phon
     }
     if (step === 3) {
       const cleanIban = form.iban.replace(/\s/g, '');
-      if (!cleanIban) errs.iban = 'IBAN gerekli';
-      else if (!/^TR\d{24}$/.test(cleanIban)) errs.iban = 'Geçerli IBAN: TR ile başlamalı, 26 karakter';
-      if (!form.accountHolder.trim()) errs.accountHolder = 'Hesap sahibi adı gerekli';
+      // Only validate IBAN format if user entered something
+      if (cleanIban && !/^TR\d{24}$/.test(cleanIban)) errs.iban = 'Geçerli IBAN: TR ile başlamalı, 26 karakter';
     }
     setErrors(errs);
     return Object.keys(errs).length === 0;
@@ -458,7 +457,7 @@ export const VenueOwnerOnboarding: React.FC<VenueOwnerOnboardingProps> = ({ phon
       </div>
 
       {/* Bottom CTA */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 bg-secondary/95 backdrop-blur-xl border-t border-white/5 p-5">
+      <div className="fixed bottom-0 left-0 right-0 z-50 bg-secondary/95 backdrop-blur-xl border-t border-white/5 p-5 space-y-2">
         <button
           onClick={handleNext}
           disabled={isLoading}
@@ -475,6 +474,20 @@ export const VenueOwnerOnboarding: React.FC<VenueOwnerOnboardingProps> = ({ phon
             <><Icon name="check_circle" size={18} /><span>Kaydı Tamamla</span></>
           )}
         </button>
+
+        {/* Optional steps can be skipped */}
+        {(step === 1 || step === 3) && (
+          <button
+            onClick={() => {
+              if (step === 1) { setStep(2); return; }      // skip vergi → saha
+              if (step === 3) { handleSubmit(); }           // skip banka → finish without IBAN
+            }}
+            className="w-full py-2.5 text-slate-600 text-xs font-bold hover:text-slate-400 transition-colors flex items-center justify-center gap-1"
+          >
+            <Icon name="skip_next" size={13} />
+            {step === 1 ? 'Bu adımı atla (Şirket bilgisi opsiyonel)' : 'Şimdilik atla — IBAN sonra eklenebilir'}
+          </button>
+        )}
       </div>
     </div>
   );

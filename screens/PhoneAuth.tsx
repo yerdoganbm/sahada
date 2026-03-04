@@ -4,13 +4,14 @@ import { Player } from '../types';
 
 interface Props {
   pendingJoinCode?: string | null;
+  pendingRole?: 'captain' | 'member' | null;
   onLoginSuccess: (user: Player) => void;
   onBack: () => void;
 }
 
 const MOCK_OTP = '1234';
 
-export const PhoneAuth: React.FC<Props> = ({ pendingJoinCode, onLoginSuccess, onBack }) => {
+export const PhoneAuth: React.FC<Props> = ({ pendingJoinCode, pendingRole, onLoginSuccess, onBack }) => {
   const [step, setStep] = useState<'phone' | 'otp' | 'name'>('phone');
   const [phone, setPhone] = useState('');
   const [otp, setOtp] = useState('');
@@ -106,6 +107,12 @@ export const PhoneAuth: React.FC<Props> = ({ pendingJoinCode, onLoginSuccess, on
           <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-primary/10 border border-primary/20 mb-4 w-fit">
             <Icon name="link" size={12} className="text-primary" />
             <span className="text-primary text-xs font-bold">Davet kodu: {pendingJoinCode}</span>
+          </div>
+        )}
+        {pendingRole === 'captain' && !pendingJoinCode && (
+          <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-yellow-500/10 border border-yellow-500/20 mb-4 w-fit">
+            <span className="text-lg">🏆</span>
+            <span className="text-yellow-300 text-xs font-bold">Kaptan olarak kayıt</span>
           </div>
         )}
       </div>

@@ -75,6 +75,32 @@ export const MemberHome: React.FC<Props> = ({
       </div>
 
       <div className="p-4 space-y-5">
+        {/* Cold start: no teams yet → onboarding checklist */}
+        {myTeams.length === 0 && (
+          <div className="bg-gradient-to-br from-primary/10 to-primary/5 rounded-2xl border border-primary/20 p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-lg">🏁</span>
+              <p className="text-white font-black text-sm">Başlamak için ne yapmalısın?</p>
+            </div>
+            <div className="space-y-2">
+              {[
+                { done: true,  icon: '✓', text: 'Hesabını oluşturdun', cls: 'text-green-400' },
+                { done: false, icon: '2', text: 'Davet koduyla takıma katıl', cls: 'text-primary', action: onJoinTeam },
+                { done: false, icon: '3', text: 'İlk maçına RSVP ver & ödeme yap', cls: 'text-slate-500', action: undefined },
+              ].map((step, i) => (
+                <button key={i} onClick={step.action} disabled={!step.action}
+                  className={`w-full flex items-center gap-3 p-2.5 rounded-xl transition-all ${step.action ? 'hover:bg-white/5 active:scale-[0.99]' : ''}`}>
+                  <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 text-[10px] font-black ${step.done ? 'border-green-500 bg-green-500/20' : i === 1 ? 'border-primary bg-primary/10' : 'border-slate-700'}`}>
+                    <span className={step.cls}>{step.icon}</span>
+                  </div>
+                  <p className={`text-sm font-bold ${step.done ? 'text-green-400 line-through decoration-green-700' : i === 1 ? 'text-white' : 'text-slate-600'}`}>{step.text}</p>
+                  {step.action && <Icon name="chevron_right" size={14} className="text-primary ml-auto" />}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Balance summary */}
         {totalUnpaid > 0 && (
           <button onClick={() => onNavigate('memberPayments')}
@@ -122,7 +148,7 @@ export const MemberHome: React.FC<Props> = ({
         <div>
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-sm font-black text-slate-400 uppercase tracking-widest">Yaklaşan Maçlar</h2>
-            <button onClick={() => onNavigate('memberPayments')} className="text-xs text-primary font-bold">Tümü →</button>
+            <button onClick={() => onNavigate('memberPayments')} className="text-xs text-primary font-bold">Ödemeler →</button>
           </div>
           {myReservations.length === 0 ? (
             <div className="text-center py-8 bg-surface rounded-2xl border border-white/5">

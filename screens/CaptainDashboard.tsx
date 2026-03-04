@@ -2,6 +2,8 @@ import React, { useMemo } from 'react';
 import { Icon } from '../components/Icon';
 import { Player, Team, Reservation, CaptainPaymentPlan, MemberContribution, MatchRSVP, ScreenName } from '../types';
 
+import { CaptainPayoutProfile } from '../types';
+
 interface Props {
   currentUser: Player | null;
   teams: Team[];
@@ -9,6 +11,7 @@ interface Props {
   captainPaymentPlans: CaptainPaymentPlan[];
   memberContributions: MemberContribution[];
   matchRsvps: MatchRSVP[];
+  captainPayoutProfiles?: CaptainPayoutProfile[];
   onBack: () => void;
   onNavigate: (s: ScreenName) => void;
   onNavigateWithParam: (s: ScreenName, p: Record<string, any>) => void;
@@ -16,8 +19,11 @@ interface Props {
 
 export const CaptainDashboard: React.FC<Props> = ({
   currentUser, teams, reservations, captainPaymentPlans, memberContributions, matchRsvps,
+  captainPayoutProfiles = [],
   onBack, onNavigate, onNavigateWithParam,
 }) => {
+  const hasIBAN = captainPayoutProfiles.some(p => p.captainUserId === currentUser?.id && p.iban);
+  const hasTeam = teams.some(t => t.captainUserId === currentUser?.id);
   const myTeams = useMemo(() =>
     teams.filter(t => t.captainUserId === currentUser?.id),
     [teams, currentUser]
@@ -47,6 +53,40 @@ export const CaptainDashboard: React.FC<Props> = ({
       </div>
 
       <div className="p-4 space-y-5">
+        {/* Empty state: no team yet → prompt to create */}
+        {!hasTeam && (
+          <div className="bg-gradient-to-br from-yellow-500/10 to-yellow-500/5 rounded-2xl border border-yellow-500/20 p-4">
+            <div className="flex items-start gap-3">
+              <span className="text-2xl">🏆</span>
+              <div className="flex-1">
+                <p className="text-white font-black text-sm mb-1">Takımını henüz oluşturmadın</p>
+                <p className="text-slate-400 text-xs mb-3">Takımını kur, davet linkini WhatsApp grubuna at ve ödeme takibine başla.</p>
+                <button onClick={() => onNavigate('teamManagement')}
+                  className="px-4 py-2 rounded-xl bg-yellow-500/15 border border-yellow-500/30 text-yellow-300 font-bold text-xs">
+                  Takım Kur →
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* IBAN nudge: team exists but no IBAN */}
+        {hasTeam && !hasIBAN && (
+          <div className="bg-gradient-to-br from-orange-500/10 to-orange-500/5 rounded-2xl border border-orange-500/20 p-4">
+            <div className="flex items-start gap-3">
+              <span className="text-xl">🏦</span>
+              <div className="flex-1">
+                <p className="text-white font-bold text-sm mb-0.5">IBAN eklemedin</p>
+                <p className="text-slate-400 text-xs mb-3">Üyeler ödeme yaparken IBAN'ına ihtiyaçları var. Şimdi ekle.</p>
+                <button onClick={() => onNavigate('teamManagement')}
+                  className="px-4 py-2 rounded-xl bg-orange-500/15 border border-orange-500/30 text-orange-300 font-bold text-xs">
+                  IBAN Ekle →
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Quick actions */}
         <div className="grid grid-cols-2 gap-3">
           <button onClick={() => onNavigate('teamManagement')}

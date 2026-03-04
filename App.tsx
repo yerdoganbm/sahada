@@ -161,6 +161,7 @@ function App() {
   // Auth state for phone login + join deep link
   const [pendingJoinCode, setPendingJoinCode] = useState<string | null>(null);
   const [authRedirectPath, setAuthRedirectPath] = useState<ScreenName | null>(null);
+  const [pendingRole, setPendingRole] = useState<'captain' | 'member' | null>(null);
   const [navParams, setNavParams] = useState<Record<string, any>>({});
   
   // Additional States
@@ -266,12 +267,41 @@ function App() {
       setScreenHistory(prev => [...prev, 'login']);
       setCurrentScreen('teamSetup');
     } else if (userId.startsWith('new_player_')) {
-      // New player → profile setup
-      setScreenHistory(prev => [...prev, 'login']);
+      // New player → minimal profile setup; role determined by pendingRole
+      const phone = userId.replace('new_player_', '');
+      const isCaptainFlow = pendingRole === 'captain';
+      const newPlayer: Player = {
+        id: userId,
+        name: 'Yeni ' + (isCaptainFlow ? 'Kaptan' : 'Oyuncu'),
+        phone,
+        position: 'MID',
+        rating: 7.0,
+        reliability: 80,
+        avatar: `https://i.pravatar.cc/150?u=${phone}`,
+        role: isCaptainFlow ? ('captain' as any) : 'member',
+        tier: 'free',
+        isActive: true,
+        joinDate: new Date().toISOString(),
+      } as any;
+      setCurrentUser(newPlayer);
+      setPlayers(prev => [...prev, newPlayer]);
+      setScreenHistory([]);
       setCurrentScreen('createProfile');
     } else {
-      console.log('❌ Kullanıcı bulunamadı, profil oluşturma ekranına yönlendiriliyor...');
-      setScreenHistory(prev => [...prev, 'login']);
+      // Unknown — minimal profile, default to member
+      const fallbackUser: Player = {
+        id: userId || 'u_' + Date.now(),
+        name: 'Yeni Oyuncu',
+        position: 'MID',
+        rating: 7.0,
+        reliability: 80,
+        avatar: `https://i.pravatar.cc/150?u=${Date.now()}`,
+        role: 'member',
+        tier: 'free',
+      } as any;
+      setCurrentUser(fallbackUser);
+      setPlayers(prev => [...prev, fallbackUser]);
+      setScreenHistory([]);
       setCurrentScreen('createProfile');
     }
   };
@@ -567,9 +597,18 @@ function App() {
       setCurrentUser(newUser);
       setPlayers(prev => [...prev, newUser]);
     }
-    console.log('✅ Profil oluşturuldu! Dashboard\'a yönlendiriliyor...');
+    // Route based on role: member → memberHome, captain → captainDashboard, else → dashboard
     setScreenHistory([]);
-    setCurrentScreen('dashboard');
+    const role = (currentUser as any)?.role;
+    if (pendingRole === 'captain' || role === 'captain') {
+      setCurrentScreen('captainDashboard');
+      setPendingRole(null);
+    } else if (pendingRole === 'member' || role === 'member' || !role) {
+      setCurrentScreen('memberHome');
+      setPendingRole(null);
+    } else {
+      setCurrentScreen('dashboard');
+    }
   };
 
   // 13. TAKIM KURULUM TAMAMLAMA (Dashboard'a yönlendir)
@@ -1931,6 +1970,7 @@ function App() {
         return (
           <WelcomeScreen 
             onNavigate={navigateTo}
+            onSetRole={(role) => setPendingRole(role)}
           />
         );
 
@@ -1985,7 +2025,9 @@ function App() {
 
       case 'createProfile':
         return (
-          <CreateProfile 
+          <CreateProfile
+            onBack={screenHistory.length > 0 ? goBack : undefined}
+            isCaptain={pendingRole === 'captain' || (currentUser as any)?.role === 'captain'}
             onComplete={handleProfileComplete}
           />
         );
@@ -2780,6 +2822,7 @@ function App() {
           captainPaymentPlans={captainPaymentPlans}
           memberContributions={memberContributions}
           matchRsvps={matchRsvps}
+          captainPayoutProfiles={captainPayoutProfiles}
           onBack={goBack}
           onNavigate={navigateTo}
           onNavigateWithParam={(s, p) => { setNavParams(p); navigateTo(s); }}
@@ -2870,9 +2913,11 @@ function App() {
       case 'phoneAuth':
         return <PhoneAuth
           pendingJoinCode={pendingJoinCode}
+          pendingRole={pendingRole}
           onLoginSuccess={(user) => {
-            // Auto-assign member role when coming from join link
-            const authedUser = pendingJoinCode ? { ...user, role: 'member' as any } : user;
+            // Role from: pendingRole state > join link (member) > user.role
+            const resolvedRole = pendingRole ?? (pendingJoinCode ? 'member' : (user as any).role);
+            const authedUser = { ...user, role: resolvedRole as any };
             setCurrentUser(authedUser);
             if (pendingJoinCode) {
               const profile = memberProfiles.find(p => p.userId === authedUser.id);
@@ -2881,6 +2926,9 @@ function App() {
               } else {
                 navigateTo('joinTeam');
               }
+            } else if (pendingRole === 'captain') {
+              setPendingRole(null);
+              navigateTo('captainDashboard');
             } else if (authRedirectPath) {
               navigateTo(authRedirectPath);
               setAuthRedirectPath(null);
