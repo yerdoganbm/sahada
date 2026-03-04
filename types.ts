@@ -6,7 +6,7 @@ export enum Tab {
   Profile = 'Profile'
 }
 
-export type ScreenName = 'welcome' | 'login' | 'joinTeam' | 'teamSetup' | 'createProfile' | 'dashboard' | 'matches' | 'team' | 'profile' | 'editProfile' | 'matchDetails' | 'matchCreate' | 'payments' | 'admin' | 'members' | 'venues' | 'venueDetails' | 'venueAdd' | 'lineupManager' | 'squadShare' | 'settings' | 'leaderboard' | 'financialReports' | 'debtList' | 'subscription' | 'polls' | 'booking' | 'tournament' | 'whatsappCenter' | 'attendance' | 'reserveSystem' | 'messageLogs' | 'notifications' | 'venueOwnerDashboard' | 'reservationManagement' | 'reservationDetails' | 'venueCalendar' | 'venueFinancialReports' | 'venueSettings' | 'customerManagement' | 'scoutDashboard' | 'scoutReports' | 'talentPool' | 'venueOwnerOnboarding' | 'myReservations' | 'auditLog' | 'venueAnalytics' | 'recurringManagement' | 'cashRegister' | 'maintenanceCenter' | 'broadcastCenter';
+export type ScreenName = 'welcome' | 'login' | 'phoneAuth' | 'joinTeam' | 'memberOnboarding' | 'teamSetup' | 'createProfile' | 'dashboard' | 'matches' | 'team' | 'profile' | 'editProfile' | 'matchDetails' | 'matchCreate' | 'payments' | 'admin' | 'members' | 'venues' | 'venueDetails' | 'venueAdd' | 'lineupManager' | 'squadShare' | 'settings' | 'leaderboard' | 'financialReports' | 'debtList' | 'subscription' | 'polls' | 'booking' | 'tournament' | 'whatsappCenter' | 'attendance' | 'reserveSystem' | 'messageLogs' | 'notifications' | 'venueOwnerDashboard' | 'reservationManagement' | 'reservationDetails' | 'venueCalendar' | 'venueFinancialReports' | 'venueSettings' | 'customerManagement' | 'scoutDashboard' | 'scoutReports' | 'talentPool' | 'venueOwnerOnboarding' | 'myReservations' | 'auditLog' | 'venueAnalytics' | 'recurringManagement' | 'cashRegister' | 'maintenanceCenter' | 'broadcastCenter' | 'memberMatchHub' | 'captainDashboard' | 'teamManagement' | 'captainBookingFlow' | 'reservationPaymentHub' | 'memberHome' | 'memberMatchDetails' | 'memberPayments' | 'captainOutbox';
 
 export type SubscriptionTier = 'free' | 'premium' | 'partner';
 
@@ -182,16 +182,32 @@ export interface Match {
     voterId: string;
   }[];
   mvpWinner?: string;
+  // PAYMENT HUB fields (opsiyonel, backward-compatible)
+  iban?: string;             // Kaptan/takım IBAN (TR33...)
+  ibanHolder?: string;       // Hesap sahibi adı
+  dueAt?: string;            // ISO date string - ödeme son tarihi
+  matchDescription?: string; // Havale açıklaması: "Sahada FC Maç Katılım"
 }
 
 /** Domain: Payment. PAID | PENDING | REFUND. */
 export interface Payment {
   id: string;
   playerId: string;
+  matchId?: string;          // which match this payment is for
   amount: number;
   status: 'paid' | 'pending' | 'failed' | 'waiting_approval' | 'refund';
   date?: string;
   proofUrl?: string;
+  proofSubmittedAt?: string;
+}
+
+/** Guest session — no account, just a name for RSVP */
+export interface GuestSession {
+  guestId: string;           // local id e.g. "guest_1234"
+  displayName: string;
+  joinCode: string;
+  rsvpStatus?: RsvpStatus;
+  createdAt: string;
 }
 
 export interface Transaction {
@@ -694,4 +710,124 @@ export interface VenueLocation {
   verifiedAt?: string;
   verifiedBy?: 'gps_owner_check';
   source?: 'places_autocomplete' | 'manual_pin';
+}
+
+// ═══════════════════════════════════════════════════════════════
+// CAPTAIN WALLET + TEAM MODULE
+// ═══════════════════════════════════════════════════════════════
+
+export interface Team {
+  id: string;
+  name: string;
+  captainUserId: string;
+  memberUserIds: string[];
+  createdAt: string;
+}
+
+export interface TeamInvite {
+  id: string;
+  teamId: string;
+  code: string;           // 8 char e.g. "SAHADA24"
+  createdByUserId: string;
+  status: 'active' | 'revoked';
+  createdAt: string;
+  expiresAt?: string;
+  maxUses?: number;
+  usesCount: number;
+  autoApprove: boolean;
+}
+
+export interface TeamJoinRequest {
+  id: string;
+  teamId: string;
+  inviteCode: string;
+  userId: string;
+  displayName: string;
+  requestedAt: string;
+  status: 'pending' | 'approved' | 'rejected';
+  resolvedAt?: string;
+  resolvedByUserId?: string;
+}
+
+export type MoneyMethod = 'cash' | 'eft' | 'card';
+export type LedgerDirection = 'member_to_captain' | 'captain_to_venue' | 'refund_to_captain' | 'captain_to_member';
+
+export interface LedgerEntry {
+  id: string;
+  at: string;
+  teamId?: string;
+  reservationId?: string;
+  matchId?: string;
+  actorUserId: string;
+  direction: LedgerDirection;
+  fromUserId?: string;
+  toUserId?: string;
+  method: MoneyMethod;
+  amount: number;
+  note?: string;
+  proofUrl?: string;
+}
+
+export type CollectionMode = 'split_equal' | 'manual';
+export type CaptainPayPlan = 'deposit_now_rest_later' | 'all_cash_on_site' | 'all_eft' | 'pay_later_hold';
+
+export interface CaptainPaymentPlan {
+  id: string;
+  teamId: string;
+  reservationId: string;
+  plan: CaptainPayPlan;
+  collectionMode: CollectionMode;
+  createdAt: string;
+  currency: 'TRY';
+  totalPrice: number;
+  depositRequired: boolean;
+  depositAmount: number;
+  depositMethod?: MoneyMethod;
+  restAmount: number;
+  restMethodPreference?: 'cash' | 'eft' | 'any';
+  dueAt?: string;
+  status: 'draft' | 'collecting' | 'ready_to_pay' | 'paid_to_venue' | 'refunded' | 'cancelled';
+  depositPaidAt?: string;
+}
+
+export interface MemberContribution {
+  id: string;
+  teamId: string;
+  reservationId: string;
+  memberUserId: string;
+  memberName: string;
+  expectedAmount: number;
+  paidAmount: number;
+  status: 'unpaid' | 'partial' | 'paid';
+  lastUpdatedAt: string;
+  proofUrl?: string;
+  proofNote?: string;
+}
+
+export interface CaptainPayoutProfile {
+  captainUserId: string;
+  iban?: string;
+  accountName?: string;
+  bankName?: string;
+  phoneForCash?: string;
+  note?: string;
+}
+
+export interface MatchRSVP {
+  id: string;
+  teamId?: string;
+  reservationId?: string;
+  matchId?: string;
+  userId: string;
+  status: 'going' | 'not_going' | 'maybe' | 'unset';
+  updatedAt: string;
+  note?: string;
+}
+
+export interface MemberProfile {
+  userId: string;
+  fullName?: string;
+  phone?: string;
+  createdAt: string;
+  status: 'active' | 'incomplete';
 }

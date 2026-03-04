@@ -6,14 +6,14 @@ import { MobileHeader } from './components/MobileHeader';
 import { InstallBanner } from './components/InstallBanner';
 import { useViewportHeight } from './hooks/useMobileFeatures';
 import { useViewportHeightFix } from './hooks/useIOSScrollFix';
-import { ScreenName, Venue, Player, Payment, Transaction, SubscriptionTier, RsvpStatus, Match, TransferRequest, Poll, TeamProfile, JoinRequest, Reservation, AppNotification, WaitlistEntry, AuditEvent, AlternativeSlotOffer, Role, PERMS, RecurringRule, CashEntry, DayClose, MaintenanceTask, IssueTicket, MessageTemplate, OutboxMessage } from './types';
+import { ScreenName, Venue, Player, Payment, Transaction, SubscriptionTier, RsvpStatus, Match, TransferRequest, Poll, TeamProfile, JoinRequest, Reservation, AppNotification, WaitlistEntry, AuditEvent, AlternativeSlotOffer, Role, PERMS, RecurringRule, CashEntry, DayClose, MaintenanceTask, IssueTicket, MessageTemplate, OutboxMessage, GuestSession, Team, TeamInvite, TeamJoinRequest, CaptainPaymentPlan, MemberContribution, CaptainPayoutProfile, LedgerEntry, MatchRSVP, MemberProfile } from './types';
 import { Dashboard } from './screens/Dashboard';
 import { TeamList } from './screens/TeamList';
 import { MatchDetails } from './screens/MatchDetails';
 import { MatchCard } from './components/MatchCard'; 
 import { Header } from './components/Header';
 import { Icon } from './components/Icon';
-import { MOCK_MATCHES, MOCK_VENUES, MOCK_PLAYERS, MOCK_PAYMENTS, MOCK_TRANSACTIONS, MOCK_POLLS, MOCK_RESERVATIONS, MOCK_TALENT_POOL, MOCK_NOTIFICATIONS, MOCK_WAITLIST, MOCK_AUDIT, MOCK_RECURRING_RULES, MOCK_CASH_ENTRIES, MOCK_DAY_CLOSES, MOCK_MAINTENANCE_TASKS, MOCK_ISSUE_TICKETS, MOCK_MESSAGE_TEMPLATES, MOCK_OUTBOX } from './constants';
+import { MOCK_MATCHES, MOCK_VENUES, MOCK_PLAYERS, MOCK_PAYMENTS, MOCK_TRANSACTIONS, MOCK_POLLS, MOCK_RESERVATIONS, MOCK_TALENT_POOL, MOCK_NOTIFICATIONS, MOCK_WAITLIST, MOCK_AUDIT, MOCK_RECURRING_RULES, MOCK_CASH_ENTRIES, MOCK_DAY_CLOSES, MOCK_MAINTENANCE_TASKS, MOCK_ISSUE_TICKETS, MOCK_MESSAGE_TEMPLATES, MOCK_OUTBOX, MOCK_TEAMS, MOCK_TEAM_INVITES, MOCK_TEAM_JOIN_REQUESTS, MOCK_CAPTAIN_PAYOUT_PROFILES, MOCK_CAPTAIN_PLANS, MOCK_MEMBER_CONTRIBUTIONS, MOCK_LEDGER, MOCK_MATCH_RSVPS } from './constants';
 import { PaymentLedger } from './screens/PaymentLedger';
 import { AdminDashboard } from './screens/AdminDashboard';
 import { MemberManagement } from './screens/MemberManagement';
@@ -63,6 +63,18 @@ import { RecurringManagement } from './screens/RecurringManagement';
 import { CashRegister } from './screens/CashRegister';
 import { MaintenanceCenter } from './screens/MaintenanceCenter';
 import { BroadcastCenter } from './screens/BroadcastCenter';
+// ── CAPTAIN / MEMBER SCREENS ──────────────────────────────────────────────
+import { CaptainDashboard } from './screens/CaptainDashboard';
+import { TeamManagement } from './screens/TeamManagement';
+import { CaptainBookingFlow } from './screens/CaptainBookingFlow';
+import { ReservationPaymentHub } from './screens/ReservationPaymentHub';
+import { CaptainOutbox } from './screens/CaptainOutbox';
+import { MemberHome } from './screens/MemberHome';
+import { MemberMatchDetails } from './screens/MemberMatchDetails';
+import { MemberPayments } from './screens/MemberPayments';
+import { JoinTeamImproved } from './screens/JoinTeamImproved';
+import { MemberOnboarding } from './screens/MemberOnboarding';
+import { PhoneAuth } from './screens/PhoneAuth';
 // 🧠 NEURO-CORE INTEGRATION
 import { useSynapseTracking, useActionTracker } from './hooks/useNeuroCore';
 
@@ -114,6 +126,21 @@ function App() {
   const [messageTemplates] = useState<MessageTemplate[]>(MOCK_MESSAGE_TEMPLATES);
   const [outboxMessages, setOutboxMessages] = useState<OutboxMessage[]>(MOCK_OUTBOX);
   const [talentPool, setTalentPool] = useState<any[]>(MOCK_TALENT_POOL); // SCOUT SYSTEM
+
+  // ── CAPTAIN / MEMBER / TEAM STATE ─────────────────────────────────────────
+  const [teams, setTeams] = useState<Team[]>(MOCK_TEAMS);
+  const [teamInvites, setTeamInvites] = useState<TeamInvite[]>(MOCK_TEAM_INVITES);
+  const [teamJoinRequests, setTeamJoinRequests] = useState<TeamJoinRequest[]>(MOCK_TEAM_JOIN_REQUESTS);
+  const [captainPayoutProfiles, setCaptainPayoutProfiles] = useState<CaptainPayoutProfile[]>(MOCK_CAPTAIN_PAYOUT_PROFILES);
+  const [captainPaymentPlans, setCaptainPaymentPlans] = useState<CaptainPaymentPlan[]>(MOCK_CAPTAIN_PLANS);
+  const [memberContributions, setMemberContributions] = useState<MemberContribution[]>(MOCK_MEMBER_CONTRIBUTIONS);
+  const [ledger, setLedger] = useState<LedgerEntry[]>(MOCK_LEDGER);
+  const [matchRsvps, setMatchRsvps] = useState<MatchRSVP[]>(MOCK_MATCH_RSVPS);
+  const [memberProfiles, setMemberProfiles] = useState<MemberProfile[]>([]);
+  // Auth state for phone login + join deep link
+  const [pendingJoinCode, setPendingJoinCode] = useState<string | null>(null);
+  const [authRedirectPath, setAuthRedirectPath] = useState<ScreenName | null>(null);
+  const [navParams, setNavParams] = useState<Record<string, any>>({});
   
   // Additional States
   const [rsvpStatus, setRsvpStatus] = useState<RsvpStatus>('pending');
@@ -176,12 +203,12 @@ function App() {
       if (userId === '1') {
         console.log('✅ Yönetici olarak giriş yapıldı:', user.name);
         setCurrentScreen('dashboard');
-      } else if (userId === '7') {
+      } else if (userId === '7' || user.role === ('captain' as any)) {
         console.log('✅ Kaptan olarak giriş yapıldı:', user.name);
-        setCurrentScreen('dashboard');
-      } else if (userId === '2') {
+        setCurrentScreen('captainDashboard');
+      } else if (userId === '2' || user.role === 'member') {
         console.log('✅ Üye olarak giriş yapıldı:', user.name);
-        setCurrentScreen('dashboard');
+        setCurrentScreen('memberHome');
       } else if (user.role === 'venue_owner') {
         console.log('🏟️ Saha sahibi olarak giriş yapıldı:', user.name);
         setCurrentScreen('venueOwnerDashboard');
@@ -1544,6 +1571,288 @@ function App() {
     }
   };
 
+  // ═══════════════════════════════════════════════════════════════════
+  // CAPTAIN / MEMBER / TEAM HANDLERS
+  // ═══════════════════════════════════════════════════════════════════
+
+  // ── Team ────────────────────────────────────────────────────────────
+  const handleCreateTeam = (name: string) => {
+    if (!currentUser) return;
+    const teamId = 'team_' + Date.now();
+    const newTeam: Team = {
+      id: teamId,
+      name,
+      captainUserId: currentUser.id,
+      memberUserIds: [currentUser.id],
+      createdAt: new Date().toISOString(),
+    };
+    setTeams(prev => [...prev, newTeam]);
+    addAudit('team', teamId, 'TEAM_CREATED', { name });
+  };
+
+  // ── Invite code ─────────────────────────────────────────────────────
+  const handleCreateInviteCode = (teamId: string, opts: { maxUses?: number; autoApprove?: boolean; expiresInDays?: number }) => {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    const code = Array.from({ length: 8 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+    const invite: TeamInvite = {
+      id: 'inv_' + Date.now(),
+      teamId,
+      code,
+      createdByUserId: currentUser?.id ?? '',
+      status: 'active',
+      createdAt: new Date().toISOString(),
+      maxUses: opts.maxUses ?? 20,
+      usesCount: 0,
+      autoApprove: opts.autoApprove ?? true,
+      expiresAt: opts.expiresInDays ? new Date(Date.now() + opts.expiresInDays * 86400000).toISOString() : undefined,
+    };
+    setTeamInvites(prev => [...prev, invite]);
+    addAudit('team', teamId, 'INVITE_CODE_CREATED', { code });
+    return invite;
+  };
+
+  const handleRevokeInviteCode = (inviteId: string) => {
+    setTeamInvites(prev => prev.map(i => i.id === inviteId ? { ...i, status: 'revoked' as const } : i));
+  };
+
+  const handleSubmitJoinByCode = (code: string, userId: string, displayName: string): 'joined' | 'pending' | 'invalid' | 'expired' | 'full' => {
+    const invite = teamInvites.find(i => i.code.toUpperCase() === code.toUpperCase() && i.status === 'active');
+    if (!invite) return 'invalid';
+    if (invite.expiresAt && invite.expiresAt < new Date().toISOString()) return 'expired';
+    if (invite.maxUses && invite.usesCount >= invite.maxUses) return 'full';
+    const alreadyMember = teams.find(t => t.id === invite.teamId)?.memberUserIds.includes(userId);
+    if (alreadyMember) return 'joined';
+    if (invite.autoApprove) {
+      setTeams(prev => prev.map(t =>
+        t.id === invite.teamId ? { ...t, memberUserIds: [...t.memberUserIds, userId] } : t
+      ));
+      setTeamInvites(prev => prev.map(i => i.id === invite.id ? { ...i, usesCount: i.usesCount + 1 } : i));
+      addAudit('team', invite.teamId, 'MEMBER_JOINED', { userId, code });
+      return 'joined';
+    } else {
+      const req: TeamJoinRequest = {
+        id: 'tjr_' + Date.now(),
+        teamId: invite.teamId,
+        inviteCode: code,
+        userId,
+        displayName,
+        requestedAt: new Date().toISOString(),
+        status: 'pending',
+      };
+      setTeamJoinRequests(prev => [...prev, req]);
+      addAudit('team', invite.teamId, 'JOIN_REQUEST_CREATED', { userId });
+      return 'pending';
+    }
+  };
+
+  const handleApproveJoinTeamRequest = (requestId: string) => {
+    const req = teamJoinRequests.find(r => r.id === requestId);
+    if (!req) return;
+    setTeamJoinRequests(prev => prev.map(r =>
+      r.id === requestId ? { ...r, status: 'approved' as const, resolvedAt: new Date().toISOString(), resolvedByUserId: currentUser?.id } : r
+    ));
+    setTeams(prev => prev.map(t =>
+      t.id === req.teamId ? { ...t, memberUserIds: [...t.memberUserIds, req.userId] } : t
+    ));
+    addAudit('team', req.teamId, 'JOIN_REQUEST_APPROVED', { userId: req.userId });
+  };
+
+  const handleRejectJoinTeamRequest = (requestId: string) => {
+    setTeamJoinRequests(prev => prev.map(r =>
+      r.id === requestId ? { ...r, status: 'rejected' as const, resolvedAt: new Date().toISOString(), resolvedByUserId: currentUser?.id } : r
+    ));
+  };
+
+  // ── Captain Payout Profile ────────────────────────────────────────────
+  const handleSaveCaptainPayoutProfile = (profile: Partial<CaptainPayoutProfile>) => {
+    if (!currentUser) return;
+    setCaptainPayoutProfiles(prev => {
+      const existing = prev.findIndex(p => p.captainUserId === currentUser.id);
+      if (existing >= 0) {
+        const updated = [...prev];
+        updated[existing] = { ...updated[existing], ...profile, captainUserId: currentUser.id };
+        return updated;
+      }
+      return [...prev, { captainUserId: currentUser.id, ...profile }];
+    });
+  };
+
+  // ── Onboarding ────────────────────────────────────────────────────────
+  const handleCompleteMemberProfile = (userId: string, data: { fullName: string; phone?: string }) => {
+    setMemberProfiles(prev => {
+      const existing = prev.findIndex(p => p.userId === userId);
+      const profile: MemberProfile = {
+        userId,
+        fullName: data.fullName,
+        phone: data.phone,
+        createdAt: new Date().toISOString(),
+        status: 'active',
+      };
+      if (existing >= 0) { const u = [...prev]; u[existing] = profile; return u; }
+      return [...prev, profile];
+    });
+    addAudit('user', userId, 'MEMBER_PROFILE_COMPLETED', data);
+  };
+
+  // ── RSVP ─────────────────────────────────────────────────────────────
+  const handleSetRSVP = (teamId: string, reservationId: string, userId: string, status: MatchRSVP['status'], note?: string) => {
+    setMatchRsvps(prev => {
+      const existing = prev.findIndex(r => r.reservationId === reservationId && r.userId === userId);
+      const rsvp: MatchRSVP = { id: 'rsvp_' + Date.now(), teamId, reservationId, userId, status, updatedAt: new Date().toISOString(), note };
+      if (existing >= 0) { const u = [...prev]; u[existing] = rsvp; return u; }
+      return [...prev, rsvp];
+    });
+  };
+
+  // ── Payment plan creation ─────────────────────────────────────────────
+  const handleCreateCaptainPlan = (
+    reservationId: string, teamId: string,
+    plan: CaptainPaymentPlan['plan'], totalPrice: number,
+    memberIds: string[], collectionMode: CaptainPaymentPlan['collectionMode']
+  ) => {
+    const depositAmount = Math.round(totalPrice * 0.33 / 10) * 10;
+    const depositRequired = plan !== 'all_cash_on_site';
+    const dueAt = new Date(Date.now() + 48 * 3600000).toISOString();
+    const newPlan: CaptainPaymentPlan = {
+      id: 'plan_' + Date.now(),
+      teamId, reservationId, plan, collectionMode,
+      createdAt: new Date().toISOString(),
+      currency: 'TRY', totalPrice,
+      depositRequired, depositAmount,
+      depositMethod: 'eft',
+      restAmount: totalPrice - depositAmount,
+      restMethodPreference: plan === 'all_eft' ? 'eft' : plan === 'all_cash_on_site' ? 'cash' : 'any',
+      dueAt, status: 'collecting',
+    };
+    setCaptainPaymentPlans(prev => [...prev, newPlan]);
+
+    // Create member contributions
+    const perMember = collectionMode === 'split_equal' ? Math.round(totalPrice / memberIds.length / 10) * 10 : totalPrice;
+    const contribs: MemberContribution[] = memberIds.map(uid => ({
+      id: 'mc_' + Date.now() + '_' + uid,
+      teamId, reservationId, memberUserId: uid,
+      memberName: players.find(p => p.id === uid)?.name ?? uid,
+      expectedAmount: perMember,
+      paidAmount: 0, status: 'unpaid' as const,
+      lastUpdatedAt: new Date().toISOString(),
+    }));
+    setMemberContributions(prev => [...prev, ...contribs]);
+    addAudit('reservation', reservationId, 'CAPTAIN_PLAN_CREATED', { plan, totalPrice, memberCount: memberIds.length });
+    // Create outbox messages for each member
+    const captainProfile = captainPayoutProfiles.find(p => p.captainUserId === currentUser?.id);
+    contribs.forEach(c => {
+      const body = `📍 Maç Bilgisi\nKişi payın: ${c.expectedAmount}₺\nEFT: ${captainProfile?.iban ?? '—'} (${captainProfile?.accountName ?? '—'})\nAçıklama: TEAM-${teamId}-RES-${reservationId}-U${c.memberUserId.slice(-3)}\nNakit: ${captainProfile?.phoneForCash ?? '—'}`;
+      const msg: OutboxMessage = {
+        id: 'out_' + Date.now() + '_' + c.memberUserId,
+        venueId: '', teamId, reservationId: reservationId,
+        at: new Date().toISOString(),
+        createdByUserId: currentUser?.id ?? '',
+        toUserId: c.memberUserId, toLabel: c.memberName,
+        body, status: 'draft',
+      } as any;
+      setOutboxMessages(prev => [...prev, msg]);
+    });
+  };
+
+  // ── Record member payment (captain) ──────────────────────────────────
+  const handleRecordMemberPayment = (teamId: string, reservationId: string, memberUserId: string, amount: number, method: 'cash' | 'eft' | 'card', note?: string) => {
+    setMemberContributions(prev => prev.map(mc => {
+      if (mc.reservationId !== reservationId || mc.memberUserId !== memberUserId) return mc;
+      const newPaid = Math.min(mc.expectedAmount, mc.paidAmount + amount);
+      const status: MemberContribution['status'] = newPaid >= mc.expectedAmount ? 'paid' : newPaid > 0 ? 'partial' : 'unpaid';
+      return { ...mc, paidAmount: newPaid, status, lastUpdatedAt: new Date().toISOString() };
+    }));
+    const entry: LedgerEntry = {
+      id: 'le_' + Date.now(), at: new Date().toISOString(),
+      teamId, reservationId, actorUserId: currentUser?.id ?? '',
+      direction: 'member_to_captain', fromUserId: memberUserId,
+      toUserId: currentUser?.id, method, amount, note,
+    };
+    setLedger(prev => [...prev, entry]);
+    // Check if total collected >= restAmount -> ready_to_pay
+    const plan = captainPaymentPlans.find(p => p.reservationId === reservationId);
+    if (plan) {
+      const contribs = memberContributions.filter(mc => mc.reservationId === reservationId);
+      const totalPaid = contribs.reduce((s, mc) => s + (mc.memberUserId === memberUserId ? Math.min(mc.expectedAmount, mc.paidAmount + amount) : mc.paidAmount), 0);
+      if (totalPaid >= plan.totalPrice) {
+        setCaptainPaymentPlans(prev => prev.map(p => p.id === plan.id ? { ...p, status: 'ready_to_pay' as const } : p));
+      }
+    }
+    addAudit('payment', reservationId, 'MEMBER_PAYMENT_RECORDED', { memberUserId, amount, method });
+  };
+
+  // ── Member submit proof ───────────────────────────────────────────────
+  const handleMemberSubmitProof = (teamId: string, reservationId: string, userId: string, proofUrl: string, note?: string) => {
+    setMemberContributions(prev => prev.map(mc =>
+      mc.reservationId === reservationId && mc.memberUserId === userId
+        ? { ...mc, proofUrl, proofNote: note, lastUpdatedAt: new Date().toISOString() }
+        : mc
+    ));
+    const user = players.find(p => p.id === userId);
+    const outboxMsg: OutboxMessage = {
+      id: 'out_proof_' + Date.now(),
+      venueId: '', teamId, reservationId,
+      at: new Date().toISOString(),
+      createdByUserId: userId,
+      toLabel: 'Kaptan',
+      body: `📎 Dekont Geldi!\n${user?.name ?? 'Üye'} ödeme dekontunu gönderdi.\nLink: ${proofUrl}${note ? `\nNot: ${note}` : ''}`,
+      status: 'draft',
+    } as any;
+    setOutboxMessages(prev => [...prev, outboxMsg]);
+    addAudit('payment', reservationId, 'MEMBER_PROOF_SUBMITTED', { userId, proofUrl });
+  };
+
+  // ── Captain pays venue ────────────────────────────────────────────────
+  const handleCaptainPayVenue = (reservationId: string, amount: number, method: 'cash' | 'eft' | 'card', note?: string) => {
+    const plan = captainPaymentPlans.find(p => p.reservationId === reservationId);
+    if (plan) {
+      setCaptainPaymentPlans(prev => prev.map(p =>
+        p.id === plan.id ? { ...p, status: 'paid_to_venue' as const } : p
+      ));
+    }
+    setReservations(prev => prev.map(r =>
+      r.id === reservationId ? { ...r, venuePaymentStatus: 'paid' as any, venuePaidTotal: amount, venuePaymentMethodUsed: method as any } : r
+    ));
+    const entry: LedgerEntry = {
+      id: 'le_' + Date.now(), at: new Date().toISOString(),
+      teamId: plan?.teamId, reservationId, actorUserId: currentUser?.id ?? '',
+      direction: 'captain_to_venue', method, amount, note,
+    };
+    setLedger(prev => [...prev, entry]);
+    addAudit('payment', reservationId, 'CAPTAIN_PAID_VENUE', { amount, method });
+  };
+
+  // ── Reminder auto-generation ──────────────────────────────────────────
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const now = new Date();
+      captainPaymentPlans.filter(p => p.status === 'collecting' && p.dueAt).forEach(plan => {
+        const dueMs = new Date(plan.dueAt!).getTime() - now.getTime();
+        if (dueMs <= 3 * 3600000 && dueMs > 0) {
+          const unpaid = memberContributions.filter(mc => mc.reservationId === plan.reservationId && mc.status !== 'paid');
+          unpaid.forEach(mc => {
+            const alreadyExists = outboxMessages.some(m =>
+              (m as any).reservationId === plan.reservationId && (m as any).toUserId === mc.memberUserId &&
+              m.body.startsWith('⏰ Hatırlatma') && m.at > new Date(Date.now() - 23 * 3600000).toISOString()
+            );
+            if (!alreadyExists) {
+              const reminderMsg: OutboxMessage = {
+                id: 'out_rem_' + Date.now() + '_' + mc.memberUserId,
+                venueId: '', teamId: plan.teamId, reservationId: plan.reservationId,
+                at: new Date().toISOString(), createdByUserId: 'system',
+                toUserId: mc.memberUserId, toLabel: mc.memberName,
+                body: `⏰ Hatırlatma: Maç için ${mc.expectedAmount - mc.paidAmount}₺ borcun var. Son ödeme: ${new Date(plan.dueAt!).toLocaleString('tr-TR')}`,
+                status: 'draft',
+              } as any;
+              setOutboxMessages(prev => [...prev, reminderMsg]);
+            }
+          });
+        }
+      });
+    }, 60000);
+    return () => clearInterval(interval);
+  }, [captainPaymentPlans, memberContributions, outboxMessages]); // eslint-disable-line
+
   // ===========================================
   // RENDER SCREEN LOGIC
   // ===========================================
@@ -2394,6 +2703,198 @@ function App() {
         );
 
       // ========== DEFAULT ==========
+      // ── CAPTAIN SCREENS ─────────────────────────────────────────────
+      case 'captainDashboard':
+        return <CaptainDashboard
+          currentUser={currentUser}
+          teams={teams}
+          reservations={reservations}
+          captainPaymentPlans={captainPaymentPlans}
+          memberContributions={memberContributions}
+          matchRsvps={matchRsvps}
+          onBack={goBack}
+          onNavigate={navigateTo}
+          onNavigateWithParam={(s, p) => { setNavParams(p); navigateTo(s); }}
+        />;
+
+      case 'teamManagement':
+        return <TeamManagement
+          currentUser={currentUser}
+          teams={teams}
+          teamInvites={teamInvites}
+          teamJoinRequests={teamJoinRequests}
+          captainPayoutProfiles={captainPayoutProfiles}
+          onBack={goBack}
+          onNavigate={navigateTo}
+          onCreateTeam={handleCreateTeam}
+          onCreateInviteCode={handleCreateInviteCode}
+          onRevokeInviteCode={handleRevokeInviteCode}
+          onApproveJoinRequest={handleApproveJoinTeamRequest}
+          onRejectJoinRequest={handleRejectJoinTeamRequest}
+          onSavePayoutProfile={handleSaveCaptainPayoutProfile}
+        />;
+
+      case 'captainBookingFlow':
+        return <CaptainBookingFlow
+          currentUser={currentUser}
+          teams={teams}
+          venues={venues}
+          reservations={reservations}
+          maintenanceTasks={maintenanceTasks}
+          captainPayoutProfiles={captainPayoutProfiles}
+          onBack={goBack}
+          onNavigate={navigateTo}
+          onCreatePlan={handleCreateCaptainPlan}
+          onCreateReservation={(data) => {
+            const resId = 'r_' + Date.now();
+            const newRes: Reservation = {
+              id: resId, venueId: data.venueId, venueName: data.venueName,
+              teamId: data.teamId, teamName: data.teamName, date: data.date,
+              startTime: data.startTime, endTime: data.endTime,
+              duration: data.durationMinutes, price: data.price,
+              status: 'pending', paymentStatus: 'pending',
+              bookedAt: new Date().toISOString(), isCaptainFlow: true,
+              bookedByUserId: currentUser?.id,
+              source: 'manual',
+            } as any;
+            setReservations(prev => [...prev, newRes]);
+            addAudit('reservation', resId, 'CAPTAIN_RESERVATION_CREATED', { teamId: data.teamId });
+            return resId;
+          }}
+        />;
+
+      case 'reservationPaymentHub':
+        return <ReservationPaymentHub
+          currentUser={currentUser}
+          reservations={reservations}
+          captainPaymentPlans={captainPaymentPlans}
+          memberContributions={memberContributions}
+          ledger={ledger}
+          outboxMessages={outboxMessages}
+          captainPayoutProfiles={captainPayoutProfiles}
+          venues={venues}
+          matchRsvps={matchRsvps}
+          navParams={navParams}
+          onBack={goBack}
+          onNavigate={navigateTo}
+          onRecordPayment={handleRecordMemberPayment}
+          onCaptainPayVenue={handleCaptainPayVenue}
+          onCopyOutbox={handleCopyMessage}
+        />;
+
+      case 'captainOutbox':
+        return <CaptainOutbox
+          currentUser={currentUser}
+          outboxMessages={outboxMessages}
+          teams={teams}
+          reservations={reservations}
+          onBack={goBack}
+          onCopy={handleCopyMessage}
+        />;
+
+      // ── MEMBER SCREENS ─────────────────────────────────────────────
+      case 'phoneAuth':
+        return <PhoneAuth
+          pendingJoinCode={pendingJoinCode}
+          onLoginSuccess={(user) => {
+            setCurrentUser(user);
+            if (pendingJoinCode) {
+              navigateTo('joinTeam');
+            } else if (authRedirectPath) {
+              navigateTo(authRedirectPath);
+              setAuthRedirectPath(null);
+            } else {
+              navigateTo('memberHome');
+            }
+          }}
+          onBack={goBack}
+        />;
+
+      case 'memberOnboarding':
+        return <MemberOnboarding
+          currentUser={currentUser}
+          pendingJoinCode={pendingJoinCode}
+          onComplete={(fullName, phone) => {
+            if (currentUser) handleCompleteMemberProfile(currentUser.id, { fullName, phone });
+            if (pendingJoinCode) navigateTo('joinTeam');
+            else navigateTo('memberHome');
+          }}
+          onBack={goBack}
+        />;
+
+      case 'memberHome':
+        return <MemberHome
+          currentUser={currentUser}
+          teams={teams}
+          reservations={reservations}
+          memberContributions={memberContributions}
+          matchRsvps={matchRsvps}
+          outboxMessages={outboxMessages}
+          onBack={goBack}
+          onNavigate={navigateTo}
+          onNavigateWithParam={(s, p) => { setNavParams(p); navigateTo(s); }}
+          onJoinTeam={() => navigateTo('joinTeam')}
+        />;
+
+      case 'memberMatchDetails':
+        return <MemberMatchDetails
+          currentUser={currentUser}
+          reservations={reservations}
+          teams={teams}
+          memberContributions={memberContributions}
+          captainPaymentPlans={captainPaymentPlans}
+          captainPayoutProfiles={captainPayoutProfiles}
+          matchRsvps={matchRsvps}
+          navParams={navParams}
+          onBack={goBack}
+          onSetRSVP={handleSetRSVP}
+          onSubmitProof={handleMemberSubmitProof}
+        />;
+
+      case 'memberPayments':
+        return <MemberPayments
+          currentUser={currentUser}
+          reservations={reservations}
+          memberContributions={memberContributions}
+          captainPayoutProfiles={captainPayoutProfiles}
+          teams={teams}
+          onBack={goBack}
+          onNavigate={navigateTo}
+          onNavigateWithParam={(s, p) => { setNavParams(p); navigateTo(s); }}
+          onSubmitProof={handleMemberSubmitProof}
+        />;
+
+      case 'joinTeam':
+        return <JoinTeamImproved
+          currentUser={currentUser}
+          teamInvites={teamInvites}
+          teams={teams}
+          memberProfiles={memberProfiles}
+          pendingJoinCode={pendingJoinCode}
+          onBack={goBack}
+          onNavigate={navigateTo}
+          onSetPendingCode={setPendingJoinCode}
+          onSubmitJoin={(code) => {
+            if (!currentUser) {
+              setPendingJoinCode(code);
+              navigateTo('phoneAuth');
+              return 'redirect_auth';
+            }
+            const profile = memberProfiles.find(p => p.userId === currentUser.id);
+            if (!profile || profile.status === 'incomplete') {
+              setPendingJoinCode(code);
+              navigateTo('memberOnboarding');
+              return 'redirect_onboarding';
+            }
+            const result = handleSubmitJoinByCode(code, currentUser.id, currentUser.name || 'Üye');
+            if (result === 'joined') {
+              setPendingJoinCode(null);
+            }
+            return result;
+          }}
+          onJoinSuccess={() => { setPendingJoinCode(null); navigateTo('memberHome'); }}
+        />;
+
       default:
         return (
           <div className="min-h-screen bg-secondary flex items-center justify-center p-6 text-center">

@@ -1,5 +1,5 @@
 
-import { Match, Player, Payment, Venue, Transaction, Poll, TournamentTeam, BracketMatch, Reservation, AppNotification, WaitlistEntry, AuditEvent, RecurringRule, CashEntry, DayClose, MaintenanceTask, IssueTicket, MessageTemplate, OutboxMessage } from './types';
+import { Match, Player, Payment, Venue, Transaction, Poll, TournamentTeam, BracketMatch, Reservation, AppNotification, WaitlistEntry, AuditEvent, RecurringRule, CashEntry, DayClose, MaintenanceTask, IssueTicket, MessageTemplate, OutboxMessage, Team, TeamInvite, TeamJoinRequest, CaptainPaymentPlan, MemberContribution, CaptainPayoutProfile, LedgerEntry, MatchRSVP } from './types';
 
 export const MOCK_NOTIFICATIONS: AppNotification[] = [
   { id: '1', type: 'match', title: 'Maç Daveti', message: 'Salı 21:00 maçı için kadroya eklendin. Lütfen onay ver.', time: '10 dk önce', isRead: false, actionScreen: 'matchDetails' },
@@ -116,7 +116,18 @@ export const MOCK_MATCHES: Match[] = [
     location: 'Olimpik Halı Saha',
     status: 'upcoming',
     pricePerPerson: 150,
-    opponent: 'Yazılımcılar FC'
+    opponent: 'Yazılımcılar FC',
+    iban: 'TR33 0006 1005 1978 6457 8413 26',
+    ibanHolder: 'Ahmet Yılmaz',
+    dueAt: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(),
+    matchDescription: 'Sahada FC Maç Katılım - 21 Ara',
+    attendees: [
+      { playerId: '1', status: 'yes' },
+      { playerId: '2', status: 'yes' },
+      { playerId: '3', status: 'maybe' },
+      { playerId: '4', status: 'yes' },
+      { playerId: '5', status: 'no' },
+    ],
   },
   {
     id: 'm2',
@@ -346,6 +357,27 @@ export const MOCK_BRACKET: BracketMatch[] = [
 
 // REZERVASYONLAR (Mock Data)
 export const MOCK_RESERVATIONS: Reservation[] = [
+  {
+    id: 'r_demo1',
+    venueId: 'v1',
+    venueName: 'Olimpik Halı Saha',
+    teamId: 'team1',
+    teamName: 'Sahada FC',
+    date: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
+    startTime: '20:00',
+    endTime: '21:30',
+    duration: 90,
+    price: 900,
+    status: 'pending',
+    paymentStatus: 'partial',
+    paymentMethod: 'bank_transfer',
+    isCaptainFlow: true,
+    bookedByUserId: '7',
+    venuePaymentStatus: 'unpaid',
+    captainPaymentPlanId: 'plan1',
+    bookedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+    source: 'manual',
+  } as any,
   {
     id: 'res1',
     venueId: 'v1',
@@ -780,3 +812,96 @@ export const MOCK_MESSAGE_TEMPLATES: MessageTemplate[] = [
 ];
 
 export const MOCK_OUTBOX: OutboxMessage[] = [];
+
+// ── CAPTAIN WALLET / TEAM MOCK DATA ──────────────────────────────────────────
+
+export const MOCK_TEAMS: Team[] = [
+  {
+    id: 'team1',
+    name: 'Sahada FC',
+    captainUserId: '7', // Kemal - captain user
+    memberUserIds: ['1', '2', '3', '4', '5'],
+    createdAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+];
+
+export const MOCK_TEAM_INVITES: TeamInvite[] = [
+  {
+    id: 'inv1',
+    teamId: 'team1',
+    code: 'SAHADA24',
+    createdByUserId: '7',
+    status: 'active',
+    createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+    maxUses: 20,
+    usesCount: 5,
+    autoApprove: true,
+  },
+];
+
+export const MOCK_TEAM_JOIN_REQUESTS: TeamJoinRequest[] = [
+  {
+    id: 'tjr1',
+    teamId: 'team1',
+    inviteCode: 'SAHADA24',
+    userId: 'new_member_demo',
+    displayName: 'Demo Üye',
+    requestedAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+    status: 'pending',
+  },
+];
+
+export const MOCK_CAPTAIN_PAYOUT_PROFILES: CaptainPayoutProfile[] = [
+  {
+    captainUserId: '7',
+    iban: 'TR33 0006 1005 1978 6457 8413 26',
+    accountName: 'Ahmet Yılmaz',
+    bankName: 'Ziraat Bankası',
+    phoneForCash: '0532 000 00 00',
+    note: 'EFT açıklamasına TEAM-{teamId}-RES-{reservationId} yazınız',
+  },
+];
+
+export const MOCK_CAPTAIN_PLANS: CaptainPaymentPlan[] = [
+  {
+    id: 'plan1',
+    teamId: 'team1',
+    reservationId: 'r_demo1',
+    plan: 'deposit_now_rest_later',
+    collectionMode: 'split_equal',
+    createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+    currency: 'TRY',
+    totalPrice: 900,
+    depositRequired: true,
+    depositAmount: 300,
+    restAmount: 600,
+    restMethodPreference: 'eft',
+    dueAt: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(),
+    status: 'collecting',
+    depositPaidAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+];
+
+export const MOCK_MEMBER_CONTRIBUTIONS: MemberContribution[] = [
+  { id: 'mc1', teamId: 'team1', reservationId: 'r_demo1', memberUserId: '1', memberName: 'Ahmet Yılmaz', expectedAmount: 150, paidAmount: 150, status: 'paid', lastUpdatedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString() },
+  { id: 'mc2', teamId: 'team1', reservationId: 'r_demo1', memberUserId: '2', memberName: 'Mehmet Demir', expectedAmount: 150, paidAmount: 0, status: 'unpaid', lastUpdatedAt: new Date().toISOString() },
+  { id: 'mc3', teamId: 'team1', reservationId: 'r_demo1', memberUserId: '3', memberName: 'Caner Erkin', expectedAmount: 150, paidAmount: 75, status: 'partial', lastUpdatedAt: new Date().toISOString() },
+  { id: 'mc4', teamId: 'team1', reservationId: 'r_demo1', memberUserId: '4', memberName: 'Volkan Babacan', expectedAmount: 150, paidAmount: 150, status: 'paid', lastUpdatedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString() },
+  { id: 'mc5', teamId: 'team1', reservationId: 'r_demo1', memberUserId: '5', memberName: 'Emre Çelik', expectedAmount: 150, paidAmount: 0, status: 'unpaid', lastUpdatedAt: new Date().toISOString() },
+  { id: 'mc6', teamId: 'team1', reservationId: 'r_demo1', memberUserId: '7', memberName: 'Kaptan Demo', expectedAmount: 150, paidAmount: 150, status: 'paid', lastUpdatedAt: new Date().toISOString() },
+];
+
+export const MOCK_LEDGER: LedgerEntry[] = [
+  { id: 'le1', at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(), teamId: 'team1', reservationId: 'r_demo1', actorUserId: '1', direction: 'member_to_captain', fromUserId: '1', toUserId: '7', method: 'eft', amount: 150, note: 'TEAM-team1-RES-r_demo1-U1' },
+  { id: 'le2', at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(), teamId: 'team1', reservationId: 'r_demo1', actorUserId: '4', direction: 'member_to_captain', fromUserId: '4', toUserId: '7', method: 'cash', amount: 150, note: 'Nakit ödeme' },
+  { id: 'le3', at: new Date().toISOString(), teamId: 'team1', reservationId: 'r_demo1', actorUserId: '3', direction: 'member_to_captain', fromUserId: '3', toUserId: '7', method: 'eft', amount: 75, note: 'Kısmi ödeme' },
+];
+
+export const MOCK_MATCH_RSVPS: MatchRSVP[] = [
+  { id: 'rsvp1', teamId: 'team1', reservationId: 'r_demo1', matchId: 'm1', userId: '1', status: 'going', updatedAt: new Date().toISOString() },
+  { id: 'rsvp2', teamId: 'team1', reservationId: 'r_demo1', matchId: 'm1', userId: '2', status: 'going', updatedAt: new Date().toISOString() },
+  { id: 'rsvp3', teamId: 'team1', reservationId: 'r_demo1', matchId: 'm1', userId: '3', status: 'maybe', updatedAt: new Date().toISOString() },
+  { id: 'rsvp4', teamId: 'team1', reservationId: 'r_demo1', matchId: 'm1', userId: '4', status: 'going', updatedAt: new Date().toISOString() },
+  { id: 'rsvp5', teamId: 'team1', reservationId: 'r_demo1', matchId: 'm1', userId: '5', status: 'not_going', updatedAt: new Date().toISOString() },
+];
+

@@ -19,7 +19,6 @@ import { RootStackParamList } from '../types';
 import { colors, spacing, borderRadius, typography } from '../theme';
 
 type WelcomeScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Welcome'>;
-
 type UserType = 'player' | 'venue_owner';
 
 export default function WelcomeScreen() {
@@ -88,7 +87,7 @@ export default function WelcomeScreen() {
             onPress={() => setSelectedRole(selectedRole === 'player' ? null : 'player')}
             activeOpacity={0.8}
           >
-            <Icon name="soccer" size={20} color={selectedRole === 'player' ? colors.secondary : colors.text?.secondary ?? '#9CA3AF'} />
+            <Icon name="soccer" size={20} color={selectedRole === 'player' ? colors.secondary : (colors.text?.secondary ?? '#9CA3AF')} />
             <Text style={[styles.roleChipText, selectedRole === 'player' && styles.roleChipTextActive]}>Oyuncuyum</Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -96,7 +95,7 @@ export default function WelcomeScreen() {
             onPress={() => setSelectedRole(selectedRole === 'venue_owner' ? null : 'venue_owner')}
             activeOpacity={0.8}
           >
-            <Icon name="stadium" size={20} color={selectedRole === 'venue_owner' ? '#fff' : colors.text?.secondary ?? '#9CA3AF'} />
+            <Icon name="stadium" size={20} color={selectedRole === 'venue_owner' ? '#fff' : (colors.text?.secondary ?? '#9CA3AF')} />
             <Text style={[styles.roleChipText, selectedRole === 'venue_owner' && styles.roleChipTextActiveVenue]}>Saha Sahibiyim</Text>
           </TouchableOpacity>
         </View>
