@@ -14,6 +14,7 @@ import { RootStackParamList } from '../types';
 import WelcomeScreen from '../screens/WelcomeScreen';
 import LoginScreen from '../screens/LoginScreen';
 import RegisterScreen from '../screens/RegisterScreen';
+import VenueOwnerOnboardingScreen from '../screens/VenueOwnerOnboardingScreen';
 
 // Main App
 import MainTabNavigator from './MainTabNavigator';
@@ -96,6 +97,7 @@ export default function RootNavigator() {
           <Stack.Screen name="Welcome" component={WelcomeScreen} />
           <Stack.Screen name="Login" component={LoginScreen} />
           <Stack.Screen name="Register" component={RegisterScreen} />
+          <Stack.Screen name="VenueOwnerOnboarding" component={VenueOwnerOnboardingScreen} />
           <Stack.Screen name="TeamSetup" component={TeamSetupScreen} />
           <Stack.Screen name="JoinTeam" component={JoinTeamScreen} />
         </>

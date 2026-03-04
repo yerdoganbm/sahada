@@ -146,7 +146,7 @@ export interface Venue {
   price: number;
   rating: number;
   reviewCount?: number;
-  status: 'active' | 'archived' | 'price_update' | 'closed' | 'maintenance';
+  status: 'active' | 'archived' | 'price_update' | 'closed' | 'maintenance' | 'pending_review';
   features: string[];
   phone: string;
   email?: string;

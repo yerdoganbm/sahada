@@ -69,7 +69,7 @@ export const VenueOwnerDashboard: React.FC<VenueOwnerDashboardProps> = ({
             <p className="text-slate-400 text-sm mt-1">Hoş geldin, {currentUser.name}</p>
           </div>
           <button 
-            onClick={() => onNavigate('settings')}
+            onClick={() => onNavigate('venueSettings')}
             className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 transition-colors"
           >
             <Icon name="settings" className="text-white" size={20} />

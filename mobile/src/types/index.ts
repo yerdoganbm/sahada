@@ -37,6 +37,14 @@ export interface Player {
   whatsappEnabled?: boolean;
   authzMigrationVersion?: number;
   trialStatus?: 'pending_approval' | 'in_trial' | 'promoted' | 'rejected';
+  venueOwnerInfo?: {
+    venueIds: string[];
+    businessInfo?: { companyName?: string; taxNumber?: string; iban: string; bankName: string; accountHolder: string };
+    commissionRate: number;
+    totalRevenue: number;
+    totalReservations: number;
+    responseTime: number;
+  };
   attributes?: {
     pac: number;
     sho: number;
@@ -82,6 +90,14 @@ export interface Venue {
   rating: number;
   image: string;
   features: string[];
+  district?: string;
+  address?: string;
+  phone?: string;
+  capacity?: string;
+  status?: 'active' | 'archived' | 'pending_review' | 'closed' | 'maintenance';
+  ownerId?: string;
+  organizerNotes?: { doorCode?: string; contactPerson: string; contactPhone: string; lastUpdate: string; customNotes: string };
+  priceHistory?: { date: string; price: number; reason: string }[];
   coordinates?: {
     latitude: number;
     longitude: number;
@@ -152,7 +168,8 @@ export interface JoinRequest {
 // Navigation types
 export type RootStackParamList = {
   Welcome: undefined;
-  Login: undefined;
+  Login: { userType?: 'player' | 'venue_owner' } | undefined;
+  VenueOwnerOnboarding: { phone: string };
   Register: { prefillPhone?: string; inviteCode?: string };
   MainTabs: NavigatorScreenParams<MainTabParamList> | undefined;
   MatchDetails: { matchId: string };
