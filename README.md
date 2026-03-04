@@ -328,4 +328,51 @@ GitHub: [your-github]
 
 ---
 
+## 🔑 API Key Güvenliği
+
+### Google Maps API Key
+
+`.env` dosyasında tanımla, hardcode **etme**:
+
+```env
+VITE_GOOGLE_MAPS_API_KEY=your_key_here
+VITE_GOOGLE_MAPS_MAP_ID=your_map_id   # opsiyonel
+EXPO_PUBLIC_GOOGLE_MAPS_API_KEY=your_key_here
+```
+
+**Web (Vite):** Google Cloud Console → Credentials → HTTP Referrer kısıtlaması ekle:
+```
+https://yourdomain.com/*
+http://localhost:5173/*
+```
+
+**Mobil (Expo):** Google Cloud Console → Credentials → iOS/Android Bundle ID kısıtlaması:
+```
+iOS Bundle ID:    app.sahada.mobile
+Android Package:  app.sahada.mobile
+```
+
+### Konum Bildirimi (Gerekli)
+Konum izni istemeden önce kullanıcıya şu metni göster:
+> *"Konum, yakınımdaki sahaları sıralamak ve maç check-in doğrulaması için kullanılır."*
+
+**Background location permission ekleme.** Sadece `WhileInUse` kullanılır.
+
+---
+
+## 📱 Mobil Uygulama (Expo)
+
+```bash
+cd apps/mobile
+npm install
+npm start       # Expo Dev Tools açar
+```
+
+Deep link testi:
+```bash
+npx uri-scheme open "sahada://join?code=SAHADA24" --ios
+```
+
+---
+
 **⚽ Sahada - Maç Senin. Kontrol Sende.** 🚀

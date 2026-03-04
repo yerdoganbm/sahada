@@ -19,6 +19,7 @@ import { RootStackParamList } from '../types';
 import { colors, spacing, borderRadius, typography } from '../theme';
 
 type WelcomeScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Welcome'>;
+
 type UserType = 'player' | 'venue_owner';
 
 export default function WelcomeScreen() {
@@ -80,7 +81,6 @@ export default function WelcomeScreen() {
           Maç Senin. <Text style={styles.subtitleBold}>Kontrol Sende.</Text>
         </Text>
 
-        {/* Role selection */}
         <View style={styles.roleRow}>
           <TouchableOpacity
             style={[styles.roleChip, selectedRole === 'player' && styles.roleChipActive]}

@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { ToastProvider } from './components/Toast';
 import { BottomNav } from './components/BottomNav';
+import { FlagDebugPanel } from './components/FlagDebugPanel';
 import { MobileHeader } from './components/MobileHeader';
 import { InstallBanner } from './components/InstallBanner';
 import { useViewportHeight } from './hooks/useMobileFeatures';
@@ -3027,6 +3028,9 @@ function App() {
 
         {/* Install PWA Banner */}
         {currentUser && <InstallBanner />}
+
+        {/* Feature Flag Debug Panel (dev only) */}
+        <FlagDebugPanel />
       </div>
     </ToastProvider>
   );

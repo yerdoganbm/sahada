@@ -123,6 +123,7 @@ export default function LoginScreen() {
               ? digits.slice(1)
               : digits.slice(-10)
           : phone.trim();
+      const phoneForPrefill = rawPhone || phone.trim();
       if (userType === 'venue_owner') {
         setAlert({
           title: 'Saha sahibi kaydı',
@@ -146,12 +147,12 @@ export default function LoginScreen() {
           confirmText: 'Kayıt Ol',
           onConfirm: () => {
             setAlert(null);
-            navigation.navigate('Register', { prefillPhone: rawPhone || phone.trim() });
+            navigation.navigate('Register', { prefillPhone: phoneForPrefill });
           },
           secondaryText: 'Takım Kur',
           onSecondary: () => {
             setAlert(null);
-            navigation.navigate('TeamSetup', { prefillPhone: rawPhone || phone.trim() });
+            navigation.navigate('TeamSetup', { prefillPhone: phoneForPrefill });
           },
         });
       }

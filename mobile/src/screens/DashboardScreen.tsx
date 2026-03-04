@@ -99,10 +99,10 @@ export default function DashboardScreen() {
     { icon: 'trophy', label: 'Sıralama', color: '#8B5CF6', onPress: () => navigation.navigate('Leaderboard'), show: true },
     { icon: 'medal', label: 'Turnuva', color: '#EAB308', onPress: () => navigation.navigate('Tournament'), show: true },
     { icon: 'calendar-month', label: 'Takvim', color: '#0EA5E9', onPress: () => navigation.navigate('VenueCalendar'), show: true },
+    { icon: 'calendar-check', label: 'Rezervasyonlarım', color: '#059669', onPress: () => navigation.navigate('MyReservations'), show: true },
     { icon: 'crown', label: 'Abonelik', color: '#F97316', onPress: () => navigation.navigate('Subscription'), show: true },
     { icon: 'chart-bar', label: 'Finans', color: '#A855F7', onPress: () => navigation.navigate('FinancialReports'), show: isAdmin || canManage },
     { icon: 'account-cog', label: 'Üye Yönetimi', color: '#0EA5E9', onPress: () => navigation.navigate('MemberManagement'), show: isAdmin || canManage },
-    { icon: 'calendar-check', label: 'Rezervasyonlarım', color: '#10B981', onPress: () => navigation.navigate('MyReservations'), show: true },
   ];
 
   const visibleActions = quickActions.filter((a) => a.show !== false);
