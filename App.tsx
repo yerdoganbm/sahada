@@ -45,6 +45,8 @@ import { TeamSetup } from './screens/TeamSetup';
 import { EditProfileScreen } from './screens/EditProfileScreen';
 // VENUE OWNER SCREENS
 import { VenueOwnerDashboard } from './screens/VenueOwnerDashboard';
+import { VenueOwnerOnboarding } from './screens/VenueOwnerOnboarding';
+import { VenueSettings } from './screens/VenueSettings';
 import { ReservationManagement } from './screens/ReservationManagement';
 import { ReservationDetails } from './screens/ReservationDetails';
 import { VenueCalendar } from './screens/VenueCalendar';
@@ -64,6 +66,8 @@ function App() {
   const [currentUser, setCurrentUser] = useState<Player | null>(null);
   const [currentScreen, setCurrentScreen] = useState<ScreenName>('welcome');
   const [screenHistory, setScreenHistory] = useState<ScreenName[]>([]);
+  const [pendingPhone, setPendingPhone] = useState<string>('');
+  const [pendingUserType, setPendingUserType] = useState<'player' | 'venue_owner' | null>(null);
   
   // 📱 Mobile: Setup viewport height for mobile browsers
   useViewportHeight();
@@ -176,6 +180,13 @@ function App() {
         console.log('✅ Giriş yapıldı:', user.name);
         setCurrentScreen('dashboard');
       }
+    } else if (userId.startsWith('new_venue_owner_')) {
+      // Yeni saha sahibi → onboarding sihirbazı
+      const phone = userId.replace('new_venue_owner_', '');
+      setPendingPhone(phone);
+      setPendingUserType('venue_owner');
+      setScreenHistory([]);
+      setCurrentScreen('venueOwnerOnboarding');
     } else if (isNewTeam) {
       // Yeni takım kuruluyor - admin olarak giriş
       const newAdmin: Player = {
@@ -238,6 +249,9 @@ function App() {
     }
     if (params?.venueId) {
       setVenueDetailsId(params.venueId);
+    }
+    if (params?.userType) {
+      setPendingUserType(params.userType);
     }
     
     // Geçmişe ekle (geri dön için)
@@ -585,6 +599,13 @@ function App() {
     navigateTo('dashboard');
   };
 
+  // Rezervasyon oluşturma (BookingScreen – saha rezervasyonu)
+  const handleCreateReservation = (reservation: Reservation) => {
+    setReservations(prev => [...prev, reservation]);
+    console.log('✅ Rezervasyon talebi oluşturuldu.');
+    navigateTo('dashboard');
+  };
+
   // 18. FIX #5: MAÇ SKORU GÜNCELLEME
   const handleUpdateMatchScore = (matchId: string, score: string, newStatus?: 'completed' | 'cancelled') => {
     console.log(`⚽ Maç skoru güncelleniyor: ${matchId} -> ${score}`);
@@ -679,6 +700,22 @@ function App() {
         : r
     ));
     console.log('Rezervasyon reddedildi. Müşteriye bildirim gönderildi.');
+  };
+
+  // Saha ayarlarını güncelle (VenueSettings)
+  const handleUpdateVenue = (venueId: string, updates: Partial<Venue>) => {
+    setVenues(prev => prev.map(v =>
+      v.id === venueId ? { ...v, ...updates } : v
+    ));
+  };
+
+  // Rezervasyon ödeme onayı (saha sahibi)
+  const handleMarkReservationPaid = (reservationId: string) => {
+    setReservations(prev => prev.map(r =>
+      r.id === reservationId
+        ? { ...r, paymentStatus: 'paid' as const, depositPaidAt: new Date().toISOString(), holdExpiresAt: undefined }
+        : r
+    ));
   };
 
   // =========================================== 
@@ -873,6 +910,34 @@ function App() {
           <LoginScreen 
             onLogin={handleLogin}
             onNavigate={navigateTo}
+            userType={pendingUserType}
+            onRegisterVenueOwner={(phone) => {
+              setPendingPhone(phone);
+              setPendingUserType('venue_owner');
+              setScreenHistory(prev => [...prev, 'login']);
+              setCurrentScreen('venueOwnerOnboarding');
+            }}
+          />
+        );
+
+      case 'venueOwnerOnboarding':
+        return (
+          <VenueOwnerOnboarding
+            phone={pendingPhone}
+            onBack={() => {
+              setPendingPhone('');
+              setPendingUserType(null);
+              goBack();
+            }}
+            onComplete={(newOwner, newVenue) => {
+              setPlayers(prev => [...prev, newOwner]);
+              setVenues(prev => [...prev, newVenue]);
+              setCurrentUser(newOwner);
+              setPendingPhone('');
+              setPendingUserType(null);
+              setScreenHistory([]);
+              setCurrentScreen('venueOwnerDashboard');
+            }}
           />
         );
 
@@ -1195,10 +1260,13 @@ function App() {
         }
         return (
           <BookingScreen 
-            onBack={goBack}
+            venueId={venueDetailsId || venues[0]?.id || ''}
             venues={venues}
-            venueId={venueDetailsId || venues[0]?.id}
-            onComplete={handleBooking}
+            existingReservations={reservations}
+            currentUser={currentUser}
+            teamProfile={teamProfile}
+            onBack={goBack}
+            onCreateReservation={handleCreateReservation}
           />
         );
 
@@ -1400,6 +1468,7 @@ function App() {
             onBack={goBack}
             onApproveReservation={handleApproveReservation}
             onRejectReservation={handleRejectReservation}
+            onMarkReservationPaid={handleMarkReservationPaid}
             onViewDetails={(id) => {
               setReservationDetailsId(id);
               navigateTo('reservationDetails');
@@ -1423,6 +1492,7 @@ function App() {
             onBack={goBack}
             onApprove={handleApproveReservation}
             onReject={handleRejectReservation}
+            onMarkPaid={handleMarkReservationPaid}
           />
         );
 
@@ -1458,6 +1528,24 @@ function App() {
             venueIds={currentUser.venueOwnerInfo?.venueIds || []}
           />
         );
+
+      case 'venueSettings':
+        if (!currentUser || currentUser.role !== 'venue_owner') {
+          navigateTo('login');
+          return null;
+        }
+        {
+          const ownerVenues = venues.filter(v =>
+            (currentUser.venueOwnerInfo?.venueIds || []).includes(v.id)
+          );
+          return (
+            <VenueSettings
+              venues={ownerVenues}
+              onBack={goBack}
+              onSave={handleUpdateVenue}
+            />
+          );
+        }
 
       // ========== SCOUT SYSTEM ==========
       case 'scoutDashboard':
@@ -1536,8 +1624,8 @@ function App() {
     'welcome', 'login', 'createProfile', 'teamSetup',
     'dashboard', 'profile', 'settings', 'matchDetails',
     'booking', 'venueDetails', 'editProfile',
-    'venueOwnerDashboard', 'reservationManagement', 'reservationDetails',
-    'scoutDashboard', 'talentPool', 'scoutReports'
+    'venueOwnerDashboard', 'venueOwnerOnboarding', 'reservationManagement', 'reservationDetails',
+    'venueSettings', 'scoutDashboard', 'talentPool', 'scoutReports'
   ];
 
   // Screens where BottomNav should be visible
@@ -1626,6 +1714,7 @@ function getScreenTitle(screen: ScreenName): string {
     joinTeam: 'Takıma Katıl',
     venueOwnerDashboard: 'Saha Yönetimi',
     reservationManagement: 'Rezervasyonlar',
+    venueSettings: 'Saha Ayarları',
     reservationDetails: 'Rezervasyon Detayı',
     venueCalendar: 'Saha Takvimi',
     venueFinancialReports: 'Saha Finansları',

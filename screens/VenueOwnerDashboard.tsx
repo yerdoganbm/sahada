@@ -242,73 +242,80 @@ const ReservationCard: React.FC<{
   onApprove: () => void;
   onReject: () => void;
   isPending?: boolean;
-}> = ({ reservation, onApprove, onReject, isPending }) => {
+}> = ({ reservation: r, onApprove, onReject, isPending }) => {
   const statusColors = {
     pending: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/30',
     confirmed: 'bg-green-500/10 text-green-500 border-green-500/30',
     cancelled: 'bg-red-500/10 text-red-500 border-red-500/30',
     completed: 'bg-blue-500/10 text-blue-500 border-blue-500/30'
   };
-
   const statusLabels = {
-    pending: 'Bekliyor',
-    confirmed: 'Onaylandı',
-    cancelled: 'İptal',
-    completed: 'Tamamlandı'
+    pending: 'Bekliyor', confirmed: 'Onaylandı', cancelled: 'İptal', completed: 'Tamamlandı'
   };
+
+  const holdExpired = r.holdExpiresAt ? new Date(r.holdExpiresAt) < new Date() : false;
 
   return (
     <div className="bg-surface rounded-2xl border border-white/5 p-4 hover:border-primary/30 transition-all">
       <div className="flex items-start justify-between mb-3">
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-1">
-            <h4 className="font-bold text-white">{reservation.teamName}</h4>
-            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${statusColors[reservation.status]}`}>
-              {statusLabels[reservation.status]}
+            <h4 className="font-bold text-white">{r.teamName}</h4>
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${statusColors[r.status]}`}>
+              {statusLabels[r.status]}
             </span>
           </div>
-          <p className="text-xs text-slate-400">{reservation.venueName}</p>
+          <p className="text-xs text-slate-400">{r.venueName}</p>
         </div>
         <div className="text-right">
-          <p className="text-lg font-black text-primary">{reservation.price.toLocaleString('tr-TR')}₺</p>
+          <p className="text-lg font-black text-primary">{r.price.toLocaleString('tr-TR')}₺</p>
+          {r.depositRequired && r.depositAmount ? (
+            <p className={`text-[10px] font-bold mt-0.5 ${r.depositPaidAt ? 'text-green-400' : 'text-yellow-500'}`}>
+              Kapora {r.depositAmount.toLocaleString('tr-TR')}₺ {r.depositPaidAt ? '✓' : '⏳'}
+            </p>
+          ) : null}
         </div>
       </div>
 
       <div className="flex items-center gap-4 text-xs text-slate-400 mb-3">
         <div className="flex items-center gap-1">
           <Icon name="calendar_today" size={14} />
-          <span>{new Date(reservation.date).toLocaleDateString('tr-TR')}</span>
+          <span>{new Date(r.date + 'T12:00:00').toLocaleDateString('tr-TR')}</span>
         </div>
         <div className="flex items-center gap-1">
           <Icon name="schedule" size={14} />
-          <span>{reservation.startTime} - {reservation.endTime}</span>
+          <span>{r.startTime} – {r.endTime}</span>
         </div>
         <div className="flex items-center gap-1">
           <Icon name="groups" size={14} />
-          <span>{reservation.participants} kişi</span>
+          <span>{r.participants}</span>
         </div>
       </div>
 
       <div className="flex items-center gap-2 text-xs text-slate-400 mb-3 pb-3 border-b border-white/5">
         <Icon name="person" size={14} />
-        <span>{reservation.contactPerson}</span>
-        <span>•</span>
+        <span>{r.contactPerson}</span>
+        <span className="text-slate-700">•</span>
         <Icon name="phone" size={14} />
-        <span>{reservation.contactPhone}</span>
+        <span>{r.contactPhone}</span>
       </div>
+
+      {/* Hold expired warning */}
+      {r.status === 'pending' && r.paymentStatus !== 'paid' && holdExpired && (
+        <div className="flex items-center gap-1.5 text-[10px] text-red-400 mb-2">
+          <Icon name="timer_off" size={12} />
+          <span>Hold süresi doldu — otomatik iptal bekleniyor</span>
+        </div>
+      )}
 
       {isPending && (
         <div className="flex gap-2">
-          <button
-            onClick={onReject}
-            className="flex-1 py-2 rounded-xl bg-red-500/10 border border-red-500/30 text-red-500 font-bold text-xs hover:bg-red-500/20 transition-colors"
-          >
+          <button onClick={onReject}
+            className="flex-1 py-2 rounded-xl bg-red-500/10 border border-red-500/30 text-red-500 font-bold text-xs hover:bg-red-500/20 transition-colors">
             Reddet
           </button>
-          <button
-            onClick={onApprove}
-            className="flex-1 py-2 rounded-xl bg-primary text-secondary font-bold text-xs shadow-glow hover:shadow-glow-lg transition-all"
-          >
+          <button onClick={onApprove}
+            className="flex-1 py-2 rounded-xl bg-primary text-secondary font-bold text-xs shadow-glow hover:bg-green-400 transition-all">
             Onayla
           </button>
         </div>

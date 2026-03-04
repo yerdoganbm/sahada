@@ -6,7 +6,7 @@ export enum Tab {
   Profile = 'Profile'
 }
 
-export type ScreenName = 'welcome' | 'login' | 'joinTeam' | 'teamSetup' | 'createProfile' | 'dashboard' | 'matches' | 'team' | 'profile' | 'editProfile' | 'matchDetails' | 'matchCreate' | 'payments' | 'admin' | 'members' | 'venues' | 'venueDetails' | 'venueAdd' | 'lineupManager' | 'squadShare' | 'settings' | 'leaderboard' | 'financialReports' | 'debtList' | 'subscription' | 'polls' | 'booking' | 'tournament' | 'whatsappCenter' | 'attendance' | 'reserveSystem' | 'messageLogs' | 'notifications' | 'venueOwnerDashboard' | 'reservationManagement' | 'reservationDetails' | 'venueCalendar' | 'venueFinancialReports' | 'venueSettings' | 'customerManagement' | 'scoutDashboard' | 'scoutReports' | 'talentPool';
+export type ScreenName = 'welcome' | 'login' | 'joinTeam' | 'teamSetup' | 'createProfile' | 'dashboard' | 'matches' | 'team' | 'profile' | 'editProfile' | 'matchDetails' | 'matchCreate' | 'payments' | 'admin' | 'members' | 'venues' | 'venueDetails' | 'venueAdd' | 'lineupManager' | 'squadShare' | 'settings' | 'leaderboard' | 'financialReports' | 'debtList' | 'subscription' | 'polls' | 'booking' | 'tournament' | 'whatsappCenter' | 'attendance' | 'reserveSystem' | 'messageLogs' | 'notifications' | 'venueOwnerDashboard' | 'venueOwnerOnboarding' | 'reservationManagement' | 'reservationDetails' | 'venueCalendar' | 'venueFinancialReports' | 'venueSettings' | 'customerManagement' | 'scoutDashboard' | 'scoutReports' | 'talentPool';
 
 export type SubscriptionTier = 'free' | 'premium' | 'partner';
 
