@@ -831,3 +831,15 @@ export interface MemberProfile {
   createdAt: string;
   status: 'active' | 'incomplete';
 }
+
+// Member Inbox (opsiyonel — outbox'tan türetilmiş read-only bildirimler)
+export interface InboxItem {
+  id: string;
+  at: string;
+  userId: string;       // alıcı üye
+  teamId?: string;
+  reservationId?: string;
+  title: string;
+  body: string;
+  status: 'unread' | 'read';
+}

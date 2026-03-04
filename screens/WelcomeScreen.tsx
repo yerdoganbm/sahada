@@ -102,6 +102,14 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onNavigate }) => {
         </div>
 
         <button
+          onClick={() => onNavigate('phoneAuth')}
+          className="w-full py-3.5 rounded-2xl bg-green-500/8 border border-green-500/20 text-green-400 font-bold text-sm hover:bg-green-500/12 transition-all flex items-center justify-center gap-2"
+        >
+          <Icon name="phone" size={16} />
+          Davet Koduyla Gir (Oyuncu)
+        </button>
+
+        <button
           onClick={() => onNavigate('login')}
           className="w-full py-3.5 rounded-2xl border border-white/10 text-slate-400 font-bold text-sm hover:bg-white/5 transition-all flex items-center justify-center gap-2"
         >

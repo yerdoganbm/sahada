@@ -238,20 +238,24 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 
                 {!isAdmin && isCaptain && (
                     <>
+                        <QuickAction icon="sports_soccer" label="Kaptan Paneli" color="bg-primary/15 text-primary" onClick={() => onNavigate('captainDashboard')} />
+                        <QuickAction icon="shield" label="Takım Yönet" color="bg-indigo-500/10 text-indigo-400" onClick={() => onNavigate('teamManagement')} />
+                        <QuickAction icon="add_circle" label="Maç Planla" color="bg-blue-500/10 text-blue-400" onClick={() => onNavigate('captainBookingFlow')} />
+                        <QuickAction icon="outbox" label="Mesajlar" color="bg-purple-500/10 text-purple-400" onClick={() => onNavigate('captainOutbox')} />
                         <QuickAction icon="person_add" label="Üyeler" color="bg-blue-50 text-blue-600" onClick={() => onNavigate('members')} />
-                        <QuickAction icon="groups" label="Kadro" color="bg-emerald-50 text-emerald-600" onClick={() => onNavigate('team')} />
                         <QuickAction icon="event_note" label="Rezervasyonlarım" color="bg-primary/10 text-primary" onClick={() => onNavigate('myReservations')} />
                         <QuickAction icon="emoji_events" label="Turnuva" color="bg-yellow-50 text-yellow-600" onClick={() => onNavigate('tournament')} />
-                        <QuickAction icon="poll" label="Anketler" color="bg-orange-50 text-orange-500" onClick={() => onNavigate('polls')} />
                     </>
                 )}
                 
                 {!isAdmin && !isCaptain && (
                     <>
+                        <QuickAction icon="home" label="Üye Paneli" color="bg-primary/15 text-primary" onClick={() => onNavigate('memberHome')} />
+                        <QuickAction icon="payments" label="Ödemelerim" color="bg-green-500/10 text-green-400" onClick={() => onNavigate('memberPayments')} />
+                        <QuickAction icon="link" label="Takıma Katıl" color="bg-indigo-500/10 text-indigo-400" onClick={() => onNavigate('joinTeam')} />
                         <QuickAction icon="emoji_events" label="Turnuva" color="bg-yellow-50 text-yellow-600" onClick={() => onNavigate('tournament')} />
                         <QuickAction icon="event_note" label="Rezervasyonlarım" color="bg-primary/10 text-primary" onClick={() => onNavigate('myReservations')} />
                         <QuickAction icon="groups" label="Kadro" color="bg-emerald-50 text-emerald-600" onClick={() => onNavigate('team')} />
-                        <QuickAction icon="poll" label="Anketler" color="bg-orange-50 text-orange-500" onClick={() => onNavigate('polls')} />
                         <QuickAction icon="leaderboard" label="Sıralama" color="bg-purple-50 text-purple-600" onClick={() => onNavigate('leaderboard')} />
                     </>
                 )}

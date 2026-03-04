@@ -6,7 +6,7 @@ import { MobileHeader } from './components/MobileHeader';
 import { InstallBanner } from './components/InstallBanner';
 import { useViewportHeight } from './hooks/useMobileFeatures';
 import { useViewportHeightFix } from './hooks/useIOSScrollFix';
-import { ScreenName, Venue, Player, Payment, Transaction, SubscriptionTier, RsvpStatus, Match, TransferRequest, Poll, TeamProfile, JoinRequest, Reservation, AppNotification, WaitlistEntry, AuditEvent, AlternativeSlotOffer, Role, PERMS, RecurringRule, CashEntry, DayClose, MaintenanceTask, IssueTicket, MessageTemplate, OutboxMessage, GuestSession, Team, TeamInvite, TeamJoinRequest, CaptainPaymentPlan, MemberContribution, CaptainPayoutProfile, LedgerEntry, MatchRSVP, MemberProfile } from './types';
+import { ScreenName, Venue, Player, Payment, Transaction, SubscriptionTier, RsvpStatus, Match, TransferRequest, Poll, TeamProfile, JoinRequest, Reservation, AppNotification, WaitlistEntry, AuditEvent, AlternativeSlotOffer, Role, PERMS, RecurringRule, CashEntry, DayClose, MaintenanceTask, IssueTicket, MessageTemplate, OutboxMessage, GuestSession, Team, TeamInvite, TeamJoinRequest, CaptainPaymentPlan, MemberContribution, CaptainPayoutProfile, LedgerEntry, MatchRSVP, MemberProfile, InboxItem } from './types';
 import { Dashboard } from './screens/Dashboard';
 import { TeamList } from './screens/TeamList';
 import { MatchDetails } from './screens/MatchDetails';
@@ -137,6 +137,7 @@ function App() {
   const [ledger, setLedger] = useState<LedgerEntry[]>(MOCK_LEDGER);
   const [matchRsvps, setMatchRsvps] = useState<MatchRSVP[]>(MOCK_MATCH_RSVPS);
   const [memberProfiles, setMemberProfiles] = useState<MemberProfile[]>([]);
+  const [inboxItems, setInboxItems] = useState<InboxItem[]>([]);
   // Auth state for phone login + join deep link
   const [pendingJoinCode, setPendingJoinCode] = useState<string | null>(null);
   const [authRedirectPath, setAuthRedirectPath] = useState<ScreenName | null>(null);
@@ -728,6 +729,34 @@ function App() {
         }
         return r;
       }));
+
+      // 5) Captain wallet: dueAt approaching reminders (within 3h, once per day per member)
+      setCaptainPaymentPlans(prev => {
+        prev.forEach(plan => {
+          if (plan.status !== 'collecting' || !plan.dueAt) return;
+          const hrsLeft = (new Date(plan.dueAt).getTime() - Date.now()) / 3600000;
+          if (hrsLeft > 3 || hrsLeft < 0) return;
+          // For each unpaid member, create a reminder outbox (once per day)
+          setMemberContributions(contribs => {
+            contribs.filter(c => c.reservationId === plan.reservationId && c.status !== 'paid').forEach(c => {
+              const todayKey = `reminder_${plan.id}_${c.memberUserId}_${now.slice(0, 10)}`;
+              setOutboxMessages(msgs => {
+                if (msgs.some(m => m.id === todayKey)) return msgs;
+                const body = `⚠️ Hatırlatma: ${now.slice(0, 10)} maçı için ödemen eksik. Kalan: ${c.expectedAmount - c.paidAmount}₺. Son saat: ${plan.dueAt ? new Date(plan.dueAt).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }) : '—'}`;
+                const reminder = { id: todayKey, at: now, teamId: plan.teamId, reservationId: plan.reservationId, createdByUserId: 'system', toUserId: c.memberUserId, toLabel: c.memberName, body, status: 'draft' as const } as any;
+                // Also push to member inbox
+                setInboxItems(inbox => {
+                  if (inbox.some(i => i.id === todayKey)) return inbox;
+                  return [...inbox, { id: todayKey, at: now, userId: c.memberUserId, teamId: plan.teamId, reservationId: plan.reservationId, title: 'Ödeme Hatırlatması', body, status: 'unread' as const }];
+                });
+                return [...msgs, reminder];
+              });
+            });
+            return contribs;
+          });
+        });
+        return prev;
+      });
 
     }, 60_000);
     return () => clearInterval(interval);
@@ -1789,16 +1818,31 @@ function App() {
         : mc
     ));
     const user = players.find(p => p.id === userId);
+    const userName = user?.name ?? 'Üye';
     const outboxMsg: OutboxMessage = {
       id: 'out_proof_' + Date.now(),
       venueId: '', teamId, reservationId,
       at: new Date().toISOString(),
       createdByUserId: userId,
       toLabel: 'Kaptan',
-      body: `📎 Dekont Geldi!\n${user?.name ?? 'Üye'} ödeme dekontunu gönderdi.\nLink: ${proofUrl}${note ? `\nNot: ${note}` : ''}`,
+      body: `📎 Dekont Geldi!\n${userName} ödeme dekontunu gönderdi.\nLink: ${proofUrl}${note ? `\nNot: ${note}` : ''}`,
       status: 'draft',
     } as any;
     setOutboxMessages(prev => [...prev, outboxMsg]);
+    // Inbox bridge: captain gets an inbox notification too
+    const team = teams.find(t => t.id === teamId);
+    if (team) {
+      const inboxItem: InboxItem = {
+        id: 'inbox_' + Date.now(),
+        at: new Date().toISOString(),
+        userId: team.captainUserId,
+        teamId, reservationId,
+        title: `${userName} dekont gönderdi`,
+        body: `${userName} ödeme dekontunu iletti. Link: ${proofUrl}${note ? ` | Not: ${note}` : ''}`,
+        status: 'unread',
+      };
+      setInboxItems(prev => [...prev, inboxItem]);
+    }
     addAudit('payment', reservationId, 'MEMBER_PROOF_SUBMITTED', { userId, proofUrl });
   };
 
@@ -2779,7 +2823,10 @@ function App() {
           onNavigate={navigateTo}
           onRecordPayment={handleRecordMemberPayment}
           onCaptainPayVenue={handleCaptainPayVenue}
-          onCopyOutbox={handleCopyMessage}
+          onCopyOutbox={(id) => {
+            const msg = outboxMessages.find(m => m.id === id);
+            if (msg) handleCopyMessage(id, msg.body);
+          }}
         />;
 
       case 'captainOutbox':
@@ -2789,7 +2836,10 @@ function App() {
           teams={teams}
           reservations={reservations}
           onBack={goBack}
-          onCopy={handleCopyMessage}
+          onCopy={(id) => {
+            const msg = outboxMessages.find(m => m.id === id);
+            if (msg) handleCopyMessage(id, msg.body);
+          }}
         />;
 
       // ── MEMBER SCREENS ─────────────────────────────────────────────
@@ -2830,6 +2880,7 @@ function App() {
           memberContributions={memberContributions}
           matchRsvps={matchRsvps}
           outboxMessages={outboxMessages}
+          inboxItems={inboxItems}
           onBack={goBack}
           onNavigate={navigateTo}
           onNavigateWithParam={(s, p) => { setNavParams(p); navigateTo(s); }}
