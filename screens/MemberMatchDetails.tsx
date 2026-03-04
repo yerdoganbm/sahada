@@ -1,5 +1,6 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { Icon } from '../components/Icon';
+import { PaymentProofModal } from '../components/PaymentProofModal';
 import { Player, Team, Reservation, MemberContribution, CaptainPaymentPlan, CaptainPayoutProfile, MatchRSVP } from '../types';
 
 interface Props {
@@ -16,27 +17,32 @@ interface Props {
   onSubmitProof: (teamId: string, reservationId: string, userId: string, proofUrl: string, note?: string) => void;
 }
 
-const RSVP_OPTIONS: { status: MatchRSVP['status']; label: string; icon: string; cls: string }[] = [
-  { status: 'going',     label: 'Geliyorum',    icon: 'check_circle',  cls: 'border-green-500/30 bg-green-500/10 text-green-400' },
-  { status: 'maybe',     label: 'Belki',         icon: 'help',          cls: 'border-yellow-500/30 bg-yellow-500/10 text-yellow-400' },
-  { status: 'not_going', label: 'Gelemiyorum',   icon: 'cancel',        cls: 'border-red-500/30 bg-red-500/10 text-red-400' },
+const RSVP_OPTIONS: { status: MatchRSVP['status']; label: string; icon: string }[] = [
+  { status: 'going',     label: 'Geliyorum',  icon: 'check_circle' },
+  { status: 'maybe',     label: 'Belki',      icon: 'help'         },
+  { status: 'not_going', label: 'Gelemiyorum',icon: 'cancel'       },
 ];
+
+const RSVP_COLORS: Record<string, { active: string; bg: string; border: string }> = {
+  going:     { active: '#10B981', bg: 'rgba(16,185,129,0.12)',  border: 'rgba(16,185,129,0.3)' },
+  maybe:     { active: '#F59E0B', bg: 'rgba(245,158,11,0.12)',  border: 'rgba(245,158,11,0.3)' },
+  not_going: { active: '#EF4444', bg: 'rgba(239,68,68,0.12)',   border: 'rgba(239,68,68,0.3)'  },
+};
 
 export const MemberMatchDetails: React.FC<Props> = ({
   currentUser, reservations, teams, memberContributions, captainPaymentPlans,
   captainPayoutProfiles, matchRsvps, navParams, onBack, onSetRSVP, onSubmitProof,
 }) => {
   const reservationId = navParams.reservationId;
-  const res = reservations.find(r => r.id === reservationId) ?? reservations.find(r => r.isCaptainFlow);
+  const res = reservations.find(r => r.id === reservationId) ?? reservations.find(r => (r as any).isCaptainFlow);
   const team = res?.teamId ? teams.find(t => t.id === res.teamId) : null;
   const contrib = memberContributions.find(mc => mc.reservationId === res?.id && mc.memberUserId === currentUser?.id);
   const plan = captainPaymentPlans.find(p => p.reservationId === res?.id);
   const captainProfile = team ? captainPayoutProfiles.find(p => p.captainUserId === team.captainUserId) : null;
   const myRsvp = matchRsvps.find(r => r.reservationId === res?.id && r.userId === currentUser?.id);
 
-  const [proofUrl, setProofUrl] = useState('');
-  const [proofNote, setProofNote] = useState('');
-  const [proofSent, setProofSent] = useState(false);
+  const [showProofModal, setShowProofModal] = useState(false);
+  const [proofSubmitted, setProofSubmitted] = useState(false);
   const [copiedKey, setCopiedKey] = useState('');
 
   const copy = (text: string, key: string) => {
@@ -45,196 +51,241 @@ export const MemberMatchDetails: React.FC<Props> = ({
     setTimeout(() => setCopiedKey(''), 2000);
   };
 
-  const CopyBtn: React.FC<{ text: string; k: string; label?: string }> = ({ text, k, label }) => (
-    <button onClick={() => copy(text, k)}
-      className={`flex items-center gap-1 px-2.5 py-1 rounded-lg border text-[10px] font-black transition-all ${copiedKey === k ? 'bg-green-500/15 border-green-500/20 text-green-400' : 'bg-white/5 border-white/10 text-slate-400 hover:border-white/20'}`}>
-      <Icon name={copiedKey === k ? 'check' : 'content_copy'} size={10} />
-      {copiedKey === k ? 'Kopyalandı' : (label ?? 'Kopyala')}
-    </button>
-  );
-
-  const eftRef = res ? `TEAM-${res.teamId}-RES-${res.id}-U${currentUser?.id?.slice(-3) ?? '000'}` : '';
-  const allPaymentText = captainProfile?.iban
-    ? `IBAN: ${captainProfile.iban}\nHesap: ${captainProfile.accountName}\nAçıklama: ${eftRef}\nTutar: ${contrib?.expectedAmount ?? '?'}₺`
+  const eftRef = res
+    ? `SAHADA-${(res.teamId ?? 'TEAM').slice(-4).toUpperCase()}-${res.id.slice(-4).toUpperCase()}-U${(currentUser?.id ?? '000').slice(-3)}`
     : '';
 
   if (!res) return (
-    <div className="min-h-screen bg-secondary flex items-center justify-center">
+    <div className="min-h-screen bg-[#0a0f14] flex items-center justify-center">
       <p className="text-slate-400">Maç bulunamadı.</p>
     </div>
   );
 
+  const remaining = contrib ? contrib.expectedAmount - contrib.paidAmount : 0;
+  const paidPct = contrib && contrib.expectedAmount > 0 ? Math.round((contrib.paidAmount / contrib.expectedAmount) * 100) : 0;
+
   return (
-    <div className="pb-24 bg-secondary min-h-screen">
+    <div className="pb-24 bg-[#0a0f14] min-h-screen">
       {/* Header */}
-      <div className="sticky top-0 z-50 bg-gradient-to-br from-slate-900 to-slate-800 px-4 pt-6 pb-4 border-b border-white/10">
+      <div className="sticky top-0 z-50 px-4 pt-6 pb-4"
+        style={{ background: 'linear-gradient(to bottom, #0a0f14 85%, transparent)', backdropFilter: 'blur(12px)' }}>
         <div className="flex items-center gap-3">
-          <button onClick={onBack} className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center">
-            <Icon name="arrow_back" className="text-white" />
+          <button onClick={onBack}
+            className="w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0"
+            style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}>
+            <Icon name="arrow_back" className="text-white" size={18} />
           </button>
-          <div>
-            <h1 className="text-lg font-black text-white">{res.venueName}</h1>
+          <div className="flex-1 min-w-0">
+            <h1 className="text-base font-black text-white truncate">{res.venueName}</h1>
             <p className="text-xs text-slate-400">
-              {new Date(res.date + 'T12:00:00').toLocaleDateString('tr-TR', { weekday: 'long', day: 'numeric', month: 'long' })} · {res.startTime}–{res.endTime}
+              {new Date(res.date + 'T12:00:00').toLocaleDateString('tr-TR', {
+                weekday: 'long', day: 'numeric', month: 'long',
+              })} · {res.startTime}–{res.endTime}
             </p>
           </div>
         </div>
       </div>
 
-      <div className="p-4 space-y-4">
-        {/* Status badge */}
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className={`text-xs font-bold px-2.5 py-1 rounded-lg border ${
-            res.status === 'confirmed' ? 'bg-green-500/15 border-green-500/20 text-green-400' :
-            res.status === 'pending' ? 'bg-yellow-500/15 border-yellow-500/20 text-yellow-400' :
-            'bg-red-500/15 border-red-500/20 text-red-400'
-          }`}>
+      <div className="px-4 space-y-3 pt-2">
+        {/* Status + due */}
+        <div className="flex flex-wrap gap-2">
+          <span className="text-xs font-bold px-2.5 py-1 rounded-xl"
+            style={{
+              background: res.status === 'confirmed' ? 'rgba(16,185,129,0.15)'
+                        : res.status === 'pending' ? 'rgba(245,158,11,0.15)' : 'rgba(239,68,68,0.15)',
+              border: res.status === 'confirmed' ? '1px solid rgba(16,185,129,0.25)'
+                    : res.status === 'pending' ? '1px solid rgba(245,158,11,0.25)' : '1px solid rgba(239,68,68,0.25)',
+              color: res.status === 'confirmed' ? '#10B981' : res.status === 'pending' ? '#F59E0B' : '#EF4444',
+            }}>
             {res.status === 'confirmed' ? '✓ Onaylı' : res.status === 'pending' ? '⏳ Onay Bekleniyor' : 'İptal'}
           </span>
           {plan?.dueAt && plan.status === 'collecting' && (
-            <span className="text-xs font-bold px-2.5 py-1 rounded-lg border border-orange-500/20 bg-orange-500/10 text-orange-400">
+            <span className="text-xs font-bold px-2.5 py-1 rounded-xl"
+              style={{ background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.25)', color: '#F59E0B' }}>
               ⏰ Son: {new Date(plan.dueAt).toLocaleString('tr-TR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
             </span>
           )}
         </div>
 
         {/* RSVP */}
-        <div className="bg-surface rounded-2xl p-4 border border-white/5">
-          <h3 className="text-sm font-bold text-white mb-3 flex items-center gap-2">
+        <div className="rounded-2xl p-4" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+          <h3 className="text-sm font-black text-white mb-3 flex items-center gap-2">
             <Icon name="how_to_reg" size={16} className="text-primary" /> Katılım Durumun
           </h3>
           <div className="grid grid-cols-3 gap-2">
-            {RSVP_OPTIONS.map(opt => (
-              <button key={opt.status}
-                onClick={() => res.teamId && currentUser && onSetRSVP(res.teamId, res.id, currentUser.id, opt.status)}
-                className={`py-3 rounded-xl border flex flex-col items-center gap-1 text-xs font-bold transition-all ${myRsvp?.status === opt.status ? opt.cls : 'border-white/8 bg-white/3 text-slate-500 hover:border-white/20'}`}>
-                <Icon name={opt.icon} size={18} />
-                {opt.label}
-              </button>
-            ))}
+            {RSVP_OPTIONS.map(opt => {
+              const isActive = myRsvp?.status === opt.status;
+              const colors = RSVP_COLORS[opt.status];
+              return (
+                <button key={opt.status}
+                  onClick={() => res.teamId && currentUser && onSetRSVP(res.teamId, res.id, currentUser.id, opt.status)}
+                  className="py-3 rounded-2xl flex flex-col items-center gap-1.5 text-xs font-bold transition-all active:scale-[0.97]"
+                  style={{
+                    background: isActive ? colors.bg : 'rgba(255,255,255,0.03)',
+                    border: isActive ? `1px solid ${colors.border}` : '1px solid rgba(255,255,255,0.07)',
+                    color: isActive ? colors.active : 'rgba(255,255,255,0.3)',
+                  }}>
+                  <Icon name={opt.icon} size={18} />
+                  {opt.label}
+                </button>
+              );
+            })}
           </div>
         </div>
 
-        {/* Payment panel */}
-        {contrib && captainProfile && (
-          <div className="bg-surface rounded-2xl p-4 border border-white/5 space-y-4">
-            <h3 className="text-sm font-bold text-white flex items-center gap-2">
-              <Icon name="payments" size={16} className="text-primary" /> Ödeme Bilgileri
-            </h3>
+        {/* Payment Panel */}
+        {contrib && (
+          <div className="rounded-2xl p-4 space-y-4"
+            style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-black text-white flex items-center gap-2">
+                <Icon name="payments" size={16} className="text-primary" /> Ödeme
+              </h3>
+              {contrib.status === 'paid' && (
+                <span className="text-xs font-bold px-2.5 py-1 rounded-xl"
+                  style={{ background: 'rgba(16,185,129,0.15)', border: '1px solid rgba(16,185,129,0.25)', color: '#10B981' }}>
+                  ✓ Tamamlandı
+                </span>
+              )}
+            </div>
 
             {/* Progress */}
             <div>
-              <div className="flex justify-between mb-1.5">
-                <span className="text-xs text-slate-400">Ödendi</span>
-                <span className={`text-xs font-black ${contrib.status === 'paid' ? 'text-green-400' : contrib.status === 'partial' ? 'text-yellow-400' : 'text-red-400'}`}>
-                  {contrib.paidAmount}₺ / {contrib.expectedAmount}₺
+              <div className="flex justify-between mb-2">
+                <span className="text-xs text-slate-500">
+                  Ödendi: <span className="font-black text-white">{contrib.paidAmount.toLocaleString('tr-TR')}₺</span>
+                </span>
+                <span className="text-xs text-slate-500">
+                  Toplam: <span className="font-black text-white">{contrib.expectedAmount.toLocaleString('tr-TR')}₺</span>
                 </span>
               </div>
-              <div className="h-2 rounded-full bg-white/8 overflow-hidden">
-                <div className={`h-full rounded-full transition-all ${contrib.status === 'paid' ? 'bg-green-500' : contrib.status === 'partial' ? 'bg-yellow-500' : 'bg-red-400'}`}
-                  style={{ width: `${Math.round((contrib.paidAmount / contrib.expectedAmount) * 100)}%` }} />
+              <div className="h-2.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)' }}>
+                <div className="h-full rounded-full transition-all duration-500"
+                  style={{
+                    width: `${paidPct}%`,
+                    background: contrib.status === 'paid' ? '#10B981' : contrib.status === 'partial' ? '#F59E0B' : '#EF4444',
+                    boxShadow: contrib.status === 'paid' ? '0 0 8px rgba(16,185,129,0.4)' : 'none',
+                  }} />
+              </div>
+              <div className="flex justify-between mt-1">
+                <span className="text-[10px] text-slate-600">{paidPct}% ödendi</span>
+                {remaining > 0 && (
+                  <span className="text-[10px] font-black"
+                    style={{ color: contrib.status === 'partial' ? '#F59E0B' : '#EF4444' }}>
+                    Kalan: {remaining.toLocaleString('tr-TR')}₺
+                  </span>
+                )}
               </div>
             </div>
 
+            {/* Quick IBAN */}
+            {contrib.status !== 'paid' && captainProfile?.iban && (
+              <div className="space-y-2">
+                <p className="text-[9px] font-black text-slate-600 uppercase tracking-widest">Havale Bilgileri</p>
+                <div className="flex items-center justify-between px-3 py-2.5 rounded-xl"
+                  style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                  <div>
+                    <p className="text-[9px] text-slate-500 font-bold uppercase mb-0.5">IBAN</p>
+                    <p className="text-white text-xs font-mono font-bold">{captainProfile.iban}</p>
+                    <p className="text-slate-500 text-[10px]">{captainProfile.accountName} · {captainProfile.bankName}</p>
+                  </div>
+                  <button onClick={() => copy(captainProfile.iban ?? '', 'iban')}
+                    className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-black transition-all"
+                    style={{
+                      background: copiedKey === 'iban' ? 'rgba(16,185,129,0.15)' : 'rgba(255,255,255,0.06)',
+                      border: '1px solid rgba(255,255,255,0.1)',
+                      color: copiedKey === 'iban' ? '#10B981' : 'rgba(255,255,255,0.5)',
+                    }}>
+                    <Icon name={copiedKey === 'iban' ? 'check' : 'content_copy'} size={9} />
+                    {copiedKey === 'iban' ? 'OK' : 'Kopyala'}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* CTA */}
             {contrib.status !== 'paid' && (
               <>
-                {/* EFT info */}
-                <div className="space-y-2">
-                  <div className="flex items-start justify-between p-3 bg-secondary rounded-xl border border-white/8">
+                {proofSubmitted ? (
+                  <div className="flex items-center gap-2 px-3 py-3 rounded-xl"
+                    style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.2)' }}>
+                    <Icon name="check_circle" size={16} className="text-green-400" />
                     <div>
-                      <p className="text-[9px] text-slate-500 uppercase font-bold mb-0.5">IBAN</p>
-                      <p className="text-white text-xs font-mono font-bold">{captainProfile.iban ?? '—'}</p>
-                      <p className="text-slate-400 text-[10px]">{captainProfile.accountName} · {captainProfile.bankName}</p>
+                      <p className="text-green-400 text-xs font-black">Bildirim kaptana iletildi ✓</p>
+                      <p className="text-slate-500 text-[10px]">Kaptan onayladığında ödeme tamamlanır</p>
                     </div>
-                    <CopyBtn text={captainProfile.iban ?? ''} k="iban" />
-                  </div>
-
-                  <div className="flex items-start justify-between p-3 bg-secondary rounded-xl border border-white/8">
-                    <div>
-                      <p className="text-[9px] text-slate-500 uppercase font-bold mb-0.5">EFT Açıklaması</p>
-                      <p className="text-white text-xs font-mono font-bold">{eftRef}</p>
-                    </div>
-                    <CopyBtn text={eftRef} k="eft" />
-                  </div>
-
-                  <div className="flex items-start justify-between p-3 bg-secondary rounded-xl border border-white/8">
-                    <div>
-                      <p className="text-[9px] text-slate-500 uppercase font-bold mb-0.5">Kalan Tutar</p>
-                      <p className="text-white text-xl font-black">{contrib.expectedAmount - contrib.paidAmount}₺</p>
-                    </div>
-                    <CopyBtn text={`${contrib.expectedAmount - contrib.paidAmount}`} k="amount" />
-                  </div>
-
-                  {allPaymentText && (
-                    <button onClick={() => copy(allPaymentText, 'all')}
-                      className={`w-full py-3 rounded-xl border font-bold text-sm flex items-center justify-center gap-2 transition-all ${copiedKey === 'all' ? 'bg-green-500/15 border-green-500/20 text-green-400' : 'bg-primary/10 border-primary/20 text-primary hover:bg-primary/15'}`}>
-                      <Icon name={copiedKey === 'all' ? 'check' : 'content_copy'} size={14} />
-                      {copiedKey === 'all' ? 'Kopyalandı!' : 'Hepsini Kopyala (IBAN+Açıklama+Tutar)'}
-                    </button>
-                  )}
-
-                  {captainProfile.phoneForCash && (
-                    <div className="flex items-center gap-2 p-2.5 rounded-xl bg-secondary border border-white/8">
-                      <Icon name="payments" size={12} className="text-slate-400" />
-                      <p className="text-xs text-slate-400">Nakit: {captainProfile.phoneForCash}</p>
-                      <CopyBtn text={captainProfile.phoneForCash} k="cash" />
-                    </div>
-                  )}
-                </div>
-
-                {/* Kaptana mesaj kopyala */}
-                <div>
-                  <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">Kaptana Mesaj Taslağı</p>
-                  <div className="space-y-1.5">
-                    {[
-                      { k: 'msg_paid', text: `Merhaba kaptan! EFT'yi yaptım. Açıklama: ${eftRef}. Tutar: ${contrib.expectedAmount - contrib.paidAmount}₺. İyi maçlar! ⚽` },
-                      { k: 'msg_gone', text: 'Merhaba kaptan, bu hafta maça gelemeyeceğim. İyi maçlar!' },
-                    ].map(({ k, text }) => (
-                      <button key={k} onClick={() => copy(text, k)}
-                        className={`w-full text-left p-2.5 rounded-xl border text-xs transition-all ${copiedKey === k ? 'border-green-500/20 bg-green-500/8 text-green-300' : 'border-white/8 bg-secondary text-slate-400 hover:border-white/15'}`}>
-                        {copiedKey === k ? '✓ Kopyalandı' : text.length > 70 ? text.slice(0, 70) + '…' : text}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Proof */}
-                {!proofSent ? (
-                  <div>
-                    <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">Dekont Linki Gönder</p>
-                    <input value={proofUrl} onChange={e => setProofUrl(e.target.value)}
-                      placeholder="https://drive.google.com/… veya imgur.com/…"
-                      className="w-full bg-secondary border border-white/10 rounded-xl px-3 py-2.5 text-white text-xs focus:outline-none focus:border-primary mb-2" />
-                    <input value={proofNote} onChange={e => setProofNote(e.target.value)}
-                      placeholder="Not (opsiyonel)"
-                      className="w-full bg-secondary border border-white/10 rounded-xl px-3 py-2.5 text-white text-xs focus:outline-none focus:border-primary mb-2" />
-                    <button onClick={() => {
-                        if (!proofUrl.trim() || !res.teamId || !currentUser) return;
-                        onSubmitProof(res.teamId, res.id, currentUser.id, proofUrl, proofNote);
-                        setProofSent(true);
-                      }} disabled={!proofUrl.trim()}
-                      className="w-full py-2.5 rounded-xl bg-primary/10 border border-primary/20 text-primary font-bold text-sm disabled:opacity-40">
-                      Kaptana Gönder
-                    </button>
                   </div>
                 ) : (
-                  <div className="flex items-center gap-2 p-3 bg-green-500/8 border border-green-500/20 rounded-xl">
-                    <Icon name="check_circle" size={14} className="text-green-400" />
-                    <p className="text-green-400 text-sm font-bold">Dekont kaptana iletildi ✓</p>
-                  </div>
+                  <button onClick={() => setShowProofModal(true)}
+                    className="w-full py-3.5 rounded-2xl font-black text-sm flex items-center justify-center gap-2 transition-all active:scale-[0.97]"
+                    style={{
+                      background: 'linear-gradient(135deg, rgba(16,185,129,0.15), rgba(16,185,129,0.06))',
+                      border: '1px solid rgba(16,185,129,0.3)',
+                      color: '#10B981',
+                    }}>
+                    <Icon name="upload" size={15} />
+                    Ödeme Bildir / Dekont Gönder
+                  </button>
                 )}
               </>
             )}
 
-            {contrib.status === 'paid' && (
-              <div className="flex items-center gap-2 p-3 bg-green-500/8 border border-green-500/20 rounded-xl">
-                <Icon name="check_circle" size={18} className="text-green-400" />
-                <p className="text-green-400 font-bold">Ödemen tamamlandı ✓</p>
+            {contrib.proofUrl && (
+              <div className="flex items-center gap-2 px-3 py-2 rounded-xl"
+                style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                <Icon name="attachment" size={12} className="text-slate-400" />
+                <a href={contrib.proofUrl} target="_blank" rel="noreferrer"
+                  className="text-primary text-xs truncate flex-1 hover:underline">
+                  {contrib.proofUrl.length > 50 ? contrib.proofUrl.slice(0, 50) + '…' : contrib.proofUrl}
+                </a>
               </div>
             )}
           </div>
         )}
+
+        {/* Match info */}
+        <div className="rounded-2xl p-4"
+          style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+          <h3 className="text-sm font-black text-white mb-3 flex items-center gap-2">
+            <Icon name="location_on" size={16} className="text-blue-400" /> Maç Detayı
+          </h3>
+          <div className="space-y-2">
+            {[
+              { icon: 'stadium',       label: 'Saha',  value: res.venueName },
+              { icon: 'calendar_today',label: 'Tarih', value: new Date(res.date + 'T12:00:00').toLocaleDateString('tr-TR', { weekday: 'long', day: 'numeric', month: 'long' }) },
+              { icon: 'schedule',      label: 'Saat',  value: `${res.startTime} – ${res.endTime}` },
+              { icon: 'groups',        label: 'Takım', value: team?.name ?? res.teamName ?? '—' },
+            ].map(item => (
+              <div key={item.icon} className="flex items-center gap-3">
+                <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
+                  style={{ background: 'rgba(255,255,255,0.05)' }}>
+                  <Icon name={item.icon} size={13} className="text-slate-400" />
+                </div>
+                <div>
+                  <p className="text-[9px] text-slate-600 uppercase font-bold">{item.label}</p>
+                  <p className="text-white text-xs font-bold">{item.value}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
+
+      {/* Payment Proof Modal */}
+      {showProofModal && contrib && (
+        <PaymentProofModal
+          contribution={contrib}
+          captainProfile={captainProfile ?? null}
+          eftRef={eftRef}
+          onSubmit={({ method, amount, proofUrl, proofFile, note }) => {
+            const url = proofUrl ?? (proofFile ? `[dosya:${proofFile.name}]` : `[${method}:${amount}₺]`);
+            onSubmitProof(res.teamId ?? '', res.id, currentUser?.id ?? '', url, note);
+            setProofSubmitted(true);
+            setShowProofModal(false);
+          }}
+          onClose={() => setShowProofModal(false)}
+        />
+      )}
     </div>
   );
 };

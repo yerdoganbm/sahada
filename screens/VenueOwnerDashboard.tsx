@@ -8,6 +8,7 @@ interface VenueOwnerDashboardProps {
   onNavigate: (screen: string) => void;
   onApproveReservation: (reservationId: string) => void;
   onRejectReservation: (reservationId: string, reason: string) => void;
+  onLogout?: () => void;
 }
 
 export const VenueOwnerDashboard: React.FC<VenueOwnerDashboardProps> = ({
@@ -15,7 +16,8 @@ export const VenueOwnerDashboard: React.FC<VenueOwnerDashboardProps> = ({
   reservations,
   onNavigate,
   onApproveReservation,
-  onRejectReservation
+  onRejectReservation,
+  onLogout,
 }) => {
   const venueIds = currentUser.venueOwnerInfo?.venueIds || [];
   
@@ -80,14 +82,25 @@ export const VenueOwnerDashboard: React.FC<VenueOwnerDashboardProps> = ({
             </div>
             <p className="text-slate-400 text-sm mt-0.5">Hoş geldin, {currentUser.name}</p>
           </div>
-          {currentUser.role === 'venue_owner' && (
+          <div className="flex items-center gap-2">
+            {currentUser.role === 'venue_owner' && (
+              <button
+                onClick={() => onNavigate('venueSettings')}
+                className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 transition-colors"
+              >
+                <Icon name="settings" className="text-white" size={20} />
+              </button>
+            )}
             <button
-              onClick={() => onNavigate('venueSettings')}
-              className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 transition-colors"
+              onClick={() => {
+                onLogout?.();
+              }}
+              className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-red-500/20 hover:border-red-500/30 transition-colors"
+              title="Çıkış Yap"
             >
-              <Icon name="settings" className="text-white" size={20} />
+              <Icon name="logout" className="text-slate-400" size={18} />
             </button>
-          )}
+          </div>
         </div>
 
         {/* Quick Stats */}

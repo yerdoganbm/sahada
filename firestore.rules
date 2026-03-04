@@ -1,20 +1,165 @@
 rules_version = '2';
-// Firebase CLI: firebase deploy --only firestore
-// Geliştirme: read, write true. Production'da auth ile kisitlayin.
+// Sahada — Firestore Security Rules (MVP)
+// Deploy: firebase deploy --only firestore:rules
 
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    // ── Helper functions ─────────────────────────────────────────
+    function isAuth() { return request.auth != null; }
+    function isUser(uid) { return isAuth() && request.auth.uid == uid; }
+
+    function getUser() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function isTeamMember(teamId) {
+      let t = get(/databases/$(database)/documents/teams/$(teamId)).data;
+      return isAuth() && request.auth.uid in t.memberUserIds;
+    }
+
+    function isTeamCaptain(teamId) {
+      let t = get(/databases/$(database)/documents/teams/$(teamId)).data;
+      return isAuth() && request.auth.uid == t.captainUserId;
+    }
+
+    function isVenueOwner(venueId) {
+      let v = get(/databases/$(database)/documents/venues/$(venueId)).data;
+      return isAuth() && request.auth.uid == v.ownerUserId;
+    }
+
+    // ── Users ────────────────────────────────────────────────────
     match /users/{userId} {
-      allow read, write: if true;
+      allow read:  if isAuth();
+      allow write: if isUser(userId);
     }
+
+    // ── Teams ────────────────────────────────────────────────────
     match /teams/{teamId} {
-      allow read, write: if true;
+      allow read:  if isAuth();
+      allow create: if isAuth();
+      allow update: if isTeamCaptain(teamId);
+      allow delete: if isTeamCaptain(teamId);
     }
-    match /matches/{matchId} {
-      allow read, write: if true;
+
+    // ── Team Invites ─────────────────────────────────────────────
+    match /teamInvites/{inviteId} {
+      allow read:  if isAuth();
+      allow create: if isAuth();
+      allow update: if isAuth() &&
+        isTeamCaptain(resource.data.teamId);
     }
+
+    // ── Join Requests ─────────────────────────────────────────────
+    match /teamJoinRequests/{requestId} {
+      allow read:  if isAuth() &&
+        (request.auth.uid == resource.data.userId ||
+         isTeamCaptain(resource.data.teamId));
+      allow create: if isAuth() && request.auth.uid == request.resource.data.userId;
+      allow update: if isAuth() && isTeamCaptain(resource.data.teamId);
+    }
+
+    // ── Venues ───────────────────────────────────────────────────
     match /venues/{venueId} {
-      allow read, write: if true;
+      allow read:  if isAuth();
+      allow create: if isAuth();
+      allow update: if isVenueOwner(venueId);
+      allow delete: if isVenueOwner(venueId);
+    }
+
+    // ── Reservations ─────────────────────────────────────────────
+    match /reservations/{reservationId} {
+      allow read: if isAuth() && (
+        resource.data.bookedByUserId == request.auth.uid ||
+        (resource.data.teamId != null && isTeamMember(resource.data.teamId)) ||
+        isVenueOwner(resource.data.venueId)
+      );
+      allow create: if isAuth();
+      allow update: if isAuth() && (
+        resource.data.bookedByUserId == request.auth.uid ||
+        (resource.data.teamId != null && isTeamCaptain(resource.data.teamId)) ||
+        isVenueOwner(resource.data.venueId)
+      );
+    }
+
+    // ── Slot locks ───────────────────────────────────────────────
+    match /slotLocks/{lockId} {
+      allow read, write: if isAuth();
+    }
+
+    // ── Captain Payment Plans ────────────────────────────────────
+    match /captainPaymentPlans/{planId} {
+      allow read: if isAuth() && (
+        resource.data.captainUserId == request.auth.uid ||
+        isTeamMember(resource.data.teamId)
+      );
+      allow write: if isAuth() && (
+        request.auth.uid == request.resource.data.captainUserId ||
+        (resource != null && resource.data.captainUserId == request.auth.uid)
+      );
+    }
+
+    // ── Member Contributions ─────────────────────────────────────
+    match /memberContributions/{contribId} {
+      allow read: if isAuth() && (
+        resource.data.memberUserId == request.auth.uid ||
+        isTeamMember(resource.data.teamId)
+      );
+      allow write: if isAuth() && (
+        resource.data.memberUserId == request.auth.uid ||
+        isTeamCaptain(resource.data.teamId)
+      );
+    }
+
+    // ── Ledger ───────────────────────────────────────────────────
+    match /ledger/{ledgerId} {
+      allow read: if isAuth() && (
+        resource.data.actorUserId == request.auth.uid ||
+        isTeamMember(resource.data.teamId)
+      );
+      allow create: if isAuth();
+    }
+
+    // ── Outbox ───────────────────────────────────────────────────
+    match /outbox/{outboxId} {
+      allow read: if isAuth() && (
+        resource.data.createdByUserId == request.auth.uid ||
+        isTeamMember(resource.data.teamId)
+      );
+      allow create: if isAuth();
+      allow update: if isAuth() && resource.data.createdByUserId == request.auth.uid;
+    }
+
+    // ── Audit ────────────────────────────────────────────────────
+    match /audit/{auditId} {
+      allow read: if isAuth();
+      allow create: if isAuth();
+    }
+
+    // ── Payout Profiles ──────────────────────────────────────────
+    match /captainPayoutProfiles/{profileId} {
+      allow read: if isAuth();
+      allow write: if isAuth() && request.auth.uid == profileId;
+    }
+
+    // ── Match RSVPs ──────────────────────────────────────────────
+    match /matchRsvps/{rsvpId} {
+      allow read: if isAuth();
+      allow write: if isAuth() && (
+        request.auth.uid == request.resource.data.userId ||
+        (resource != null && request.auth.uid == resource.data.userId)
+      );
+    }
+
+    // ── Maintenance / Cash / Day Close (venue staff only) ────────
+    match /maintenanceTasks/{taskId} {
+      allow read, write: if isAuth() && isVenueOwner(resource.data.venueId);
+    }
+    match /cashEntries/{entryId} {
+      allow read, write: if isAuth();
+    }
+    match /dayCloses/{closeId} {
+      allow read, write: if isAuth();
     }
   }
 }

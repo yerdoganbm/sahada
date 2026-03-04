@@ -58,6 +58,8 @@ import { ScoutDashboard } from './screens/ScoutDashboard';
 import { TalentPool } from './screens/TalentPool';
 import { ScoutReports } from './screens/ScoutReports';
 import { MyReservations } from './screens/MyReservations';
+import { getProviderMode } from './src/data/provider';
+import { PaymentProofModal, type PaymentProofSubmitPayload } from './components/PaymentProofModal';
 import { AuditLog } from './screens/AuditLog';
 import { VenueAnalytics } from './screens/VenueAnalytics';
 import { RecurringManagement } from './screens/RecurringManagement';
@@ -86,6 +88,21 @@ function App() {
   const [currentUser, setCurrentUser] = useState<Player | null>(null);
   const [currentScreen, setCurrentScreen] = useState<ScreenName>('welcome');
   const [screenHistory, setScreenHistory] = useState<ScreenName[]>([]);
+  const [screenTransition, setScreenTransition] = useState<'idle' | 'out' | 'in'>('idle');
+  const [renderScreen_key, setRenderScreenKey] = useState(0);
+  const [paymentModalState, setPaymentModalState] = useState<{
+    open: boolean;
+    teamId: string;
+    reservationId: string;
+    userId: string;
+    memberName: string;
+    expectedAmount: number;
+    paidAmount: number;
+    reservationLabel: string;
+    captainMode: boolean;
+  } | null>(null);
+  const [transitionDir, setTransitionDir] = useState<'forward'|'back'>('forward');
+  const [providerMode] = useState<'mock'|'firebase'>(() => getProviderMode());
   const [pendingPhone, setPendingPhone] = useState<string>('');
   const [pendingUserType, setPendingUserType] = useState<'player' | 'venue_owner' | null>(null);
   
@@ -266,9 +283,9 @@ function App() {
       setCurrentUser(newAdmin);
       setScreenHistory(prev => [...prev, 'login']);
       setCurrentScreen('teamSetup');
-    } else if (userId.startsWith('new_player_')) {
-      // New player → minimal profile setup; role determined by pendingRole
-      const phone = userId.replace('new_player_', '');
+    } else if (userId.startsWith('new_firebase_') || userId.startsWith('new_player_')) {
+      // New player (Firebase or mock) → minimal profile setup; role determined by pendingRole
+      const phone = userId.replace('new_firebase_', '').replace('new_player_', '');
       const isCaptainFlow = pendingRole === 'captain';
       const newPlayer: Player = {
         id: userId,
@@ -348,8 +365,10 @@ function App() {
     }
     
     // Geçmişe ekle (geri dön için)
+    setTransitionDir('forward');
     setScreenHistory(prev => [...prev, currentScreen]);
     setCurrentScreen(screen);
+    setRenderScreenKey(k => k + 1);
   };
 
   // ===========================================
@@ -363,8 +382,10 @@ function App() {
 
     if (screenHistory.length > 0) {
       const previousScreen = screenHistory[screenHistory.length - 1];
+      setTransitionDir('back');
       setScreenHistory(prev => prev.slice(0, -1));
       setCurrentScreen(previousScreen);
+      setRenderScreenKey(k => k + 1);
     } else {
       // Varsayılan geri dönüş
       if (currentUser) {
@@ -372,6 +393,7 @@ function App() {
       } else {
         setCurrentScreen('welcome');
       }
+      setRenderScreenKey(k => k + 1);
     }
   };
 
@@ -1874,6 +1896,65 @@ function App() {
   };
 
   // ── Member submit proof ───────────────────────────────────────────────
+  // Open payment modal for pro flow
+  const openPaymentModal = (opts: { teamId: string; reservationId: string; userId: string; memberName?: string; expectedAmount: number; paidAmount?: number; captainMode?: boolean }) => {
+    const res = reservations.find(r => r.id === opts.reservationId);
+    setPaymentModalState({
+      open: true,
+      teamId: opts.teamId,
+      reservationId: opts.reservationId,
+      userId: opts.userId,
+      memberName: opts.memberName ?? 'Üye',
+      expectedAmount: opts.expectedAmount,
+      paidAmount: opts.paidAmount ?? 0,
+      reservationLabel: res ? `${res.venueName} • ${res.date}` : 'Rezervasyon',
+      captainMode: opts.captainMode ?? false,
+    });
+  };
+
+  const handlePaymentProofSubmit = async (payload: PaymentProofSubmitPayload) => {
+    if (!paymentModalState) return;
+    const { teamId, reservationId, userId } = paymentModalState;
+    // Update contribution
+    setMemberContributions(prev => prev.map(mc =>
+      mc.reservationId === reservationId && mc.memberUserId === userId
+        ? {
+            ...mc,
+            paidAmount: Math.min(mc.expectedAmount, mc.paidAmount + payload.amount),
+            status: payload.amount >= (mc.expectedAmount - mc.paidAmount) ? 'paid' : 'partial',
+            proofUrl: payload.proofUrl,
+            proofNote: payload.note,
+            lastUpdatedAt: new Date().toISOString(),
+          }
+        : mc
+    ));
+    const user = players.find(p => p.id === userId);
+    const userName = user?.name ?? 'Üye';
+    const methodLabel: Record<string, string> = { cash: 'Nakit', eft: 'EFT/Havale', deposit: 'Kapora', card: 'Kart', partial: 'Kısmi' };
+    const outboxMsg = {
+      id: 'out_proof_' + Date.now(),
+      venueId: '', teamId, reservationId,
+      at: new Date().toISOString(),
+      createdByUserId: userId,
+      toLabel: 'Kaptan',
+      body: `💳 Ödeme Bildirimi\n${userName}: ₺${payload.amount} ${methodLabel[payload.method] ?? payload.method}${payload.proofUrl ? `\nDekont: ${payload.proofUrl}` : ''}${payload.proofFile ? `\nDosya: ${payload.proofFile.name}` : ''}${payload.note ? `\nNot: ${payload.note}` : ''}`,
+      status: 'draft',
+    } as any;
+    setOutboxMessages(prev => [...prev, outboxMsg]);
+    const team = teams.find(t => t.id === teamId);
+    if (team) {
+      const inboxItem = {
+        id: 'inbox_' + Date.now(), at: new Date().toISOString(),
+        userId: team.captainUserId, teamId, reservationId,
+        title: `${userName} ödeme gönderdi (₺${payload.amount})`,
+        body: `${userName}: ${methodLabel[payload.method] ?? payload.method} ₺${payload.amount}${payload.proofUrl ? ` | Dekont: ${payload.proofUrl}` : ''}`,
+        status: 'unread',
+      };
+      setInboxItems(prev => [...prev, inboxItem as any]);
+    }
+    addAudit('payment', reservationId, 'MEMBER_PROOF_SUBMITTED', { userId, amount: payload.amount, method: payload.method });
+  };
+
   const handleMemberSubmitProof = (teamId: string, reservationId: string, userId: string, proofUrl: string, note?: string) => {
     setMemberContributions(prev => prev.map(mc =>
       mc.reservationId === reservationId && mc.memberUserId === userId
@@ -2528,6 +2609,7 @@ function App() {
             onNavigate={navigateTo}
             onApproveReservation={handleApproveReservation}
             onRejectReservation={handleRejectReservation}
+            onLogout={handleLogout}
           />
         );
 
@@ -3119,8 +3201,16 @@ function App() {
           />
         )}
 
-        {/* Main Content - flex-grow ile kutuya hapsolmayı engeller */}
-        <main className={`flex-grow ${showBottomNav ? 'pb-[76px]' : ''}`}>
+        {/* Main Content - with screen transition */}
+        <style>{`
+          @keyframes sc-fwd  { from { opacity:0; transform:translateX(20px) scale(0.985); } to { opacity:1; transform:none; } }
+          @keyframes sc-back { from { opacity:0; transform:translateX(-20px) scale(0.985); } to { opacity:1; transform:none; } }
+          @keyframes sc-up   { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:none; } }
+          .sc-in   { animation: sc-fwd  0.25s cubic-bezier(0.16,1,0.3,1) both; }
+          .sc-back { animation: sc-back 0.25s cubic-bezier(0.16,1,0.3,1) both; }
+          .sc-up   { animation: sc-up   0.25s cubic-bezier(0.16,1,0.3,1) both; }
+        `}</style>
+        <main key={renderScreen_key} className={`flex-grow ${transitionDir === 'back' ? 'sc-back' : 'sc-in'} ${showBottomNav ? 'pb-[76px]' : ''}`}>
           {renderScreen()}
         </main>
 
@@ -3136,8 +3226,34 @@ function App() {
         {/* Install PWA Banner */}
         {currentUser && <InstallBanner />}
 
+        {/* Provider mode badge */}
+        <div className="fixed top-2 right-2 z-40 pointer-events-none">
+          <div className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest"
+            style={{
+              background: providerMode === 'firebase' ? 'rgba(16,185,129,0.15)' : 'rgba(245,158,11,0.12)',
+              border: `1px solid ${providerMode === 'firebase' ? 'rgba(16,185,129,0.3)' : 'rgba(245,158,11,0.25)'}`,
+              color: providerMode === 'firebase' ? '#10B981' : '#F59E0B',
+            }}>
+            {providerMode === 'firebase' ? '🔥 LIVE' : '🎭 DEMO'}
+          </div>
+        </div>
+
         {/* Feature Flag Debug Panel (dev only) */}
         <FlagDebugPanel />
+
+        {/* Pro Payment Proof Modal */}
+        {paymentModalState && (
+          <PaymentProofModal
+            isOpen={paymentModalState.open}
+            onClose={() => setPaymentModalState(null)}
+            onSubmit={handlePaymentProofSubmit}
+            expectedAmount={paymentModalState.expectedAmount}
+            paidAmount={paymentModalState.paidAmount}
+            memberName={paymentModalState.memberName}
+            reservationLabel={paymentModalState.reservationLabel}
+            captainMode={paymentModalState.captainMode}
+          />
+        )}
       </div>
     </ToastProvider>
   );

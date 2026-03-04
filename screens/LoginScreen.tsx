@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Icon } from '../components/Icon';
+import { getProvider, getProviderMode } from '../src/data/provider';
 
 type UserType = 'player' | 'venue_owner' | null;
 
@@ -113,22 +114,40 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
     }
   };
 
-  const verifyOtp = (code: string[]) => {
+  const verifyOtp = async (code: string[]) => {
     const entered = code.join('');
     setIsLoading(true);
     setError('');
 
+    const mode = getProviderMode();
+
+    if (mode === 'firebase') {
+      // Firebase: phone mapped to email auth
+      try {
+        const provider = getProvider();
+        const result = await provider.signIn(rawPhone, entered);
+        setIsLoading(false);
+        if (result.isNew) {
+          onLogin('new_firebase_' + rawPhone);
+        } else {
+          onLogin(result.user.id);
+        }
+      } catch (e: any) {
+        setIsLoading(false);
+        setError('Firebase giriş hatası: ' + (e.message ?? String(e)));
+      }
+      return;
+    }
+
+    // Mock mode
     setTimeout(() => {
       setIsLoading(false);
-
       if (entered !== MOCK_OTP && entered !== MOCK_OTP_SHORT) {
         setError(`Doğrulama kodu hatalı. Demo: ${MOCK_OTP} veya ${MOCK_OTP_SHORT}`);
         setOtp(['', '', '', '', '', '']);
         otpRefs.current[0]?.focus();
         return;
       }
-
-      // OTP correct — resolve user
       resolveUser();
     }, 1000);
   };
@@ -305,7 +324,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
             {/* OTP Input */}
             <div>
               <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest mb-3 block">Doğrulama Kodu</label>
-              <div className="flex gap-2 justify-between" onPaste={handleOtpPaste}>
+              <div className="grid gap-1.5 w-full" style={{ gridTemplateColumns: `repeat(${otp.length}, 1fr)` }} onPaste={handleOtpPaste}>
                 {otp.map((digit, i) => (
                   <input
                     key={i}
@@ -317,7 +336,8 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                     onChange={(e) => handleOtpChange(i, e.target.value)}
                     onKeyDown={(e) => handleOtpKeyDown(i, e)}
                     autoFocus={i === 0}
-                    className={`flex-1 h-14 text-center text-xl font-black rounded-xl border bg-surface transition-all focus:outline-none focus:ring-1 ${
+                    style={{ minWidth: 0 }}
+                    className={`w-full h-14 text-center text-xl font-black rounded-xl border bg-surface transition-all focus:outline-none focus:ring-1 ${
                       error
                         ? 'border-red-500/50 text-red-400'
                         : digit
