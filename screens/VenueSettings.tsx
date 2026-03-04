@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Icon } from '../components/Icon';
-import { Venue } from '../types';
+import { Venue, VenueLocation } from '../types';
+import { VenueLocationEditor } from './VenueLocationEditor';
 
 interface VenueSettingsProps {
   venues: Venue[];                        // Sadece owner'ın sahaları geçirilecek
@@ -40,7 +41,7 @@ const STATUS_OPTIONS: { value: Venue['status']; label: string; color: string; ic
   { value: 'maintenance', label: 'Bakımda',     color: 'border-yellow-500/40 bg-yellow-500/10 text-yellow-400', icon: 'build' },
 ];
 
-const TABS = ['Genel', 'Fiyatlar', 'Çalışma Saatleri', 'İptal Politikası'] as const;
+const TABS = ['Genel', 'Fiyatlar', 'Çalışma Saatleri', 'İptal Politikası', 'Konum'] as const;
 type Tab = typeof TABS[number];
 
 export const VenueSettings: React.FC<VenueSettingsProps> = ({ venues, onBack, onSave }) => {
@@ -336,17 +337,45 @@ export const VenueSettings: React.FC<VenueSettingsProps> = ({ venues, onBack, on
           </>
         )}
 
+        {/* ── KONUM TAB ── */}
+        {activeTab === 'Konum' && venue && (
+          <>
+            {venue.location?.verifiedAt && (
+              <div className="flex items-center gap-2 p-3 bg-green-500/8 border border-green-500/20 rounded-2xl">
+                <Icon name="verified" size={14} className="text-green-400" />
+                <div>
+                  <p className="text-xs font-bold text-green-400">Konum Doğrulandı</p>
+                  <p className="text-[10px] text-slate-500">
+                    {new Date(venue.location.verifiedAt).toLocaleString('tr-TR')}
+                  </p>
+                </div>
+              </div>
+            )}
+            <VenueLocationEditor
+              venueId={venue.id}
+              venueName={venue.name}
+              initialLocation={venue.location}
+              onSave={(loc: VenueLocation) => {
+                onSave(venue.id, { location: loc });
+              }}
+            />
+            <InfoBox icon="place" text="Konum bilgisi haritada aç, yakındaki sahalar ve servis alanı doğrulama için kullanılır. Konum izni yalnızca 'Konumu Doğrula' butonuna tıklandığında istenir." color="blue" />
+          </>
+        )}
+
       </div>
 
-      {/* Save button */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 bg-secondary/95 backdrop-blur-xl border-t border-white/5 p-4">
-        <button
-          onClick={handleSave}
-          className="w-full py-4 rounded-2xl font-black text-base flex items-center justify-center gap-2 bg-primary text-secondary shadow-glow hover:bg-green-400 active:scale-[0.98] transition-all"
-        >
-          <Icon name="save" size={18} /> Değişiklikleri Kaydet
-        </button>
-      </div>
+      {/* Save button (not shown on Konum tab — saves inline) */}
+      {activeTab !== 'Konum' && (
+        <div className="fixed bottom-0 left-0 right-0 z-50 bg-secondary/95 backdrop-blur-xl border-t border-white/5 p-4">
+          <button
+            onClick={handleSave}
+            className="w-full py-4 rounded-2xl font-black text-base flex items-center justify-center gap-2 bg-primary text-secondary shadow-glow hover:bg-green-400 active:scale-[0.98] transition-all"
+          >
+            <Icon name="save" size={18} /> Değişiklikleri Kaydet
+          </button>
+        </div>
+      )}
     </div>
   );
 };

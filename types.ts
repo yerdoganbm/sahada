@@ -6,7 +6,7 @@ export enum Tab {
   Profile = 'Profile'
 }
 
-export type ScreenName = 'welcome' | 'login' | 'joinTeam' | 'teamSetup' | 'createProfile' | 'dashboard' | 'matches' | 'team' | 'profile' | 'editProfile' | 'matchDetails' | 'matchCreate' | 'payments' | 'admin' | 'members' | 'venues' | 'venueDetails' | 'venueAdd' | 'lineupManager' | 'squadShare' | 'settings' | 'leaderboard' | 'financialReports' | 'debtList' | 'subscription' | 'polls' | 'booking' | 'tournament' | 'whatsappCenter' | 'attendance' | 'reserveSystem' | 'messageLogs' | 'notifications' | 'venueOwnerDashboard' | 'reservationManagement' | 'reservationDetails' | 'venueCalendar' | 'venueFinancialReports' | 'venueSettings' | 'customerManagement' | 'scoutDashboard' | 'scoutReports' | 'talentPool' | 'venueOwnerOnboarding' | 'myReservations' | 'auditLog' | 'venueAnalytics';
+export type ScreenName = 'welcome' | 'login' | 'joinTeam' | 'teamSetup' | 'createProfile' | 'dashboard' | 'matches' | 'team' | 'profile' | 'editProfile' | 'matchDetails' | 'matchCreate' | 'payments' | 'admin' | 'members' | 'venues' | 'venueDetails' | 'venueAdd' | 'lineupManager' | 'squadShare' | 'settings' | 'leaderboard' | 'financialReports' | 'debtList' | 'subscription' | 'polls' | 'booking' | 'tournament' | 'whatsappCenter' | 'attendance' | 'reserveSystem' | 'messageLogs' | 'notifications' | 'venueOwnerDashboard' | 'reservationManagement' | 'reservationDetails' | 'venueCalendar' | 'venueFinancialReports' | 'venueSettings' | 'customerManagement' | 'scoutDashboard' | 'scoutReports' | 'talentPool' | 'venueOwnerOnboarding' | 'myReservations' | 'auditLog' | 'venueAnalytics' | 'recurringManagement' | 'cashRegister' | 'maintenanceCenter' | 'broadcastCenter';
 
 export type SubscriptionTier = 'free' | 'premium' | 'partner';
 
@@ -263,6 +263,7 @@ export interface Venue {
   createdAt?: string;
   updatedAt?: string;
   cancellationPolicy?: { freeCancelUntilHours: number; latePenaltyPercent: number };
+  location?: VenueLocation; // LOCATION MODULE
 }
 
 // Rezervasyon durumu
@@ -308,6 +309,22 @@ export interface Reservation {
   // PRO++
   waitlistEntryId?: string;
   alternativeOffer?: AlternativeSlotOffer;
+  // BUSINESS PACK: Recurring
+  recurringRuleId?: string;
+  source?: 'manual' | 'booking' | 'recurring';
+  customerName?: string;
+  customerPhone?: string;
+  // BUSINESS PACK: Cash
+  collectedTotal?: number;
+  collectedMethods?: Partial<Record<'cash' | 'card' | 'bank_transfer', number>>;
+  balanceDue?: number;
+  // BUSINESS PACK: Check-in
+  checkInStatus?: 'not_started' | 'ready' | 'checked_in' | 'no_show';
+  checkInCode?: string;
+  checkInReadyAt?: string;
+  checkedInAt?: string;
+  noShowAt?: string;
+  noShowReason?: string;
 }
 
 // Saha değerlendirmesi
@@ -537,3 +554,144 @@ export interface ScoutingCriteria {
   description: string;
 }
 
+
+// ═══════════════════════════════════════════════════════════════
+// BUSINESS PACK TYPES
+// ═══════════════════════════════════════════════════════════════
+
+// ── Recurring Booking ────────────────────────────────────────
+export type RecurrenceFreq = 'WEEKLY';
+
+export interface RecurringRule {
+  id: string;
+  venueId: string;
+  venueName: string;
+  fieldId?: string;
+  createdByUserId: string;
+  customerName: string;
+  customerPhone?: string;
+  startDate: string;       // YYYY-MM-DD
+  endDate?: string;
+  freq: RecurrenceFreq;
+  byWeekdays: number[];    // 0=Sun…6=Sat
+  startTime: string;       // "20:00"
+  durationMinutes: number;
+  autoConfirm: boolean;
+  pricingMode: 'fixed' | 'bucket';
+  fixedPrice?: number;
+  paymentMode: 'invoice_monthly' | 'pay_each';
+  status: 'active' | 'paused' | 'cancelled';
+  createdAt: string;
+  lastGeneratedDate?: string;
+}
+
+// ── Cash Register ─────────────────────────────────────────────
+export type CashMethod = 'cash' | 'card' | 'bank_transfer';
+
+export interface CashEntry {
+  id: string;
+  venueId: string;
+  at: string;
+  actorUserId: string;
+  actorRole: Role;
+  reservationId?: string;
+  customerName?: string;
+  method: CashMethod;
+  amount: number;
+  note?: string;
+}
+
+export interface DayClose {
+  id: string;
+  venueId: string;
+  date: string;
+  closedAt: string;
+  closedByUserId: string;
+  totals: { cash: number; card: number; bank_transfer: number; total: number };
+  entriesCount: number;
+  note?: string;
+}
+
+// ── Maintenance ───────────────────────────────────────────────
+export interface MaintenanceTask {
+  id: string;
+  venueId: string;
+  title: string;
+  description?: string;
+  startDate: string;
+  endDate?: string;
+  startTime?: string;
+  endTime?: string;
+  repeatsWeekly?: boolean;
+  status: 'open' | 'in_progress' | 'done' | 'cancelled';
+  createdAt: string;
+  createdByUserId: string;
+}
+
+export interface IssueTicket {
+  id: string;
+  venueId: string;
+  title: string;
+  description?: string;
+  photoUrl?: string;
+  status: 'open' | 'in_progress' | 'done';
+  priority: 'low' | 'medium' | 'high';
+  createdAt: string;
+  createdByUserId: string;
+}
+
+// ── Messaging / WhatsApp ──────────────────────────────────────
+export type TemplateKey = 'CONFIRMED' | 'CANCELLED' | 'REMINDER_24H' | 'REMINDER_3H' | 'DEPOSIT_PENDING' | 'MAINTENANCE_NOTICE';
+
+export interface MessageTemplate {
+  id: string;
+  venueId: string;
+  key: TemplateKey;
+  title: string;
+  body: string;
+  createdAt: string;
+}
+
+export interface OutboxMessage {
+  id: string;
+  venueId: string;
+  toLabel: string;
+  phone?: string;
+  templateKey?: TemplateKey;
+  body: string;
+  createdAt: string;
+  createdByUserId: string;
+  status: 'draft' | 'copied';
+}
+
+// ═══════════════════════════════════════════════════════════════
+// LOCATION / MAPS MODULE
+// ═══════════════════════════════════════════════════════════════
+
+export interface LatLng {
+  lat: number;
+  lng: number;
+}
+
+export type ServiceArea =
+  | { type: 'radius'; meters: number }
+  | { type: 'polygon'; points: LatLng[] };
+
+export interface VenueLocation {
+  placeId?: string;
+  formattedAddress?: string;
+  latLng?: LatLng;
+  addressComponents?: {
+    city?: string;
+    district?: string;
+    neighborhood?: string;
+    postalCode?: string;
+  };
+  entrance?: LatLng;
+  parking?: LatLng;
+  meetup?: LatLng;
+  serviceArea?: ServiceArea;
+  verifiedAt?: string;
+  verifiedBy?: 'gps_owner_check';
+  source?: 'places_autocomplete' | 'manual_pin';
+}

@@ -3,7 +3,7 @@
  * First screen users see - converted from web version
  */
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -20,9 +20,12 @@ import { colors, spacing, borderRadius, typography } from '../theme';
 
 type WelcomeScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Welcome'>;
 
+type UserType = 'player' | 'venue_owner';
+
 export default function WelcomeScreen() {
   const navigation = useNavigation<WelcomeScreenNavigationProp>();
-  
+  const [selectedRole, setSelectedRole] = useState<UserType | null>(null);
+
   // Animations
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
@@ -78,6 +81,26 @@ export default function WelcomeScreen() {
           Maç Senin. <Text style={styles.subtitleBold}>Kontrol Sende.</Text>
         </Text>
 
+        {/* Role selection */}
+        <View style={styles.roleRow}>
+          <TouchableOpacity
+            style={[styles.roleChip, selectedRole === 'player' && styles.roleChipActive]}
+            onPress={() => setSelectedRole(selectedRole === 'player' ? null : 'player')}
+            activeOpacity={0.8}
+          >
+            <Icon name="soccer" size={20} color={selectedRole === 'player' ? colors.secondary : colors.text?.secondary ?? '#9CA3AF'} />
+            <Text style={[styles.roleChipText, selectedRole === 'player' && styles.roleChipTextActive]}>Oyuncuyum</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.roleChip, selectedRole === 'venue_owner' && styles.roleChipActiveVenue]}
+            onPress={() => setSelectedRole(selectedRole === 'venue_owner' ? null : 'venue_owner')}
+            activeOpacity={0.8}
+          >
+            <Icon name="stadium" size={20} color={selectedRole === 'venue_owner' ? '#fff' : colors.text?.secondary ?? '#9CA3AF'} />
+            <Text style={[styles.roleChipText, selectedRole === 'venue_owner' && styles.roleChipTextActiveVenue]}>Saha Sahibiyim</Text>
+          </TouchableOpacity>
+        </View>
+
         {/* Features */}
         <View style={styles.featuresContainer}>
           {[
@@ -112,7 +135,7 @@ export default function WelcomeScreen() {
         <View style={styles.actionsContainer}>
           <TouchableOpacity
             style={styles.primaryButton}
-            onPress={() => navigation.navigate('Login')}
+            onPress={() => navigation.navigate('Login', selectedRole ? { userType: selectedRole } : undefined)}
             activeOpacity={0.8}
             accessibilityLabel="Hemen başla, giriş yap"
             accessibilityRole="button"
@@ -232,6 +255,43 @@ const styles = StyleSheet.create({
   subtitleBold: {
     color: colors.primary,
     fontWeight: typography.fontWeight.bold,
+  },
+  roleRow: {
+    flexDirection: 'row',
+    gap: spacing.md,
+    marginBottom: spacing.lg,
+  },
+  roleChip: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: borderRadius.lg,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  roleChipActive: {
+    backgroundColor: `${colors.primary}40`,
+    borderColor: colors.primary,
+  },
+  roleChipActiveVenue: {
+    backgroundColor: '#F59E0B40',
+    borderColor: '#F59E0B',
+  },
+  roleChipText: {
+    color: colors.text.secondary,
+    fontSize: typography.fontSize.sm,
+    fontWeight: typography.fontWeight.semiBold,
+  },
+  roleChipTextActive: {
+    color: colors.secondary,
+  },
+  roleChipTextActiveVenue: {
+    color: '#fff',
   },
   featuresContainer: {
     marginBottom: spacing.xl,

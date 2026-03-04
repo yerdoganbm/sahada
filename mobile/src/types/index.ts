@@ -37,6 +37,7 @@ export interface Player {
   whatsappEnabled?: boolean;
   authzMigrationVersion?: number;
   trialStatus?: 'pending_approval' | 'in_trial' | 'promoted' | 'rejected';
+  venueOwnerInfo?: { venueIds: string[]; totalRevenue?: number; totalReservations?: number; responseTime?: number };
   attributes?: {
     pac: number;
     sho: number;
@@ -149,11 +150,44 @@ export interface JoinRequest {
   status: 'pending' | 'approved' | 'rejected';
 }
 
+export interface Reservation {
+  id: string;
+  venueId: string;
+  venueName: string;
+  teamId?: string;
+  teamName: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  duration: number;
+  price: number;
+  status: 'pending' | 'confirmed' | 'cancelled' | 'completed';
+  participants: number;
+  contactPerson: string;
+  contactPhone: string;
+  notes?: string;
+  createdAt: string;
+  createdByUserId?: string;
+  paymentStatus?: 'pending' | 'paid' | 'refunded';
+}
+
+export interface AuditEvent {
+  id: string;
+  action: string;
+  entityType: string;
+  entityId: string;
+  actorId: string;
+  actorName: string;
+  at: string;
+  meta?: Record<string, unknown>;
+}
+
 // Navigation types
 export type RootStackParamList = {
   Welcome: undefined;
-  Login: undefined;
+  Login: { userType?: 'player' | 'venue_owner' } | undefined;
   Register: { prefillPhone?: string; inviteCode?: string };
+  VenueOwnerOnboarding: { phone: string };
   MainTabs: NavigatorScreenParams<MainTabParamList> | undefined;
   MatchDetails: { matchId: string };
   VenueDetails: { venueId: string };
@@ -196,6 +230,14 @@ export type RootStackParamList = {
   MessageLogs: undefined;
   TeamChat: undefined;
   MatchAnalysis: { matchId: string };
+  VenueSettings: undefined;
+  MyReservations: undefined;
+  AuditLog: undefined;
+  VenueAnalytics: undefined;
+  RecurringManagement: undefined;
+  CashRegister: undefined;
+  MaintenanceCenter: undefined;
+  BroadcastCenter: undefined;
 };
 
 export type MainTabParamList = {

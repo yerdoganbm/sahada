@@ -1,7 +1,8 @@
 
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Icon } from '../components/Icon';
-import { Venue, ScreenName, Player } from '../types';
+import { Venue, ScreenName, Player, LatLng } from '../types';
+import { haversineDistanceMeters, formatDistance } from '../utils/geo';
 
 interface VenueListProps {
   onBack: () => void;
@@ -12,12 +13,55 @@ interface VenueListProps {
 
 export const VenueList: React.FC<VenueListProps> = ({ onBack, onNavigate, venues, currentUser }) => {
   const [searchTerm, setSearchTerm] = useState('');
+  const [userLocation, setUserLocation] = useState<LatLng | null>(null);
+  const [nearbyLoading, setNearbyLoading] = useState(false);
+  const [nearbyError, setNearbyError] = useState('');
+  const [sortByNearby, setSortByNearby] = useState(false);
 
-  const filteredVenues = venues.filter(venue => 
-    venue.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    venue.district.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    venue.address.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const handleNearbyToggle = useCallback(() => {
+    if (sortByNearby) {
+      setSortByNearby(false);
+      return;
+    }
+    if (userLocation) {
+      setSortByNearby(true);
+      return;
+    }
+    setNearbyLoading(true);
+    setNearbyError('');
+    navigator.geolocation.getCurrentPosition(
+      pos => {
+        setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        setSortByNearby(true);
+        setNearbyLoading(false);
+      },
+      () => {
+        setNearbyError('Konum izni reddedildi.');
+        setNearbyLoading(false);
+      },
+      { enableHighAccuracy: false, timeout: 8000 }
+    );
+  }, [sortByNearby, userLocation]);
+
+  const getDistance = (venue: Venue): number | null => {
+    if (!userLocation || !venue.location?.latLng) return null;
+    return haversineDistanceMeters(userLocation, venue.location.latLng);
+  };
+
+  const filteredVenues = venues
+    .filter(venue =>
+      venue.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      venue.district.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (venue.location?.formattedAddress || venue.address || '').toLowerCase().includes(searchTerm.toLowerCase())
+    )
+    .sort((a, b) => {
+      if (!sortByNearby) return 0;
+      const da = getDistance(a), db = getDistance(b);
+      if (da === null && db === null) return 0;
+      if (da === null) return 1;
+      if (db === null) return -1;
+      return da - db;
+    });
 
   const handleAddVenueClick = () => {
     // Check if user is Partner or Admin
@@ -70,12 +114,21 @@ export const VenueList: React.FC<VenueListProps> = ({ onBack, onNavigate, venues
            )}
         </div>
 
-        {/* List Title */}
-        <div className="flex justify-between items-end px-1 mt-6">
+        {/* List Title + Nearby toggle */}
+        <div className="flex justify-between items-center px-1 mt-4">
            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-             {searchTerm ? 'Arama Sonuçları' : 'Kayıtlı Sahalar'} ({filteredVenues.length})
+             {searchTerm ? 'Arama Sonuçları' : sortByNearby ? 'Yakınımdakiler' : 'Kayıtlı Sahalar'} ({filteredVenues.length})
            </span>
+           <button onClick={handleNearbyToggle} disabled={nearbyLoading}
+             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-bold transition-all ${sortByNearby ? 'bg-primary/15 border-primary/30 text-primary' : 'bg-surface border-white/10 text-slate-400 hover:border-white/20'}`}>
+             {nearbyLoading
+               ? <><div className="w-3 h-3 border border-current border-t-transparent rounded-full animate-spin" /> Konum alınıyor…</>
+               : <><Icon name="near_me" size={12} /> {sortByNearby ? 'Yakınımdaki ✓' : 'Yakınımdaki'}</>
+             }
+           </button>
         </div>
+        {nearbyError && <p className="text-xs text-red-400 px-1">{nearbyError}</p>}
+        {sortByNearby && !userLocation && <p className="text-[10px] text-slate-500 px-1">Konum bilgisi yalnızca sıralama için kullanılır.</p>}
 
         {/* Venue Cards */}
         <div className="space-y-3">
@@ -103,6 +156,13 @@ export const VenueList: React.FC<VenueListProps> = ({ onBack, onNavigate, venues
                         {venue.status === 'archived' && <span className="w-2 h-2 rounded-full bg-slate-600 mt-1.5 shrink-0"></span>}
                     </div>
                     <p className="text-xs text-slate-400 mb-2 truncate">{venue.district}, İstanbul</p>
+                    {/* Distance badge */}
+                    {sortByNearby && getDistance(venue) !== null && (
+                      <p className="text-[10px] font-bold text-primary flex items-center gap-0.5 mb-1">
+                        <Icon name="near_me" size={9} />
+                        {formatDistance(getDistance(venue)!)}
+                      </p>
+                    )}
                     
                     <div className="flex items-center gap-2">
                         <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${

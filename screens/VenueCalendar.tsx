@@ -1,17 +1,21 @@
 import React, { useState, useMemo } from 'react';
 import { Icon } from '../components/Icon';
-import { Reservation } from '../types';
+import { Reservation, MaintenanceTask, ScreenName } from '../types';
 
 interface VenueCalendarProps {
   onBack: () => void;
   reservations?: Reservation[];
   venueIds?: string[];
+  maintenanceTasks?: MaintenanceTask[];
+  onNavigate?: (s: ScreenName) => void;
 }
 
 export const VenueCalendar: React.FC<VenueCalendarProps> = ({ 
   onBack, 
   reservations = [],
-  venueIds = []
+  venueIds = [],
+  maintenanceTasks = [],
+  onNavigate,
 }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
@@ -34,6 +38,15 @@ export const VenueCalendar: React.FC<VenueCalendarProps> = ({
   // Belirli bir tarihteki rezervasyonları al
   const getReservationsForDate = (dateStr: string) => {
     return myReservations.filter(r => r.date === dateStr);
+  };
+
+  // Maintenance tasks that affect a date
+  const getMaintenanceForDate = (dateStr: string) => {
+    return maintenanceTasks.filter(mt => {
+      if (mt.status === 'cancelled' || mt.status === 'done') return false;
+      if (!venueIds.includes(mt.venueId)) return false;
+      return mt.startDate <= dateStr && (mt.endDate ? mt.endDate >= dateStr : mt.startDate === dateStr);
+    });
   };
 
   // Tarih dizisi oluştur
@@ -68,6 +81,7 @@ export const VenueCalendar: React.FC<VenueCalendarProps> = ({
   const dayNames = ['Paz', 'Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt'];
 
   const selectedDayReservations = selectedDate ? getReservationsForDate(selectedDate) : [];
+  const selectedDayMaintenance = selectedDate ? getMaintenanceForDate(selectedDate) : [];
 
   return (
     <div className="pb-8 bg-secondary min-h-screen">
@@ -124,6 +138,8 @@ export const VenueCalendar: React.FC<VenueCalendarProps> = ({
               const dayReservations = getReservationsForDate(dateStr);
               const hasReservations = dayReservations.length > 0;
               const confirmedCount = dayReservations.filter(r => r.status === 'confirmed').length;
+              const recurringCount = dayReservations.filter(r => r.recurringRuleId).length;
+              const hasMaintenance = getMaintenanceForDate(dateStr).length > 0;
               const isToday = new Date().toDateString() === new Date(dateStr).toDateString();
               const isSelected = selectedDate === dateStr;
 
@@ -134,16 +150,20 @@ export const VenueCalendar: React.FC<VenueCalendarProps> = ({
                   className={`aspect-square rounded-xl flex flex-col items-center justify-center transition-all relative
                     ${isSelected ? 'bg-primary text-secondary ring-2 ring-primary' : 
                       isToday ? 'bg-primary/20 text-primary border border-primary' :
+                      hasMaintenance ? 'bg-orange-500/10 text-orange-300 border border-orange-500/25' :
                       hasReservations ? 'bg-white/10 text-white border border-white/20' : 
                       'bg-white/5 text-slate-400 hover:bg-white/10'}`}
                 >
                   <span className="text-sm font-bold">{day}</span>
-                  {hasReservations && (
+                  {(hasReservations || hasMaintenance) && (
                     <div className="flex gap-0.5 mt-1">
                       {confirmedCount > 0 && (
                         <div className="w-1 h-1 rounded-full bg-green-500" />
                       )}
-                      {dayReservations.length > confirmedCount && (
+                      {recurringCount > 0 && (
+                        <div className="w-1 h-1 rounded-full bg-indigo-400" />
+                      )}
+                      {dayReservations.length > confirmedCount + recurringCount && (
                         <div className="w-1 h-1 rounded-full bg-yellow-500" />
                       )}
                     </div>
@@ -157,24 +177,44 @@ export const VenueCalendar: React.FC<VenueCalendarProps> = ({
         {/* Selected Date Details */}
         {selectedDate && (
           <div className="bg-surface rounded-2xl p-4 border border-white/5 animate-fade-in">
-            <h3 className="text-white font-bold mb-3 flex items-center gap-2">
-              <Icon name="event" size={20} className="text-primary" />
-              {new Date(selectedDate).toLocaleDateString('tr-TR', { 
-                day: 'numeric', 
-                month: 'long', 
-                year: 'numeric' 
-              })}
-            </h3>
-
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-white font-bold flex items-center gap-2">
+                <Icon name="event" size={20} className="text-primary" />
+                {new Date(selectedDate + 'T12:00:00').toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })}
+              </h3>
+              {onNavigate && (
+                <button onClick={() => onNavigate('recurringManagement')}
+                  className="flex items-center gap-1 px-2 py-1 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-[9px] font-black">
+                  <Icon name="repeat" size={10} />
+                  Sabit Rezv.
+                </button>
+              )}
+            </div>
+            {selectedDayMaintenance.length > 0 && (
+              <div className="mb-3 space-y-1.5">
+                {selectedDayMaintenance.map(mt => (
+                  <div key={mt.id} className="flex items-center gap-2 p-2.5 rounded-xl bg-orange-500/8 border border-orange-500/20">
+                    <Icon name="construction" size={13} className="text-orange-400 flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-orange-300 font-bold text-xs">{mt.title}</p>
+                      {mt.startTime && <p className="text-orange-400/70 text-[10px]">{mt.startTime}{mt.endTime ? `–${mt.endTime}` : ' → Tüm gün'}</p>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
             {selectedDayReservations.length === 0 ? (
-              <p className="text-slate-400 text-sm">Bu tarihte rezervasyon yok</p>
+              <p className="text-slate-400 text-sm">{selectedDayMaintenance.length > 0 ? 'Rezervasyon yok' : 'Bu tarihte rezervasyon yok'}</p>
             ) : (
               <div className="space-y-2">
                 {selectedDayReservations.map(res => (
                   <div key={res.id} className="bg-secondary rounded-xl p-3 border border-white/5">
                     <div className="flex items-start justify-between mb-2">
                       <div>
-                        <p className="text-white font-bold text-sm">{res.teamName}</p>
+                        <div className="flex items-center gap-1.5 mb-0.5">
+                          <p className="text-white font-bold text-sm">{res.customerName || res.teamName}</p>
+                          {res.recurringRuleId && <Icon name="repeat" size={10} className="text-indigo-400" />}
+                        </div>
                         <p className="text-slate-400 text-xs">{res.venueName}</p>
                       </div>
                       <span className={`text-xs font-bold px-2 py-1 rounded-lg

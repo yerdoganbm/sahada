@@ -203,6 +203,44 @@ export const VenueOwnerDashboard: React.FC<VenueOwnerDashboardProps> = ({
                 onClick={() => onNavigate('auditLog')}
               />
             )}
+
+            {/* ── BUSINESS PACK ── */}
+            {(currentUser.role === 'venue_owner' || currentUser.role === 'venue_staff') && (
+              <QuickActionCard
+                icon="repeat"
+                title="Sabit Rezv."
+                subtitle="Kurumsal anlaşma"
+                color="bg-indigo-500/10 text-indigo-400 border-indigo-500/20"
+                onClick={() => onNavigate('recurringManagement')}
+              />
+            )}
+            {(currentUser.role === 'venue_owner' || currentUser.role === 'venue_staff' || currentUser.role === 'venue_accountant') && (
+              <QuickActionCard
+                icon="point_of_sale"
+                title="Kasa"
+                subtitle="Günlük tahsilat"
+                color="bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                onClick={() => onNavigate('cashRegister')}
+              />
+            )}
+            {(currentUser.role === 'venue_owner' || currentUser.role === 'venue_staff') && (
+              <QuickActionCard
+                icon="construction"
+                title="Bakım & Arıza"
+                subtitle="Görev / ticket"
+                color="bg-amber-500/10 text-amber-400 border-amber-500/20"
+                onClick={() => onNavigate('maintenanceCenter')}
+              />
+            )}
+            {(currentUser.role === 'venue_owner' || currentUser.role === 'venue_staff') && (
+              <QuickActionCard
+                icon="campaign"
+                title="Toplu Mesaj"
+                subtitle="WhatsApp şablonları"
+                color="bg-teal-500/10 text-teal-400 border-teal-500/20"
+                onClick={() => onNavigate('broadcastCenter')}
+              />
+            )}
           </div>
         </div>
 

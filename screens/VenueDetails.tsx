@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { Icon } from '../components/Icon';
 import { Venue, Player, ScreenName } from '../types';
+import { googleMapsUrl, appleMapsUrl } from '../utils/geo';
 
 interface VenueDetailsProps {
   venueId: string;
@@ -198,15 +199,62 @@ export const VenueDetails: React.FC<VenueDetailsProps> = ({ venueId, venues, onB
                   </div>
                   <div className="p-4">
                      <h3 className="font-bold text-white mb-1">Konum</h3>
-                     <p className="text-slate-400 text-sm">{venue.address}</p>
-                     <div className="flex gap-3 mt-4">
-                        <button className="flex-1 bg-surface hover:bg-white/10 border border-white/10 py-2 rounded-lg text-sm font-bold text-white flex items-center justify-center gap-2">
+                     <p className="text-slate-400 text-sm">
+                       {venue.location?.formattedAddress || venue.address}
+                     </p>
+                     {venue.location?.latLng && (
+                       <div className="space-y-2 mt-3">
+                         <div className="flex gap-2">
+                           <a
+                             href={googleMapsUrl(venue.location.latLng.lat, venue.location.latLng.lng, venue.location.placeId, venue.name)}
+                             target="_blank" rel="noopener noreferrer"
+                             className="flex-1 bg-blue-500/10 hover:bg-blue-500/15 border border-blue-500/20 py-2 rounded-xl text-sm font-bold text-blue-400 flex items-center justify-center gap-2 transition-all">
+                             <Icon name="map" size={15} /> Google Harita
+                           </a>
+                           <a
+                             href={appleMapsUrl(venue.location.latLng.lat, venue.location.latLng.lng, venue.name)}
+                             target="_blank" rel="noopener noreferrer"
+                             className="flex-1 bg-surface hover:bg-white/10 border border-white/10 py-2 rounded-xl text-sm font-bold text-white flex items-center justify-center gap-2 transition-all">
+                             <Icon name="directions" size={15} /> Yol Tarifi
+                           </a>
+                         </div>
+                         {(venue.location.entrance || venue.location.parking) && (
+                           <div className="flex gap-2">
+                             {venue.location.entrance && (
+                               <a href={googleMapsUrl(venue.location.entrance.lat, venue.location.entrance.lng, undefined, `${venue.name} Giriş`)}
+                                 target="_blank" rel="noopener noreferrer"
+                                 className="flex-1 bg-green-500/8 border border-green-500/15 py-1.5 rounded-xl text-xs font-bold text-green-400 flex items-center justify-center gap-1.5 transition-all">
+                                 <Icon name="door_front" size={12} /> Girişe Git
+                               </a>
+                             )}
+                             {venue.location.parking && (
+                               <a href={googleMapsUrl(venue.location.parking.lat, venue.location.parking.lng, undefined, `${venue.name} Otopark`)}
+                                 target="_blank" rel="noopener noreferrer"
+                                 className="flex-1 bg-yellow-500/8 border border-yellow-500/15 py-1.5 rounded-xl text-xs font-bold text-yellow-400 flex items-center justify-center gap-1.5 transition-all">
+                                 <Icon name="local_parking" size={12} /> Otopark
+                               </a>
+                             )}
+                             {venue.location.meetup && (
+                               <a href={googleMapsUrl(venue.location.meetup.lat, venue.location.meetup.lng, undefined, `${venue.name} Toplanma`)}
+                                 target="_blank" rel="noopener noreferrer"
+                                 className="flex-1 bg-purple-500/8 border border-purple-500/15 py-1.5 rounded-xl text-xs font-bold text-purple-400 flex items-center justify-center gap-1.5 transition-all">
+                                 <Icon name="groups" size={12} /> Toplanma
+                               </a>
+                             )}
+                           </div>
+                         )}
+                       </div>
+                     )}
+                     {!venue.location?.latLng && (
+                       <div className="flex gap-2 mt-3">
+                         <button className="flex-1 bg-surface hover:bg-white/10 border border-white/10 py-2 rounded-xl text-sm font-bold text-white flex items-center justify-center gap-2">
                            <Icon name="map" size={16} /> Harita
-                        </button>
-                        <button className="flex-1 bg-surface hover:bg-white/10 border border-white/10 py-2 rounded-lg text-sm font-bold text-white flex items-center justify-center gap-2">
+                         </button>
+                         <button className="flex-1 bg-surface hover:bg-white/10 border border-white/10 py-2 rounded-xl text-sm font-bold text-white flex items-center justify-center gap-2">
                            <Icon name="directions" size={16} /> Yol Tarifi
-                        </button>
-                     </div>
+                         </button>
+                       </div>
+                     )}
                   </div>
                </div>
             </div>

@@ -126,6 +126,55 @@ export default function VenueOwnerDashboardScreen() {
       color: '#25D366',
       onPress: () => navigation.navigate('WhatsAppIntegration'),
     },
+    {
+      icon: 'cog',
+      label: 'Saha Ayarları',
+      sublabel: 'Fiyat, çalışma saatleri',
+      color: '#6B7280',
+      onPress: () => navigation.navigate('VenueSettings'),
+    },
+    {
+      icon: 'history',
+      label: 'Audit Log',
+      sublabel: 'İşlem geçmişi',
+      color: '#6366F1',
+      onPress: () => navigation.navigate('AuditLog'),
+    },
+    {
+      icon: 'chart-bar',
+      label: 'Saha Analitikleri',
+      sublabel: 'İstatistikler',
+      color: '#0EA5E9',
+      onPress: () => navigation.navigate('VenueAnalytics'),
+    },
+    {
+      icon: 'calendar-repeat',
+      label: 'Sabit Rezervasyonlar',
+      sublabel: 'Tekrarlayan rezervasyonlar',
+      color: '#84CC16',
+      onPress: () => navigation.navigate('RecurringManagement'),
+    },
+    {
+      icon: 'cash-register',
+      label: 'Kasa',
+      sublabel: 'Günlük kasa işlemleri',
+      color: '#EAB308',
+      onPress: () => navigation.navigate('CashRegister'),
+    },
+    {
+      icon: 'wrench',
+      label: 'Bakım & Arıza',
+      sublabel: 'Bakım merkezi',
+      color: '#F97316',
+      onPress: () => navigation.navigate('MaintenanceCenter'),
+    },
+    {
+      icon: 'broadcast',
+      label: 'Toplu Mesaj',
+      sublabel: 'Mesaj şablonları',
+      color: '#A855F7',
+      onPress: () => navigation.navigate('BroadcastCenter'),
+    },
   ];
 
   const recentReservations = [...reservations]

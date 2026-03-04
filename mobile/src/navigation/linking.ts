@@ -13,6 +13,10 @@ export const linking: LinkingOptions<RootStackParamList> = {
       Welcome: 'welcome',
       Login: 'login',
       Register: 'register',
+      VenueOwnerOnboarding: {
+        path: 'venue-owner-onboarding/:phone',
+        parse: { phone: (phone: string) => phone ?? '' },
+      },
       TeamSetup: 'team-setup',
       JoinTeam: {
         path: 'join/:inviteCode?',

@@ -1,5 +1,5 @@
 
-import { Match, Player, Payment, Venue, Transaction, Poll, TournamentTeam, BracketMatch, Reservation, AppNotification, WaitlistEntry, AuditEvent } from './types';
+import { Match, Player, Payment, Venue, Transaction, Poll, TournamentTeam, BracketMatch, Reservation, AppNotification, WaitlistEntry, AuditEvent, RecurringRule, CashEntry, DayClose, MaintenanceTask, IssueTicket, MessageTemplate, OutboxMessage } from './types';
 
 export const MOCK_NOTIFICATIONS: AppNotification[] = [
   { id: '1', type: 'match', title: 'Maç Daveti', message: 'Salı 21:00 maçı için kadroya eklendin. Lütfen onay ver.', time: '10 dk önce', isRead: false, actionScreen: 'matchDetails' },
@@ -228,7 +228,19 @@ export const MOCK_VENUES: Venue[] = [
       contactPhone: '0555 444 33 22',
       lastUpdate: '1 gün önce',
       customNotes: 'Zemin yenilendi.'
-    }
+    },
+    location: {
+      placeId: 'ChIJq6qq6g3xyhQRnfWCInv-wYc',
+      formattedAddress: 'Atatürk Cad. No:28, Kadıköy/İstanbul',
+      latLng: { lat: 40.9867, lng: 29.0337 },
+      addressComponents: { city: 'İstanbul', district: 'Kadıköy', neighborhood: 'Atatürk Mahallesi', postalCode: '34710' },
+      entrance: { lat: 40.9872, lng: 29.0341 },
+      parking: { lat: 40.9861, lng: 29.0330 },
+      serviceArea: { type: 'radius', meters: 120 },
+      verifiedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+      verifiedBy: 'gps_owner_check',
+      source: 'places_autocomplete',
+    },
   },
   {
     id: 'v3',
@@ -654,3 +666,117 @@ export const MOCK_AUDIT: AuditEvent[] = [
     meta: { fields: ['workingHours', 'pricing'] },
   },
 ];
+
+// ── RECURRING RULES ──────────────────────────────────────────────────────────
+export const MOCK_RECURRING_RULES: RecurringRule[] = [
+  {
+    id: 'rr1',
+    venueId: 'v1',
+    venueName: 'Olimpik Halı Saha',
+    createdByUserId: 'venue_owner_1',
+    customerName: 'ABC Spor Kulübü',
+    customerPhone: '5321234567',
+    startDate: '2026-03-01',
+    endDate: '2026-06-30',
+    freq: 'WEEKLY',
+    byWeekdays: [2], // Salı
+    startTime: '20:00',
+    durationMinutes: 90,
+    autoConfirm: true,
+    pricingMode: 'fixed',
+    fixedPrice: 1500,
+    paymentMode: 'invoice_monthly',
+    status: 'active',
+    createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 'rr2',
+    venueId: 'v1',
+    venueName: 'Olimpik Halı Saha',
+    createdByUserId: 'venue_owner_1',
+    customerName: 'XYZ Şirket Takımı',
+    customerPhone: '5339876543',
+    startDate: '2026-03-01',
+    freq: 'WEEKLY',
+    byWeekdays: [4, 6], // Perşembe + Cumartesi
+    startTime: '18:00',
+    durationMinutes: 60,
+    autoConfirm: true,
+    pricingMode: 'bucket',
+    paymentMode: 'pay_each',
+    status: 'active',
+    createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+];
+
+// ── CASH ENTRIES ─────────────────────────────────────────────────────────────
+const today = new Date().toISOString().split('T')[0];
+export const MOCK_CASH_ENTRIES: CashEntry[] = [
+  {
+    id: 'ce1',
+    venueId: 'v1',
+    at: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
+    actorUserId: 'venue_staff_1',
+    actorRole: 'venue_staff',
+    reservationId: 'res2',
+    customerName: 'Doğu Şampiyonları',
+    method: 'cash',
+    amount: 1800,
+    note: 'Tam ödeme',
+  },
+  {
+    id: 'ce2',
+    venueId: 'v1',
+    at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+    actorUserId: 'venue_staff_1',
+    actorRole: 'venue_staff',
+    customerName: 'Batı Kartalları',
+    method: 'card',
+    amount: 900,
+    note: 'Kapora',
+  },
+];
+
+export const MOCK_DAY_CLOSES: DayClose[] = [];
+
+// ── MAINTENANCE ───────────────────────────────────────────────────────────────
+export const MOCK_MAINTENANCE_TASKS: MaintenanceTask[] = [
+  {
+    id: 'mt1',
+    venueId: 'v1',
+    title: 'Çim Yenileme',
+    description: 'Kuzey sahası çim zemin yenilenmesi',
+    startDate: '2026-03-20',
+    endDate: '2026-03-21',
+    startTime: '08:00',
+    endTime: '18:00',
+    status: 'open',
+    createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+    createdByUserId: 'venue_owner_1',
+  },
+];
+
+export const MOCK_ISSUE_TICKETS: IssueTicket[] = [
+  {
+    id: 'it1',
+    venueId: 'v1',
+    title: 'Kale direği hasarlı',
+    description: 'Güney sahası sol kale direği deforme olmuş',
+    status: 'open',
+    priority: 'high',
+    createdAt: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
+    createdByUserId: 'venue_staff_1',
+  },
+];
+
+// ── MESSAGE TEMPLATES ─────────────────────────────────────────────────────────
+export const MOCK_MESSAGE_TEMPLATES: MessageTemplate[] = [
+  { id: 'tpl1', venueId: 'v1', key: 'CONFIRMED', title: 'Rezervasyon Onayı', body: 'Merhaba {customerName}! {venueName} için {date} tarihli {time} saatindeki rezervasyonunuz onaylandı. Bizi tercih ettiğiniz için teşekkürler 🎉', createdAt: new Date().toISOString() },
+  { id: 'tpl2', venueId: 'v1', key: 'CANCELLED', title: 'İptal Bildirimi', body: 'Merhaba {customerName}, {date} tarihli {time} rezervasyonunuz maalesef iptal edildi. Yeniden rezervasyon için bizi arayabilirsiniz.', createdAt: new Date().toISOString() },
+  { id: 'tpl3', venueId: 'v1', key: 'REMINDER_24H', title: '24 Saat Hatırlatma', body: 'Hatırlatma 📅 Merhaba {customerName}! Yarın {time} {venueName} rezervasyonunuz var. Görüşmek üzere!', createdAt: new Date().toISOString() },
+  { id: 'tpl4', venueId: 'v1', key: 'REMINDER_3H', title: '3 Saat Hatırlatma', body: '⚽ Merhaba {customerName}! {time} rezervasyonunuz 3 saat sonra. Check-in kodunuz: {checkInCode}', createdAt: new Date().toISOString() },
+  { id: 'tpl5', venueId: 'v1', key: 'DEPOSIT_PENDING', title: 'Kapora Bekleniyor', body: 'Merhaba {customerName}, {date} {time} rezervasyonunuz için {depositAmount}₺ kapora ödemeniz beklenmektedir. IBAN: {iban}', createdAt: new Date().toISOString() },
+  { id: 'tpl6', venueId: 'v1', key: 'MAINTENANCE_NOTICE', title: 'Bakım Bildirimi', body: 'Sayın {customerName}, {date} tarihinde {venueName} bakım nedeniyle hizmet veremeyecektir. Yeni randevu için lütfen iletişime geçin.', createdAt: new Date().toISOString() },
+];
+
+export const MOCK_OUTBOX: OutboxMessage[] = [];

@@ -6,14 +6,14 @@ import { MobileHeader } from './components/MobileHeader';
 import { InstallBanner } from './components/InstallBanner';
 import { useViewportHeight } from './hooks/useMobileFeatures';
 import { useViewportHeightFix } from './hooks/useIOSScrollFix';
-import { ScreenName, Venue, Player, Payment, Transaction, SubscriptionTier, RsvpStatus, Match, TransferRequest, Poll, TeamProfile, JoinRequest, Reservation, AppNotification, WaitlistEntry, AuditEvent, AlternativeSlotOffer, Role, PERMS } from './types';
+import { ScreenName, Venue, Player, Payment, Transaction, SubscriptionTier, RsvpStatus, Match, TransferRequest, Poll, TeamProfile, JoinRequest, Reservation, AppNotification, WaitlistEntry, AuditEvent, AlternativeSlotOffer, Role, PERMS, RecurringRule, CashEntry, DayClose, MaintenanceTask, IssueTicket, MessageTemplate, OutboxMessage } from './types';
 import { Dashboard } from './screens/Dashboard';
 import { TeamList } from './screens/TeamList';
 import { MatchDetails } from './screens/MatchDetails';
 import { MatchCard } from './components/MatchCard'; 
 import { Header } from './components/Header';
 import { Icon } from './components/Icon';
-import { MOCK_MATCHES, MOCK_VENUES, MOCK_PLAYERS, MOCK_PAYMENTS, MOCK_TRANSACTIONS, MOCK_POLLS, MOCK_RESERVATIONS, MOCK_TALENT_POOL, MOCK_NOTIFICATIONS, MOCK_WAITLIST, MOCK_AUDIT } from './constants';
+import { MOCK_MATCHES, MOCK_VENUES, MOCK_PLAYERS, MOCK_PAYMENTS, MOCK_TRANSACTIONS, MOCK_POLLS, MOCK_RESERVATIONS, MOCK_TALENT_POOL, MOCK_NOTIFICATIONS, MOCK_WAITLIST, MOCK_AUDIT, MOCK_RECURRING_RULES, MOCK_CASH_ENTRIES, MOCK_DAY_CLOSES, MOCK_MAINTENANCE_TASKS, MOCK_ISSUE_TICKETS, MOCK_MESSAGE_TEMPLATES, MOCK_OUTBOX } from './constants';
 import { PaymentLedger } from './screens/PaymentLedger';
 import { AdminDashboard } from './screens/AdminDashboard';
 import { MemberManagement } from './screens/MemberManagement';
@@ -59,6 +59,10 @@ import { ScoutReports } from './screens/ScoutReports';
 import { MyReservations } from './screens/MyReservations';
 import { AuditLog } from './screens/AuditLog';
 import { VenueAnalytics } from './screens/VenueAnalytics';
+import { RecurringManagement } from './screens/RecurringManagement';
+import { CashRegister } from './screens/CashRegister';
+import { MaintenanceCenter } from './screens/MaintenanceCenter';
+import { BroadcastCenter } from './screens/BroadcastCenter';
 // 🧠 NEURO-CORE INTEGRATION
 import { useSynapseTracking, useActionTracker } from './hooks/useNeuroCore';
 
@@ -101,6 +105,14 @@ function App() {
   const [reservations, setReservations] = useState<Reservation[]>(MOCK_RESERVATIONS); // VENUE OWNER
   const [waitlist, setWaitlist] = useState<WaitlistEntry[]>(MOCK_WAITLIST);
   const [audit, setAudit] = useState<AuditEvent[]>(MOCK_AUDIT);
+  // BUSINESS PACK state
+  const [recurringRules, setRecurringRules] = useState<RecurringRule[]>(MOCK_RECURRING_RULES);
+  const [cashEntries, setCashEntries] = useState<CashEntry[]>(MOCK_CASH_ENTRIES);
+  const [dayCloses, setDayCloses] = useState<DayClose[]>(MOCK_DAY_CLOSES);
+  const [maintenanceTasks, setMaintenanceTasks] = useState<MaintenanceTask[]>(MOCK_MAINTENANCE_TASKS);
+  const [issueTickets, setIssueTickets] = useState<IssueTicket[]>(MOCK_ISSUE_TICKETS);
+  const [messageTemplates] = useState<MessageTemplate[]>(MOCK_MESSAGE_TEMPLATES);
+  const [outboxMessages, setOutboxMessages] = useState<OutboxMessage[]>(MOCK_OUTBOX);
   const [talentPool, setTalentPool] = useState<any[]>(MOCK_TALENT_POOL); // SCOUT SYSTEM
   
   // Additional States
@@ -1039,6 +1051,325 @@ function App() {
     }));
   };
 
+  // ═══════════════════════════════════════════════════════════════
+  // BUSINESS PACK HANDLERS
+  // ═══════════════════════════════════════════════════════════════
+
+  // ── Recurring booking helpers ─────────────────────────────────
+  const generateRecurringReservations = React.useCallback((rules: RecurringRule[], existingRes: Reservation[], rangeDays = 28) => {
+    const today = new Date();
+    const generated: Reservation[] = [];
+
+    for (const rule of rules) {
+      if (rule.status !== 'active') continue;
+      const venue = venues.find(v => v.id === rule.venueId);
+
+      for (let d = 0; d < rangeDays; d++) {
+        const date = new Date(today);
+        date.setDate(today.getDate() + d);
+        const dayOfWeek = date.getDay();
+        if (!rule.byWeekdays.includes(dayOfWeek)) continue;
+
+        const isoDate = date.toISOString().split('T')[0];
+        if (isoDate < rule.startDate) continue;
+        if (rule.endDate && isoDate > rule.endDate) continue;
+
+        // Idempotent check
+        const dup = existingRes.find(r =>
+          r.recurringRuleId === rule.id && r.date === isoDate && r.startTime === rule.startTime
+        );
+        if (dup) continue;
+
+        // Conflict check with existing reservations
+        const [sh, sm] = rule.startTime.split(':').map(Number);
+        const startMin = sh * 60 + sm;
+        const endMin = startMin + rule.durationMinutes;
+        const conflict = existingRes.find(r => {
+          if (r.venueId !== rule.venueId || r.date !== isoDate) return false;
+          if (r.status === 'cancelled') return false;
+          const [rsh, rsm] = r.startTime.split(':').map(Number);
+          const [reh, rem] = r.endTime.split(':').map(Number);
+          const rs = rsh * 60 + rsm;
+          const re = reh * 60 + rem;
+          return startMin < re && endMin > rs;
+        });
+
+        // Maintenance block check
+        const maintConflict = maintenanceTasks.find(mt => {
+          if (mt.venueId !== rule.venueId || mt.status === 'cancelled' || mt.status === 'done') return false;
+          if (mt.startDate > isoDate || (mt.endDate && mt.endDate < isoDate)) return false;
+          if (!mt.startTime) return true; // full day
+          const [msh, msm] = mt.startTime.split(':').map(Number);
+          const [meh, mem] = (mt.endTime || '23:59').split(':').map(Number);
+          const ms = msh * 60 + msm, me = meh * 60 + mem;
+          return startMin < me && endMin > ms;
+        });
+
+        if (conflict || maintConflict) {
+          setAudit(prev => [{
+            id: `aud_skip_${Date.now()}_${d}`,
+            at: new Date().toISOString(),
+            actorUserId: rule.createdByUserId,
+            actorName: 'System',
+            actorRole: 'venue_owner' as Role,
+            entityType: 'reservation' as const,
+            entityId: rule.id,
+            action: 'RECURRING_SKIPPED_CONFLICT',
+            meta: { ruleId: rule.id, date: isoDate, reason: conflict ? 'reservation_conflict' : 'maintenance_block' },
+          }, ...prev]);
+          continue;
+        }
+
+        const endH = Math.floor(endMin / 60) % 24;
+        const endMm = endMin % 60;
+        const endTime = `${String(endH).padStart(2, '0')}:${String(endMm).padStart(2, '0')}`;
+
+        // Price
+        let price = rule.fixedPrice ?? venue?.price ?? 1200;
+        if (rule.pricingMode === 'bucket' && venue?.pricing) {
+          const startH2 = sh;
+          const isWE = [0, 6].includes(dayOfWeek);
+          const bucket = startH2 < 12 ? 'morning' : startH2 < 18 ? 'afternoon' : 'prime';
+          const key = (isWE ? 'weekend' : 'weekday') + bucket.charAt(0).toUpperCase() + bucket.slice(1) as keyof typeof venue.pricing;
+          price = (venue.pricing as any)[key] ?? venue.price ?? 1200;
+        }
+
+        const res: Reservation = {
+          id: `rec_${rule.id}_${isoDate}`,
+          venueId: rule.venueId,
+          venueName: rule.venueName,
+          teamName: rule.customerName,
+          customerName: rule.customerName,
+          customerPhone: rule.customerPhone,
+          date: isoDate,
+          startTime: rule.startTime,
+          endTime,
+          duration: rule.durationMinutes,
+          price,
+          status: rule.autoConfirm ? 'confirmed' : 'pending',
+          confirmedAt: rule.autoConfirm ? new Date().toISOString() : undefined,
+          participants: 14,
+          contactPerson: rule.customerName,
+          contactPhone: rule.customerPhone || '',
+          createdAt: new Date().toISOString(),
+          createdByUserId: rule.createdByUserId,
+          paymentStatus: 'pending',
+          paymentMethod: rule.paymentMode === 'invoice_monthly' ? 'bank_transfer' : 'cash',
+          recurringRuleId: rule.id,
+          source: 'recurring',
+          checkInStatus: 'not_started',
+        };
+        generated.push(res);
+      }
+    }
+    return generated;
+  }, [venues, maintenanceTasks]);
+
+  // Run recurring generation on mount
+  React.useEffect(() => {
+    const generated = generateRecurringReservations(recurringRules, reservations);
+    if (generated.length > 0) {
+      setReservations(prev => [...prev, ...generated]);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleCreateRecurringRule = (ruleDraft: Omit<RecurringRule, 'id' | 'createdAt'>) => {
+    const rule: RecurringRule = { ...ruleDraft, id: `rr_${Date.now()}`, createdAt: new Date().toISOString() };
+    setRecurringRules(prev => [...prev, rule]);
+    addAudit('reservation', rule.id, 'RECURRING_CREATED', { customerName: rule.customerName, venueId: rule.venueId });
+    // Generate immediately
+    setReservations(prev => {
+      const gen = generateRecurringReservations([rule], prev);
+      return [...prev, ...gen];
+    });
+  };
+
+  const handlePauseRecurringRule = (ruleId: string) => {
+    setRecurringRules(prev => prev.map(r => r.id === ruleId ? { ...r, status: 'paused' as const } : r));
+    addAudit('reservation', ruleId, 'RECURRING_PAUSED');
+  };
+
+  const handleCancelRecurringRule = (ruleId: string) => {
+    setRecurringRules(prev => prev.map(r => r.id === ruleId ? { ...r, status: 'cancelled' as const } : r));
+    addAudit('reservation', ruleId, 'RECURRING_CANCELLED');
+  };
+
+  // ── Cash Register ─────────────────────────────────────────────
+  const handleAddCashEntry = (entry: Omit<CashEntry, 'id' | 'at' | 'actorUserId' | 'actorRole'>) => {
+    if (!currentUser) return;
+    const newEntry: CashEntry = {
+      ...entry,
+      id: `ce_${Date.now()}`,
+      at: new Date().toISOString(),
+      actorUserId: currentUser.id,
+      actorRole: (currentUser.role ?? 'venue_staff') as Role,
+    };
+    setCashEntries(prev => [...prev, newEntry]);
+    // Update reservation balanceDue
+    if (entry.reservationId) {
+      setReservations(prev => prev.map(r => {
+        if (r.id !== entry.reservationId) return r;
+        const newTotal = (r.collectedTotal ?? 0) + entry.amount;
+        return { ...r, collectedTotal: newTotal, balanceDue: Math.max(0, r.price - newTotal) };
+      }));
+    }
+    addAudit('reservation', entry.reservationId || 'manual', 'CASH_ENTRY_ADDED', { amount: entry.amount, method: entry.method });
+  };
+
+  const handleCloseDay = (venueId: string, date: string, note?: string) => {
+    if (!currentUser) return;
+    const dayEntries = cashEntries.filter(e => e.venueId === venueId && e.at.startsWith(date));
+    const totals = { cash: 0, card: 0, bank_transfer: 0, total: 0 };
+    dayEntries.forEach(e => {
+      if (e.method === 'cash') totals.cash += e.amount;
+      else if (e.method === 'card') totals.card += e.amount;
+      else totals.bank_transfer += e.amount;
+      totals.total += e.amount;
+    });
+    const close: DayClose = {
+      id: `dc_${Date.now()}`,
+      venueId,
+      date,
+      closedAt: new Date().toISOString(),
+      closedByUserId: currentUser.id,
+      totals,
+      entriesCount: dayEntries.length,
+      note,
+    };
+    setDayCloses(prev => [...prev, close]);
+    addAudit('venue', venueId, 'DAY_CLOSED', { date, totals });
+  };
+
+  // ── Check-in ──────────────────────────────────────────────────
+  const handleCheckIn = (reservationId: string, code: string) => {
+    const res = reservations.find(r => r.id === reservationId);
+    if (!res) return false;
+    if (res.checkInCode !== code) return false;
+    setReservations(prev => prev.map(r =>
+      r.id === reservationId
+        ? { ...r, checkInStatus: 'checked_in' as const, checkedInAt: new Date().toISOString() }
+        : r
+    ));
+    addAudit('reservation', reservationId, 'CHECKIN_VERIFIED');
+    return true;
+  };
+
+  const handleMarkNoShow = (reservationId: string, reason: string) => {
+    setReservations(prev => prev.map(r =>
+      r.id === reservationId
+        ? { ...r, checkInStatus: 'no_show' as const, noShowAt: new Date().toISOString(), noShowReason: reason }
+        : r
+    ));
+    addAudit('reservation', reservationId, 'NO_SHOW_MARKED', { reason });
+  };
+
+  // Check-in ready interval: 60 min before startTime → set ready + generate code
+  React.useEffect(() => {
+    const interval = setInterval(() => {
+      const now = new Date();
+      setReservations(prev => prev.map(r => {
+        if (r.status !== 'confirmed') return r;
+        if (r.checkInStatus && r.checkInStatus !== 'not_started') return r;
+        const resStart = new Date(`${r.date}T${r.startTime}:00`);
+        const minsUntil = (resStart.getTime() - now.getTime()) / 60000;
+        if (minsUntil <= 60 && minsUntil > 0) {
+          return {
+            ...r,
+            checkInStatus: 'ready' as const,
+            checkInReadyAt: now.toISOString(),
+            checkInCode: String(Math.floor(100000 + Math.random() * 900000)),
+          };
+        }
+        return r;
+      }));
+    }, 60_000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // ── Maintenance ───────────────────────────────────────────────
+  const handleCreateMaintenanceTask = (task: Omit<MaintenanceTask, 'id' | 'createdAt' | 'createdByUserId'>) => {
+    if (!currentUser) return;
+    const newTask: MaintenanceTask = { ...task, id: `mt_${Date.now()}`, createdAt: new Date().toISOString(), createdByUserId: currentUser.id };
+    setMaintenanceTasks(prev => [...prev, newTask]);
+    addAudit('venue', task.venueId, 'MAINTENANCE_CREATED', { title: task.title, startDate: task.startDate });
+  };
+
+  const handleUpdateMaintenanceTaskStatus = (taskId: string, status: MaintenanceTask['status']) => {
+    setMaintenanceTasks(prev => prev.map(t => t.id === taskId ? { ...t, status } : t));
+    addAudit('venue', taskId, 'MAINTENANCE_STATUS_CHANGED', { status });
+  };
+
+  const handleCreateIssueTicket = (ticket: Omit<IssueTicket, 'id' | 'createdAt' | 'createdByUserId'>) => {
+    if (!currentUser) return;
+    const newTicket: IssueTicket = { ...ticket, id: `it_${Date.now()}`, createdAt: new Date().toISOString(), createdByUserId: currentUser.id };
+    setIssueTickets(prev => [...prev, newTicket]);
+    addAudit('venue', ticket.venueId, 'ISSUE_CREATED', { title: ticket.title, priority: ticket.priority });
+  };
+
+  const handleUpdateIssueTicketStatus = (ticketId: string, status: IssueTicket['status']) => {
+    setIssueTickets(prev => prev.map(t => t.id === ticketId ? { ...t, status } : t));
+    addAudit('venue', ticketId, 'ISSUE_STATUS_CHANGED', { status });
+  };
+
+  // ── Messaging / Outbox ────────────────────────────────────────
+  const renderTemplate = (body: string, vars: Record<string, string>): string => {
+    let result = body;
+    Object.entries(vars).forEach(([k, v]) => { result = result.replace(new RegExp(`{${k}}`, 'g'), v); });
+    return result;
+  };
+
+  const handleCreateOutboxMessage = (msg: Omit<OutboxMessage, 'id' | 'createdAt' | 'status' | 'createdByUserId'>) => {
+    if (!currentUser) return;
+    const newMsg: OutboxMessage = { ...msg, id: `om_${Date.now()}`, createdAt: new Date().toISOString(), status: 'draft', createdByUserId: currentUser.id };
+    setOutboxMessages(prev => [...prev, newMsg]);
+    addAudit('venue', msg.venueId, 'OUTBOX_CREATED', { toLabel: msg.toLabel, templateKey: msg.templateKey });
+  };
+
+  const handleCopyMessage = (outboxId: string, body: string) => {
+    navigator.clipboard?.writeText(body).catch(() => {});
+    setOutboxMessages(prev => prev.map(m => m.id === outboxId ? { ...m, status: 'copied' as const } : m));
+    addAudit('venue', outboxId, 'MESSAGE_COPIED');
+  };
+
+  // ── CSV Export ────────────────────────────────────────────────
+  const generateCSV = (headers: string[], rows: string[][]): string => {
+    const escape = (s: string) => `"${s.replace(/"/g, '""')}"`;
+    return [headers.map(escape).join(','), ...rows.map(r => r.map(escape).join(','))].join('\n');
+  };
+
+  const downloadCSV = (csv: string, filename: string) => {
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename; a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleExportReservationsCSV = (venueId: string, fromDate: string, toDate: string) => {
+    const rows = reservations
+      .filter(r => r.venueId === venueId && r.date >= fromDate && r.date <= toDate)
+      .map(r => [r.id, r.date, r.startTime, r.endTime, r.teamName || r.customerName || '', r.status, r.paymentStatus, String(r.price), r.paymentMethod || '', r.source || 'manual']);
+    const csv = generateCSV(['ID', 'Tarih', 'Başlangıç', 'Bitiş', 'Müşteri', 'Durum', 'Ödeme Durumu', 'Tutar', 'Ödeme Yöntemi', 'Kaynak'], rows);
+    downloadCSV(csv, `rezervasyonlar_${fromDate}_${toDate}.csv`);
+    addAudit('venue', venueId, 'CSV_EXPORTED', { type: 'reservations', fromDate, toDate });
+  };
+
+  const handleExportCashCSV = (venueId: string, fromDate: string, toDate: string) => {
+    const rows = cashEntries
+      .filter(e => e.venueId === venueId && e.at >= fromDate && e.at <= toDate + 'T23:59:59')
+      .map(e => [e.id, e.at.split('T')[0], e.at.split('T')[1]?.slice(0,5)||'', e.customerName||'', e.method, String(e.amount), e.note||'', e.reservationId||'']);
+    const csv = generateCSV(['ID', 'Tarih', 'Saat', 'Müşteri', 'Yöntem', 'Tutar', 'Not', 'Rezervasyon ID'], rows);
+    downloadCSV(csv, `kasa_${fromDate}_${toDate}.csv`);
+  };
+
+  const handleExportDayCloseCSV = (venueId: string) => {
+    const rows = dayCloses
+      .filter(d => d.venueId === venueId)
+      .map(d => [d.date, d.closedAt, String(d.totals.cash), String(d.totals.card), String(d.totals.bank_transfer), String(d.totals.total), String(d.entriesCount), d.note||'']);
+    const csv = generateCSV(['Tarih', 'Kapanış Zamanı', 'Nakit', 'Kart', 'Havale', 'Toplam', 'Kayıt Sayısı', 'Not'], rows);
+    downloadCSV(csv, `gun_sonu_kapanislari.csv`);
+  };
+
   // =========================================== 
   // SCOUT SYSTEM HANDLERS
   // ===========================================
@@ -1589,6 +1920,7 @@ function App() {
             teamProfile={teamProfile}
             existingReservations={reservations}
             existingWaitlist={waitlist}
+            maintenanceTasks={maintenanceTasks}
             onCreateReservation={handleCreateReservation}
             onJoinWaitlist={handleJoinWaitlist}
           />
@@ -1818,6 +2150,12 @@ function App() {
             onReject={handleRejectReservation}
             onMarkPaid={handleMarkReservationPaid}
             onProposeAlternative={handleProposeAlternative}
+            onCheckIn={handleCheckIn}
+            onMarkNoShow={handleMarkNoShow}
+            onCopyMessage={handleCopyMessage}
+            onCreateOutbox={handleCreateOutboxMessage}
+            messageTemplates={messageTemplates}
+            renderTemplate={renderTemplate}
             currentUser={currentUser}
             venues={venues}
             existingReservations={reservations}
@@ -1834,6 +2172,8 @@ function App() {
             onBack={goBack} 
             reservations={reservations}
             venueIds={currentUser.venueOwnerInfo?.venueIds || []}
+            maintenanceTasks={maintenanceTasks.filter(t => (currentUser.venueOwnerInfo?.venueIds || []).includes(t.venueId))}
+            onNavigate={navigateTo}
           />
         );
 
@@ -1842,7 +2182,13 @@ function App() {
           navigateTo('login');
           return null;
         }
-        return <VenueFinancialReports currentUser={currentUser} onBack={goBack} />;
+        return <VenueFinancialReports
+          currentUser={currentUser}
+          onBack={goBack}
+          onExportReservations={handleExportReservationsCSV}
+          onExportCash={handleExportCashCSV}
+          onExportDayClose={handleExportDayCloseCSV}
+        />;
 
       case 'customerManagement':
         if (!currentUser || !(['venue_owner','venue_staff','venue_accountant'] as string[]).includes(currentUser.role ?? '')) {
@@ -1927,6 +2273,79 @@ function App() {
           />
         );
 
+      case 'recurringManagement':
+        if (!currentUser || !(['venue_owner','venue_staff'] as string[]).includes(currentUser.role ?? '')) { navigateTo('login'); return null; }
+        return (
+          <RecurringManagement
+            currentUser={currentUser}
+            recurringRules={recurringRules.filter(r => (currentUser.venueOwnerInfo?.venueIds || []).includes(r.venueId))}
+            reservations={reservations}
+            venues={venues.filter(v => (currentUser.venueOwnerInfo?.venueIds || []).includes(v.id))}
+            onBack={goBack}
+            onCreateRule={handleCreateRecurringRule}
+            onPauseRule={handlePauseRecurringRule}
+            onCancelRule={handleCancelRecurringRule}
+            onNavigate={navigateTo}
+          />
+        );
+
+      case 'cashRegister':
+        if (!currentUser || !(['venue_owner','venue_staff','venue_accountant'] as string[]).includes(currentUser.role ?? '')) { navigateTo('login'); return null; }
+        {
+          const venueIds = currentUser.venueOwnerInfo?.venueIds || [];
+          return (
+            <CashRegister
+              currentUser={currentUser}
+              venues={venues.filter(v => venueIds.includes(v.id))}
+              reservations={reservations.filter(r => venueIds.includes(r.venueId))}
+              cashEntries={cashEntries.filter(e => venueIds.includes(e.venueId))}
+              dayCloses={dayCloses.filter(d => venueIds.includes(d.venueId))}
+              onBack={goBack}
+              onAddCashEntry={handleAddCashEntry}
+              onCloseDay={handleCloseDay}
+              onExportCSV={handleExportCashCSV}
+            />
+          );
+        }
+
+      case 'maintenanceCenter':
+        if (!currentUser || !(['venue_owner','venue_staff'] as string[]).includes(currentUser.role ?? '')) { navigateTo('login'); return null; }
+        {
+          const venueIds = currentUser.venueOwnerInfo?.venueIds || [];
+          return (
+            <MaintenanceCenter
+              currentUser={currentUser}
+              venues={venues.filter(v => venueIds.includes(v.id))}
+              tasks={maintenanceTasks.filter(t => venueIds.includes(t.venueId))}
+              tickets={issueTickets.filter(t => venueIds.includes(t.venueId))}
+              onBack={goBack}
+              onCreateTask={handleCreateMaintenanceTask}
+              onUpdateTaskStatus={handleUpdateMaintenanceTaskStatus}
+              onCreateTicket={handleCreateIssueTicket}
+              onUpdateTicketStatus={handleUpdateIssueTicketStatus}
+            />
+          );
+        }
+
+      case 'broadcastCenter':
+        if (!currentUser || !(['venue_owner','venue_staff'] as string[]).includes(currentUser.role ?? '')) { navigateTo('login'); return null; }
+        {
+          const venueIds = currentUser.venueOwnerInfo?.venueIds || [];
+          return (
+            <BroadcastCenter
+              currentUser={currentUser}
+              venues={venues.filter(v => venueIds.includes(v.id))}
+              reservations={reservations.filter(r => venueIds.includes(r.venueId))}
+              templates={messageTemplates.filter(t => venueIds.includes(t.venueId))}
+              outbox={outboxMessages.filter(m => venueIds.includes(m.venueId))}
+              onBack={goBack}
+              onCreateOutbox={handleCreateOutboxMessage}
+              onCopyMessage={handleCopyMessage}
+              renderTemplate={renderTemplate}
+            />
+          );
+        }
+
       // ========== SCOUT SYSTEM ==========
       case 'scoutDashboard':
         if (!currentUser) {
@@ -2008,6 +2427,7 @@ function App() {
     'venueSettings', 'venueCalendar', 'venueFinancialReports', 'customerManagement',
     'scoutDashboard', 'talentPool', 'scoutReports',
     'myReservations', 'auditLog', 'venueAnalytics',
+    'recurringManagement', 'cashRegister', 'maintenanceCenter', 'broadcastCenter',
   ];
 
   // Screens where BottomNav should be visible
@@ -2107,6 +2527,10 @@ function getScreenTitle(screen: ScreenName): string {
     myReservations: 'Rezervasyonlarım',
     auditLog: 'Audit Log',
     venueAnalytics: 'Saha Analitikleri',
+    recurringManagement: 'Sabit Rezervasyonlar',
+    cashRegister: 'Kasa',
+    maintenanceCenter: 'Bakım & Arıza',
+    broadcastCenter: 'Toplu Mesaj',
   };
   return titles[screen] || 'Sahada';
 }

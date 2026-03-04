@@ -1,6 +1,6 @@
 import React from 'react';
 import { Icon } from '../components/Icon';
-import { Reservation, Player, Venue, AlternativeSlotOffer } from '../types';
+import { Reservation, Player, Venue, AlternativeSlotOffer, MessageTemplate, OutboxMessage } from '../types';
 
 interface ReservationDetailsProps {
   reservation: Reservation;
@@ -9,6 +9,12 @@ interface ReservationDetailsProps {
   onReject?: (id: string, reason: string) => void;
   onMarkPaid?: (id: string) => void;
   onProposeAlternative?: (id: string, alternatives: AlternativeSlotOffer['alternatives']) => void;
+  onCheckIn?: (id: string, code: string) => boolean;
+  onMarkNoShow?: (id: string, reason: string) => void;
+  onCopyMessage?: (outboxId: string, body: string) => void;
+  onCreateOutbox?: (msg: Omit<OutboxMessage, 'id' | 'createdAt' | 'status' | 'createdByUserId'>) => void;
+  messageTemplates?: MessageTemplate[];
+  renderTemplate?: (body: string, vars: Record<string, string>) => string;
   currentUser?: Player | null;
   venues?: Venue[];
   existingReservations?: Reservation[];
@@ -16,11 +22,21 @@ interface ReservationDetailsProps {
 
 export const ReservationDetails: React.FC<ReservationDetailsProps> = ({
   reservation: r, onBack, onApprove, onReject, onMarkPaid, onProposeAlternative,
+  onCheckIn, onMarkNoShow, onCopyMessage, onCreateOutbox, messageTemplates = [], renderTemplate,
   currentUser, venues = [], existingReservations = [],
 }) => {
   const [rejectReason, setRejectReason] = React.useState('');
   const [showRejectModal, setShowRejectModal] = React.useState(false);
   const [showAltModal, setShowAltModal] = React.useState(false);
+  const [checkInCode, setCheckInCode] = React.useState('');
+  const [checkInError, setCheckInError] = React.useState('');
+  const [checkInSuccess, setCheckInSuccess] = React.useState(false);
+  const [noShowReason, setNoShowReason] = React.useState('');
+  const [showNoShowModal, setShowNoShowModal] = React.useState(false);
+  const [showMsgPanel, setShowMsgPanel] = React.useState(false);
+  const [selectedTemplateKey, setSelectedTemplateKey] = React.useState('');
+  const [msgPreview, setMsgPreview] = React.useState('');
+  const [msgCopied, setMsgCopied] = React.useState(false);
 
   // Alternative slot builder state
   const [altSlots, setAltSlots] = React.useState<Array<{ date: string; startTime: string; durationMinutes: number; price: number }>>([
@@ -52,6 +68,57 @@ export const ReservationDetails: React.FC<ReservationDetailsProps> = ({
 
   const handleMarkPaid = () => {
     if (onMarkPaid) { onMarkPaid(r.id); }
+  };
+
+  // ── Check-in logic ───────────────────────────────────────────────────────────
+  const handleCheckInVerify = () => {
+    if (!onCheckIn) return;
+    const ok = onCheckIn(r.id, checkInCode.trim());
+    if (ok) { setCheckInSuccess(true); setCheckInError(''); }
+    else { setCheckInError('Kod eşleşmedi. Tekrar deneyin.'); }
+  };
+
+  const handleNoShowConfirm = () => {
+    if (onMarkNoShow && noShowReason.trim()) {
+      onMarkNoShow(r.id, noShowReason);
+      setShowNoShowModal(false);
+    }
+  };
+
+  // ── Messaging logic ────────────────────────────────────────────────────────
+  const templateVars: Record<string, string> = {
+    customerName: r.customerName || r.teamName || '',
+    venueName: r.venueName,
+    date: new Date(r.date + 'T12:00:00').toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' }),
+    time: r.startTime,
+    depositAmount: String(r.depositAmount ?? 0),
+    checkInCode: r.checkInCode ?? '------',
+    iban: 'TR33 0006 1005 1978 6457 8413 26',
+  };
+
+  const handleTemplateSelect = (key: string) => {
+    setSelectedTemplateKey(key);
+    const tpl = messageTemplates.find(t => t.key === key);
+    if (tpl && renderTemplate) {
+      setMsgPreview(renderTemplate(tpl.body, templateVars));
+    }
+    setMsgCopied(false);
+  };
+
+  const handleCopyMsg = () => {
+    if (!msgPreview || !onCreateOutbox || !onCopyMessage) return;
+    navigator.clipboard?.writeText(msgPreview).catch(() => {});
+    const phone = r.customerPhone || r.contactPhone;
+    const msgId = `om_${Date.now()}`;
+    onCreateOutbox({
+      venueId: r.venueId,
+      toLabel: r.customerName || r.teamName,
+      phone,
+      templateKey: selectedTemplateKey as any,
+      body: msgPreview,
+    });
+    onCopyMessage(msgId, msgPreview);
+    setMsgCopied(true);
   };
 
   // ── Format duration ─────────────────────────────────────────────────────────
@@ -194,7 +261,110 @@ export const ReservationDetails: React.FC<ReservationDetailsProps> = ({
           {r.confirmedAt  && <Row label="Onaylanma" value={new Date(r.confirmedAt).toLocaleString('tr-TR')} />}
           {r.cancelledAt  && <Row label="İptal"     value={new Date(r.cancelledAt).toLocaleString('tr-TR')} />}
           {r.refundedAt   && <Row label="İade"      value={new Date(r.refundedAt).toLocaleString('tr-TR')} />}
+          {r.recurringRuleId && <Row label="Kaynak" value="🔁 Sabit Rezervasyon" />}
         </SectionCard>
+
+        {/* ── Check-in Panel ── */}
+        {r.status === 'confirmed' && r.checkInStatus && r.checkInStatus !== 'not_started' && (
+          <SectionCard title="Check-in" icon="qr_code_2">
+            <div className="space-y-3">
+              {/* Status badge */}
+              <div className={`flex items-center gap-2 p-3 rounded-xl border ${
+                r.checkInStatus === 'checked_in'  ? 'bg-green-500/8 border-green-500/20' :
+                r.checkInStatus === 'no_show'     ? 'bg-red-500/8 border-red-500/20' :
+                                                    'bg-yellow-500/8 border-yellow-500/20'
+              }`}>
+                <Icon name={r.checkInStatus === 'checked_in' ? 'check_circle' : r.checkInStatus === 'no_show' ? 'cancel' : 'schedule'} size={16}
+                  className={r.checkInStatus === 'checked_in' ? 'text-green-400' : r.checkInStatus === 'no_show' ? 'text-red-400' : 'text-yellow-400'} />
+                <span className="text-sm font-bold text-white">
+                  {{ not_started: 'Bekleniyor', ready: 'Hazır – Kod Üretildi', checked_in: 'Check-in Yapıldı ✓', no_show: 'No-show ✗' }[r.checkInStatus]}
+                </span>
+              </div>
+
+              {/* Code display */}
+              {r.checkInCode && (r.checkInStatus === 'ready' || r.checkInStatus === 'checked_in') && (
+                <div className="bg-secondary rounded-xl p-3 flex items-center justify-between border border-white/8">
+                  <span className="text-xs text-slate-400">Check-in Kodu</span>
+                  <span className="text-2xl font-black text-primary font-mono tracking-widest">{r.checkInCode}</span>
+                </div>
+              )}
+
+              {/* Code verify */}
+              {r.checkInStatus === 'ready' && onCheckIn && (
+                <div className="space-y-2">
+                  <div className="flex gap-2">
+                    <input value={checkInCode} onChange={e => setCheckInCode(e.target.value.replace(/\D/g,'').slice(0,6))}
+                      placeholder="Müşteri kodunu gir" maxLength={6}
+                      className="flex-1 bg-secondary border border-white/10 rounded-xl px-4 py-2.5 text-white font-mono text-center text-lg tracking-widest focus:outline-none focus:border-primary" />
+                    <button onClick={handleCheckInVerify}
+                      disabled={checkInCode.length < 6}
+                      className="px-4 py-2.5 rounded-xl bg-primary text-secondary font-bold text-sm disabled:opacity-40">
+                      Doğrula
+                    </button>
+                  </div>
+                  {checkInError && <p className="text-xs text-red-400">{checkInError}</p>}
+                  {checkInSuccess && <p className="text-xs text-green-400">✓ Check-in başarılı!</p>}
+                </div>
+              )}
+
+              {/* No-show button */}
+              {(r.checkInStatus === 'ready') && onMarkNoShow && (() => {
+                const start = new Date(`${r.date}T${r.startTime}:00`);
+                const minsLate = (Date.now() - start.getTime()) / 60000;
+                if (minsLate < 15) return null;
+                return (
+                  <button onClick={() => setShowNoShowModal(true)}
+                    className="w-full py-2.5 rounded-xl bg-red-500/10 border border-red-500/25 text-red-400 text-xs font-bold flex items-center justify-center gap-1.5">
+                    <Icon name="person_off" size={13} />
+                    No-show İşaretle ({Math.floor(minsLate)} dk geç)
+                  </button>
+                );
+              })()}
+            </div>
+          </SectionCard>
+        )}
+
+        {/* ── Mesajlar Panel ── */}
+        {messageTemplates.length > 0 && onCreateOutbox && (
+          <div>
+            <button onClick={() => setShowMsgPanel(!showMsgPanel)}
+              className="w-full flex items-center justify-between p-4 bg-surface rounded-2xl border border-white/6 hover:border-white/12 transition-all">
+              <div className="flex items-center gap-2">
+                <Icon name="chat_bubble" size={16} className="text-green-400" />
+                <span className="text-sm font-bold text-white">WhatsApp Mesajları</span>
+              </div>
+              <Icon name={showMsgPanel ? 'expand_less' : 'expand_more'} size={16} className="text-slate-400" />
+            </button>
+            {showMsgPanel && (
+              <div className="mt-2 bg-surface rounded-2xl border border-white/6 p-4 space-y-3">
+                <div className="grid grid-cols-2 gap-2">
+                  {messageTemplates.map(tpl => (
+                    <button key={tpl.key} onClick={() => handleTemplateSelect(tpl.key)}
+                      className={`px-3 py-2 rounded-xl border text-xs font-bold text-left transition-all ${
+                        selectedTemplateKey === tpl.key ? 'border-green-500/40 bg-green-500/8 text-green-400' : 'border-white/8 bg-secondary text-slate-400 hover:border-white/15'
+                      }`}>
+                      {tpl.title}
+                    </button>
+                  ))}
+                </div>
+                {msgPreview && (
+                  <div className="bg-secondary rounded-xl p-3 border border-white/8">
+                    <p className="text-xs text-slate-300 leading-relaxed whitespace-pre-line">{msgPreview}</p>
+                  </div>
+                )}
+                {msgPreview && (
+                  <button onClick={handleCopyMsg}
+                    className={`w-full py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all ${
+                      msgCopied ? 'bg-green-500/15 border border-green-500/25 text-green-400' : 'bg-green-500 text-white shadow-lg'
+                    }`}>
+                    <Icon name={msgCopied ? 'check' : 'content_copy'} size={15} />
+                    {msgCopied ? 'Kopyalandı ✓' : 'Kopyala & Outbox\'a Ekle'}
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Actions */}
         {r.status === 'pending' && (
@@ -241,6 +411,31 @@ export const ReservationDetails: React.FC<ReservationDetailsProps> = ({
           </div>
         )}
       </div>
+
+      {/* No-Show Modal */}
+      {showNoShowModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in">
+          <div className="bg-surface w-full max-w-sm rounded-3xl border border-white/10 p-5 shadow-2xl animate-slide-up">
+            <h3 className="text-white font-black text-base mb-3">No-show İşaretle</h3>
+            <p className="text-slate-400 text-xs mb-3">Neden gelmediler?</p>
+            <div className="space-y-2 mb-4">
+              {['Haber vermedi','Ödeme yapılmadı','Doğal afet/ulaşım','Diğer'].map(reason => (
+                <button key={reason} onClick={() => setNoShowReason(reason)}
+                  className={`w-full px-4 py-2.5 rounded-xl border text-sm text-left transition-all ${noShowReason === reason ? 'border-red-500/40 bg-red-500/10 text-red-300 font-bold' : 'border-white/8 bg-secondary text-slate-400'}`}>
+                  {reason}
+                </button>
+              ))}
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <button onClick={() => setShowNoShowModal(false)} className="py-3 rounded-xl bg-secondary border border-white/10 text-slate-400 font-bold text-sm">Vazgeç</button>
+              <button onClick={handleNoShowConfirm} disabled={!noShowReason}
+                className="py-3 rounded-xl bg-red-500 text-white font-bold text-sm disabled:opacity-40">
+                Kaydet
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Reject Modal */}
       {showRejectModal && (

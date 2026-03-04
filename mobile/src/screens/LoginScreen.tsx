@@ -15,8 +15,9 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import AppScrollView from '../components/AppScrollView';
-import { useNavigation, CommonActions } from '@react-navigation/native';
+import { useNavigation, useRoute, CommonActions } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
+import { RouteProp } from '@react-navigation/native';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../contexts/AuthContext';
@@ -41,6 +42,8 @@ const LOG = (msg: string, data?: object, hyp?: string) => {
 
 export default function LoginScreen() {
   const navigation = useNavigation<LoginScreenNavigationProp>();
+  const route = useRoute<RouteProp<RootStackParamList, 'Login'>>();
+  const userType = route.params?.userType;
   const { login, loginWithCredentials, restoreSession } = useAuth();
   
   const [phone, setPhone] = useState('');
@@ -112,8 +115,7 @@ export default function LoginScreen() {
     } catch (err) {
       console.error('Login error:', err);
       const digits = phone.trim().replace(/\D/g, '');
-      // +90 gösterildiği için prefill'de başta 0 olmasın; 10 hane (5xxxxxxxxx) kullan
-      const phoneForPrefill =
+      const rawPhone =
         digits.length >= 10
           ? digits.startsWith('90')
             ? digits.slice(2)
@@ -121,22 +123,38 @@ export default function LoginScreen() {
               ? digits.slice(1)
               : digits.slice(-10)
           : phone.trim();
-      setAlert({
-        title: 'Hesabınız bulunamadı',
-        message:
-          'Bu numarayla kayıtlı hesap yok. Oyuna girmek için önce kayıt olun; ardından takım koduyla takıma katılabilir veya takım kurabilirsiniz.',
-        type: 'info',
-        confirmText: 'Kayıt Ol',
-        onConfirm: () => {
-          setAlert(null);
-          navigation.navigate('Register', { prefillPhone: phoneForPrefill || phone.trim() });
-        },
-        secondaryText: 'Takım Kur',
-        onSecondary: () => {
-          setAlert(null);
-          navigation.navigate('TeamSetup', { prefillPhone: phoneForPrefill || phone.trim() });
-        },
-      });
+      if (userType === 'venue_owner') {
+        setAlert({
+          title: 'Saha sahibi kaydı',
+          message:
+            'Bu numarayla kayıtlı saha sahibi hesabı yok. Saha sahibi kaydını başlatmak ister misiniz?',
+          type: 'info',
+          confirmText: 'Evet, başlat',
+          onConfirm: () => {
+            setAlert(null);
+            navigation.navigate('VenueOwnerOnboarding', { phone: rawPhone });
+          },
+          secondaryText: 'İptal',
+          onSecondary: () => setAlert(null),
+        });
+      } else {
+        setAlert({
+          title: 'Hesabınız bulunamadı',
+          message:
+            'Bu numarayla kayıtlı hesap yok. Oyuna girmek için önce kayıt olun; ardından takım koduyla takıma katılabilir veya takım kurabilirsiniz.',
+          type: 'info',
+          confirmText: 'Kayıt Ol',
+          onConfirm: () => {
+            setAlert(null);
+            navigation.navigate('Register', { prefillPhone: rawPhone || phone.trim() });
+          },
+          secondaryText: 'Takım Kur',
+          onSecondary: () => {
+            setAlert(null);
+            navigation.navigate('TeamSetup', { prefillPhone: rawPhone || phone.trim() });
+          },
+        });
+      }
     } finally {
       setIsLoading(false);
       LOG('handleLogin finished', {}, 'H2');

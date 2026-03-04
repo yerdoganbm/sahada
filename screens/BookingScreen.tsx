@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Icon } from '../components/Icon';
-import { Venue, Reservation, Player, TeamProfile, WaitlistEntry } from '../types';
+import { Venue, Reservation, Player, TeamProfile, WaitlistEntry, MaintenanceTask } from '../types';
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -9,6 +9,7 @@ interface BookingScreenProps {
   venues: Venue[];
   existingReservations: Reservation[];
   existingWaitlist?: WaitlistEntry[];
+  maintenanceTasks?: MaintenanceTask[];
   currentUser: Player | null;
   teamProfile: TeamProfile | null;
   onBack: () => void;
@@ -64,16 +65,26 @@ function calcSlotPrice(startMin: number, duration: Duration, isoDate: string, ve
   return Math.round((hourly * duration) / 60 / 10) * 10;
 }
 
-type SlotStatus = 'available' | 'blocked' | 'hold';
+type SlotStatus = 'available' | 'blocked' | 'hold' | 'maintenance' | 'past';
 
 function getSlotStatus(
   slotStart: number,
   slotEnd: number,
   venueId: string,
   isoDate: string,
-  reservations: Reservation[]
+  reservations: Reservation[],
+  maintenanceTasks: MaintenanceTask[] = []
 ): SlotStatus {
   const now = new Date().toISOString();
+  // Check maintenance blocks first
+  for (const mt of maintenanceTasks) {
+    if (mt.venueId !== venueId) continue;
+    if (mt.status === 'cancelled' || mt.status === 'done') continue;
+    if (mt.startDate > isoDate || (mt.endDate && mt.endDate < isoDate)) continue;
+    const mtStart = mt.startTime ? parseTime(mt.startTime) : 0;
+    const mtEnd = mt.endTime ? parseTime(mt.endTime) : 24 * 60;
+    if (slotStart < mtEnd && slotEnd > mtStart) return 'maintenance';
+  }
   const candidates = reservations.filter(r => r.venueId === venueId && r.date === isoDate);
   for (const r of candidates) {
     const rStart = parseTime(r.startTime);
@@ -88,6 +99,9 @@ function getSlotStatus(
   return 'available';
 }
 
+// PRO: demand tier drives heatmap color
+type DemandTier = 'low' | 'medium' | 'high' | 'peak';
+
 interface SlotItem {
   id: string;
   startMin: number;
@@ -97,21 +111,57 @@ interface SlotItem {
   label: string;
   price: number;
   status: SlotStatus;
+  // PRO fields
+  demandTier: DemandTier;
+  fillPercent: number;         // 0-100 historical fill for this hour/day
+  priceTier: 'morning' | 'afternoon' | 'prime';
+  isPrime: boolean;
+  isWeekendSlot: boolean;
+  recurringCount: number;      // how many recurring reservations this slot
+}
+
+// PRO: Compute historical fill% for a given hour block across past 4 weeks
+function computeHistoricalFill(
+  hourBlock: number, // hour integer e.g. 20
+  dayOfWeek: number,
+  venueId: string,
+  reservations: Reservation[]
+): number {
+  const sampleRes = reservations.filter(r => {
+    if (r.venueId !== venueId || r.status === 'cancelled') return false;
+    const d = new Date(r.date + 'T12:00:00');
+    const h = parseInt(r.startTime.split(':')[0], 10);
+    const daysAgo = Math.floor((Date.now() - d.getTime()) / 86400000);
+    return d.getDay() === dayOfWeek && h === hourBlock && daysAgo > 0 && daysAgo <= 56;
+  });
+  // 8 weeks * 1 slot per week = 8 samples max
+  const maxSamples = 8;
+  return Math.min(100, Math.round((sampleRes.length / maxSamples) * 100));
+}
+
+function getDemandTier(fillPct: number, isPrime: boolean, isWE: boolean): DemandTier {
+  const base = fillPct + (isPrime ? 20 : 0) + (isWE ? 10 : 0);
+  if (base >= 80) return 'peak';
+  if (base >= 55) return 'high';
+  if (base >= 30) return 'medium';
+  return 'low';
 }
 
 function generateSlots(
   isoDate: string,
   duration: Duration,
   venue: Venue,
-  reservations: Reservation[]
+  reservations: Reservation[],
+  maintenanceTasks: MaintenanceTask[] = []
 ): SlotItem[] {
   // Determine working hours for this day
   let openMin = 16 * 60; // fallback 16:00
   let closeMin = 24 * 60; // fallback 24:00
   let isClosed = false;
 
+  const dayIndex = new Date(`${isoDate}T12:00:00`).getDay();
+
   if (venue.workingHours) {
-    const dayIndex = new Date(`${isoDate}T12:00:00`).getDay();
     const dayKey = DAY_KEYS[dayIndex];
     const dayHours = venue.workingHours[dayKey];
     if (dayHours) {
@@ -123,12 +173,35 @@ function generateSlots(
 
   if (isClosed) return [];
 
+  const isWE = dayIndex === 0 || dayIndex === 6;
+  const nowMin = new Date().getHours() * 60 + new Date().getMinutes();
+  const isToday = isoDate === new Date().toISOString().split('T')[0];
+
   const slots: SlotItem[] = [];
-  // Step every 30 min but only list slots aligned to the hour for cleaner UX
   const step = 30;
+
   for (let start = openMin; start + duration <= closeMin; start += step) {
     const end = start + duration;
-    const status = getSlotStatus(start, end, venue.id, isoDate, reservations);
+    const isPast = isToday && end <= nowMin;
+    
+    let status = isPast
+      ? 'past' as SlotStatus
+      : getSlotStatus(start, end, venue.id, isoDate, reservations, maintenanceTasks);
+
+    const h = Math.floor(start / 60);
+    const priceTier: SlotItem['priceTier'] = h < 12 ? 'morning' : h < 18 ? 'afternoon' : 'prime';
+    const isPrime = priceTier === 'prime';
+    const fillPct = status !== 'available'
+      ? 100
+      : computeHistoricalFill(h, dayIndex, venue.id, reservations);
+    const demandTier = getDemandTier(fillPct, isPrime, isWE);
+
+    // Count recurring reservations overlapping this slot
+    const recurringCount = reservations.filter(r =>
+      r.venueId === venue.id && r.date === isoDate && r.recurringRuleId &&
+      parseTime(r.startTime) < end && parseTime(r.endTime) > start
+    ).length;
+
     slots.push({
       id: `slot_${start}`,
       startMin: start,
@@ -138,6 +211,12 @@ function generateSlots(
       label: `${minToTime(start)} – ${minToTime(end)}`,
       price: calcSlotPrice(start, duration, isoDate, venue),
       status,
+      demandTier,
+      fillPercent: fillPct,
+      priceTier,
+      isPrime,
+      isWeekendSlot: isWE,
+      recurringCount,
     });
   }
   return slots;
@@ -167,7 +246,7 @@ function calcDeposit(slotPrice: number, startMin: number, isoDate: string): Depo
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export const BookingScreen: React.FC<BookingScreenProps> = ({
-  venueId, venues, existingReservations, existingWaitlist = [], currentUser, teamProfile, onBack, onCreateReservation, onJoinWaitlist,
+  venueId, venues, existingReservations, existingWaitlist = [], maintenanceTasks = [], currentUser, teamProfile, onBack, onCreateReservation, onJoinWaitlist,
 }) => {
   const venue = useMemo(() => venues.find(v => v.id === venueId) || venues[0], [venueId, venues]);
 
@@ -223,8 +302,8 @@ export const BookingScreen: React.FC<BookingScreenProps> = ({
 
   // ── Slot generation ────────────────────────────────────────────────────────
   const slots = useMemo(
-    () => generateSlots(activeDate.isoDate, duration, venue, existingReservations),
-    [activeDate.isoDate, duration, venue, existingReservations]
+    () => generateSlots(activeDate.isoDate, duration, venue, existingReservations, maintenanceTasks),
+    [activeDate.isoDate, duration, venue, existingReservations, maintenanceTasks]
   );
   const activeSlot = slots.find(s => s.id === selectedSlotId);
   const deposit = activeSlot ? calcDeposit(activeSlot.price, activeSlot.startMin, activeDate.isoDate) : null;
@@ -498,6 +577,48 @@ export const BookingScreen: React.FC<BookingScreenProps> = ({
               </div>
             ) : (
               <div>
+                {/* PRO: Slot Summary Bar */}
+                {(() => {
+                  const avail = slots.filter(s => s.status === 'available').length;
+                  const total = slots.filter(s => s.status !== 'past').length;
+                  const cheapest = slots.filter(s => s.status === 'available').sort((a,b) => a.price - b.price)[0];
+                  const peakSlots = slots.filter(s => s.demandTier === 'peak' && s.status === 'available').length;
+                  const fillPct = total > 0 ? Math.round(((total - avail) / total) * 100) : 0;
+                  return (
+                    <div className="flex items-center gap-2 mb-3 px-0.5 flex-wrap">
+                      {/* Fill bar */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex justify-between mb-1">
+                          <span className="text-[9px] text-slate-500 font-bold uppercase tracking-widest">Doluluk</span>
+                          <span className="text-[9px] font-black text-white">{fillPct}%</span>
+                        </div>
+                        <div className="h-1 rounded-full bg-white/8 overflow-hidden">
+                          <div className={`h-full rounded-full transition-all ${fillPct > 75 ? 'bg-red-500' : fillPct > 50 ? 'bg-yellow-500' : 'bg-primary'}`}
+                            style={{ width: `${fillPct}%` }} />
+                        </div>
+                      </div>
+                      {/* KPIs */}
+                      <div className="flex gap-1.5">
+                        <div className="text-center px-2 py-1 bg-surface rounded-xl border border-white/6">
+                          <p className="text-[10px] font-black text-green-400">{avail}</p>
+                          <p className="text-[7px] text-slate-600 uppercase">Boş</p>
+                        </div>
+                        {cheapest && (
+                          <div className="text-center px-2 py-1 bg-surface rounded-xl border border-white/6">
+                            <p className="text-[10px] font-black text-primary">{cheapest.price.toLocaleString('tr-TR')}₺</p>
+                            <p className="text-[7px] text-slate-600 uppercase">En Ucuz</p>
+                          </div>
+                        )}
+                        {peakSlots > 0 && (
+                          <div className="text-center px-2 py-1 bg-red-500/8 rounded-xl border border-red-500/15">
+                            <p className="text-[10px] font-black text-red-400">{peakSlots}</p>
+                            <p className="text-[7px] text-red-500/60 uppercase">Peak</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })()}
                 <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2.5 px-0.5">Saat Seçimi</h3>
                 <div className="grid grid-cols-2 gap-2.5">
                   {slots.map(slot => (
@@ -505,9 +626,8 @@ export const BookingScreen: React.FC<BookingScreenProps> = ({
                       key={slot.id}
                       slot={slot}
                       selected={selectedSlotId === slot.id}
-                      isWeekend={activeDate.isWeekend}
                       alreadyWaiting={isAlreadyWaiting(slot.startTime)}
-                      onSelect={() => slot.status !== 'blocked' && setSelectedSlotId(slot.id)}
+                      onSelect={() => slot.status === 'available' && setSelectedSlotId(slot.id)}
                       onJoinWaitlist={onJoinWaitlist && slot.status === 'blocked' ? () => {
                         onJoinWaitlist(venue.id, venue.name, activeDate.isoDate, slot.startTime, duration);
                         setWaitlistSuccess(true);
@@ -698,46 +818,99 @@ const PriceLine: React.FC<{ label: string; value: string; note?: string; bold?: 
   </div>
 );
 
+// PRO: Demand-based heatmap colors
+const DEMAND_STYLES: Record<DemandTier, { bar: string; glow: string; badge: string; badgeText: string }> = {
+  low:    { bar: 'bg-slate-600',    glow: '',                                         badge: 'bg-slate-600/15 border-slate-600/25',     badgeText: 'text-slate-400' },
+  medium: { bar: 'bg-green-500',    glow: '',                                         badge: 'bg-green-500/10 border-green-500/20',     badgeText: 'text-green-400' },
+  high:   { bar: 'bg-yellow-500',   glow: 'shadow-[0_0_8px_rgba(234,179,8,0.2)]',    badge: 'bg-yellow-500/10 border-yellow-500/20',   badgeText: 'text-yellow-400' },
+  peak:   { bar: 'bg-red-500',      glow: 'shadow-[0_0_10px_rgba(239,68,68,0.25)]',  badge: 'bg-red-500/10 border-red-500/20',         badgeText: 'text-red-400' },
+};
+
+const DEMAND_LABEL: Record<DemandTier, string> = {
+  low: 'Sakin', medium: 'Normal', high: 'Yoğun', peak: 'Çok Yoğun',
+};
+
 const SlotCard: React.FC<{
   slot: SlotItem;
   selected: boolean;
-  isWeekend: boolean;
   alreadyWaiting?: boolean;
   onSelect: () => void;
   onJoinWaitlist?: () => void;
-}> = ({ slot, selected, isWeekend, alreadyWaiting, onSelect, onJoinWaitlist }) => {
-  const isPrime = slot.startMin / 60 >= 18;
-  const statusMap = {
-    available: { cls: selected ? 'bg-primary/10 border-primary shadow-[0_0_12px_rgba(16,185,129,0.2)]' : 'bg-surface border-white/5 hover:border-white/20 active:scale-[0.97]', label: 'BOŞ', labelCls: 'bg-green-500/15 text-green-400' },
-    blocked:   { cls: 'bg-surface/50 border-white/5 opacity-40 cursor-not-allowed', label: 'DOLU', labelCls: 'bg-red-500/15 text-red-400' },
-    hold:      { cls: 'bg-yellow-500/5 border-yellow-500/25 cursor-not-allowed', label: 'HOLD', labelCls: 'bg-yellow-500/15 text-yellow-500' },
+}> = ({ slot, selected, alreadyWaiting, onSelect, onJoinWaitlist }) => {
+  const isAvail = slot.status === 'available';
+  const ds = DEMAND_STYLES[slot.demandTier];
+
+  const statusMap: Record<SlotStatus, { cls: string; label: string; labelCls: string }> = {
+    available:   {
+      cls: selected
+        ? `bg-primary/10 border-primary shadow-[0_0_14px_rgba(16,185,129,0.25)] ${ds.glow}`
+        : `bg-surface border-white/5 hover:border-white/20 active:scale-[0.97] ${ds.glow}`,
+      label: 'BOŞ', labelCls: 'bg-green-500/15 text-green-400',
+    },
+    blocked:     { cls: 'bg-surface/40 border-white/5 opacity-50 cursor-not-allowed',      label: 'DOLU',  labelCls: 'bg-red-500/15 text-red-400' },
+    hold:        { cls: 'bg-yellow-500/5 border-yellow-500/20 cursor-not-allowed',          label: 'HOLD',  labelCls: 'bg-yellow-500/15 text-yellow-500' },
+    maintenance: { cls: 'bg-orange-500/5 border-orange-500/15 opacity-40 cursor-not-allowed', label: 'BAKIM', labelCls: 'bg-orange-500/15 text-orange-400' },
+    past:        { cls: 'bg-white/2 border-white/4 opacity-25 cursor-not-allowed',          label: 'GEÇTI', labelCls: 'bg-slate-600/15 text-slate-600' },
   };
-  const s = statusMap[slot.status];
+  const s = statusMap[slot.status] ?? statusMap.blocked;
 
   return (
-    <button onClick={onSelect} disabled={slot.status === 'blocked' || slot.status === 'hold'}
-      className={`p-3.5 rounded-xl border text-left transition-all ${s.cls}`}
+    <button onClick={onSelect} disabled={!isAvail}
+      className={`p-3.5 rounded-xl border text-left transition-all relative overflow-hidden ${s.cls}`}
     >
-      <div className="flex items-center gap-1.5 mb-2">
-        <span className={`font-black text-sm font-mono ${selected ? 'text-primary' : slot.status !== 'available' ? 'text-slate-600' : 'text-white'}`}>
+      {/* Demand fill bar — bottom strip */}
+      {isAvail && (
+        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-white/5">
+          <div
+            className={`h-full transition-all ${ds.bar}`}
+            style={{ width: `${slot.fillPercent}%` }}
+          />
+        </div>
+      )}
+
+      {/* Time row */}
+      <div className="flex items-center gap-1.5 mb-1.5">
+        <span className={`font-black text-sm font-mono ${selected ? 'text-primary' : !isAvail ? 'text-slate-600' : 'text-white'}`}>
           {slot.startTime}
         </span>
-        <span className="text-slate-600 text-xs">→</span>
+        <span className="text-slate-700 text-[10px]">→</span>
         <span className={`text-xs font-mono ${selected ? 'text-primary/70' : 'text-slate-500'}`}>{slot.endTime}</span>
-      </div>
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-1">
-          <span className="text-xs font-bold text-slate-300">{slot.price.toLocaleString('tr-TR')}₺</span>
-          {(isPrime || isWeekend) && (
-            <span className="text-[8px] font-black text-yellow-500/70 uppercase">
-              {isPrime && isWeekend ? 'H.Sonu Prime' : isPrime ? 'Prime' : 'H.Sonu'}
-            </span>
-          )}
-        </div>
-        <span className={`text-[9px] font-black px-1.5 py-0.5 rounded-md ${s.labelCls}`}>{s.label}</span>
+        {slot.recurringCount > 0 && isAvail === false && (
+          <span className="ml-auto text-[8px] text-indigo-400 font-black flex items-center gap-0.5">
+            <span>🔁</span>
+          </span>
+        )}
       </div>
 
-      {/* Waitlist button for blocked slots */}
+      {/* Price + badges */}
+      <div className="flex items-center justify-between gap-1 flex-wrap">
+        <div className="flex items-center gap-1.5">
+          <span className={`text-xs font-black ${selected ? 'text-primary' : isAvail ? 'text-white' : 'text-slate-600'}`}>
+            {slot.price.toLocaleString('tr-TR')}₺
+          </span>
+          {slot.isPrime && (
+            <span className="text-[7px] font-black text-yellow-500/80 bg-yellow-500/8 border border-yellow-500/15 px-1 py-0.5 rounded uppercase">Prime</span>
+          )}
+          {slot.isWeekendSlot && !slot.isPrime && (
+            <span className="text-[7px] font-black text-purple-400/80 bg-purple-500/8 border border-purple-500/15 px-1 py-0.5 rounded uppercase">H.Sonu</span>
+          )}
+        </div>
+        <span className={`text-[9px] font-black px-1.5 py-0.5 rounded-md border ${s.labelCls}`}>{s.label}</span>
+      </div>
+
+      {/* Demand badge for available slots */}
+      {isAvail && slot.demandTier !== 'low' && (
+        <div className={`mt-1.5 flex items-center gap-1 px-1.5 py-0.5 rounded-lg border w-fit ${ds.badge}`}>
+          <span className={`text-[8px] font-black ${ds.badgeText}`}>
+            {DEMAND_LABEL[slot.demandTier]}
+          </span>
+          {slot.fillPercent > 0 && (
+            <span className={`text-[7px] ${ds.badgeText} opacity-60`}>%{slot.fillPercent}</span>
+          )}
+        </div>
+      )}
+
+      {/* Waitlist button */}
       {slot.status === 'blocked' && onJoinWaitlist && (
         <button
           onClick={e => { e.stopPropagation(); onJoinWaitlist(); }}

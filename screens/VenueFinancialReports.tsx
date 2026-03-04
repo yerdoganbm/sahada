@@ -1,13 +1,26 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Icon } from '../components/Icon';
 import { Player } from '../types';
 
 interface VenueFinancialReportsProps {
   currentUser: Player;
   onBack: () => void;
+  onExportReservations?: (venueId: string, from: string, to: string) => void;
+  onExportCash?: (venueId: string, from: string, to: string) => void;
+  onExportDayClose?: (venueId: string) => void;
 }
 
-export const VenueFinancialReports: React.FC<VenueFinancialReportsProps> = ({ currentUser, onBack }) => {
+export const VenueFinancialReports: React.FC<VenueFinancialReportsProps> = ({
+  currentUser, onBack,
+  onExportReservations, onExportCash, onExportDayClose,
+}) => {
+  const [showExportPanel, setShowExportPanel] = useState(false);
+  const [exportFrom, setExportFrom] = useState(() => {
+    const d = new Date(); d.setDate(1); return d.toISOString().split('T')[0];
+  });
+  const [exportTo, setExportTo] = useState(new Date().toISOString().split('T')[0]);
+  const venueId = currentUser.venueOwnerInfo?.venueIds?.[0] ?? '';
+
   const totalRevenue = currentUser.venueOwnerInfo?.totalRevenue || 0;
   const commissionRate = currentUser.venueOwnerInfo?.commissionRate || 15;
   const commission = totalRevenue * (commissionRate / 100);
@@ -23,8 +36,56 @@ export const VenueFinancialReports: React.FC<VenueFinancialReportsProps> = ({ cu
           >
             <Icon name="arrow_back" className="text-white" />
           </button>
-          <h1 className="text-xl font-black text-white">Gelir Raporu</h1>
+          <h1 className="text-xl font-black text-white flex-1">Gelir Raporu</h1>
+          {(onExportReservations || onExportCash || onExportDayClose) && (
+            <button onClick={() => setShowExportPanel(!showExportPanel)}
+              className={`w-10 h-10 rounded-full border flex items-center justify-center transition-all ${showExportPanel ? 'bg-primary/15 border-primary/30 text-primary' : 'bg-white/5 border-white/10 text-slate-400'}`}>
+              <Icon name="download" size={18} />
+            </button>
+          )}
         </div>
+
+        {/* CSV Export Panel */}
+        {showExportPanel && (
+          <div className="mt-3 bg-secondary/80 border border-white/8 rounded-2xl p-4 animate-fade-in">
+            <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-3">CSV Export</p>
+            <div className="flex gap-2 mb-3">
+              <div className="flex-1">
+                <label className="text-[9px] text-slate-500 uppercase font-bold block mb-1">Başlangıç</label>
+                <input type="date" value={exportFrom} onChange={e => setExportFrom(e.target.value)}
+                  className="w-full bg-surface border border-white/10 rounded-xl px-2.5 py-2 text-white text-xs focus:outline-none" />
+              </div>
+              <div className="flex-1">
+                <label className="text-[9px] text-slate-500 uppercase font-bold block mb-1">Bitiş</label>
+                <input type="date" value={exportTo} onChange={e => setExportTo(e.target.value)}
+                  className="w-full bg-surface border border-white/10 rounded-xl px-2.5 py-2 text-white text-xs focus:outline-none" />
+              </div>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              {onExportReservations && (
+                <button onClick={() => { onExportReservations(venueId, exportFrom, exportTo); setShowExportPanel(false); }}
+                  className="py-2.5 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400 text-[10px] font-black flex flex-col items-center gap-1">
+                  <Icon name="event_note" size={14} />
+                  Rezervasyonlar
+                </button>
+              )}
+              {onExportCash && (
+                <button onClick={() => { onExportCash(venueId, exportFrom, exportTo); setShowExportPanel(false); }}
+                  className="py-2.5 rounded-xl bg-green-500/10 border border-green-500/20 text-green-400 text-[10px] font-black flex flex-col items-center gap-1">
+                  <Icon name="point_of_sale" size={14} />
+                  Kasa Girişleri
+                </button>
+              )}
+              {onExportDayClose && (
+                <button onClick={() => { onExportDayClose(venueId); setShowExportPanel(false); }}
+                  className="py-2.5 rounded-xl bg-orange-500/10 border border-orange-500/20 text-orange-400 text-[10px] font-black flex flex-col items-center gap-1">
+                  <Icon name="lock_clock" size={14} />
+                  Gün Sonu
+                </button>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="p-4 space-y-4">
