@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { Icon } from '../components/Icon';
+import { ProfileMenu } from '../components/ProfileMenu';
 import { Player, Team, Reservation, CaptainPaymentPlan, MemberContribution, MatchRSVP, ScreenName } from '../types';
 
 import { CaptainPayoutProfile } from '../types';
@@ -15,12 +16,13 @@ interface Props {
   onBack: () => void;
   onNavigate: (s: ScreenName) => void;
   onNavigateWithParam: (s: ScreenName, p: Record<string, any>) => void;
+  onLogout?: () => void;
 }
 
 export const CaptainDashboard: React.FC<Props> = ({
   currentUser, teams, reservations, captainPaymentPlans, memberContributions, matchRsvps,
   captainPayoutProfiles = [],
-  onBack, onNavigate, onNavigateWithParam,
+  onBack, onNavigate, onNavigateWithParam, onLogout = () => {},
 }) => {
   const hasIBAN = captainPayoutProfiles.some(p => p.captainUserId === currentUser?.id && p.iban);
   const hasTeam = teams.some(t => t.captainUserId === currentUser?.id);
@@ -40,15 +42,20 @@ export const CaptainDashboard: React.FC<Props> = ({
   return (
     <div className="pb-24 bg-secondary min-h-screen">
       <div className="sticky top-0 z-50 bg-gradient-to-br from-slate-900 to-slate-800 px-4 pt-6 pb-4 border-b border-white/10">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-xl font-black text-white">Kaptan Paneli ⚽</h1>
-            <p className="text-xs text-slate-400">{myTeams.length} takım · {myReservations.length} rezervasyon</p>
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <h1 className="text-xl font-black text-white leading-none">Kaptan Paneli ⚽</h1>
+            <p className="text-xs text-slate-400 mt-0.5">{myTeams.length} takım · {myReservations.length} rezervasyon</p>
           </div>
-          <button onClick={() => onNavigate('captainOutbox')}
-            className="w-10 h-10 rounded-full bg-surface border border-white/10 flex items-center justify-center">
-            <Icon name="inbox" size={18} className="text-slate-400" />
-          </button>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <button onClick={() => onNavigate('captainOutbox')}
+              className="w-10 h-10 rounded-full bg-surface border border-white/10 flex items-center justify-center">
+              <Icon name="inbox" size={18} className="text-slate-400" />
+            </button>
+            {currentUser && onLogout && (
+              <ProfileMenu user={currentUser} onLogout={onLogout} onNavigate={onNavigate} accentColor="#F59E0B" />
+            )}
+          </div>
         </div>
       </div>
 

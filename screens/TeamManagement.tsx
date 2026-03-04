@@ -16,6 +16,7 @@ interface Props {
   onApproveJoinRequest: (requestId: string) => void;
   onRejectJoinRequest: (requestId: string) => void;
   onSavePayoutProfile: (profile: Partial<CaptainPayoutProfile>) => void;
+  onAssignCaptain?: (teamId: string, newCaptainUserId: string) => void;
 }
 
 const APP_URL = typeof window !== 'undefined' ? window.location.origin : 'https://sahada.app';
@@ -23,13 +24,16 @@ const APP_URL = typeof window !== 'undefined' ? window.location.origin : 'https:
 export const TeamManagement: React.FC<Props> = ({
   currentUser, teams, teamInvites, teamJoinRequests, captainPayoutProfiles,
   onBack, onNavigate, onCreateTeam, onCreateInviteCode, onRevokeInviteCode,
-  onApproveJoinRequest, onRejectJoinRequest, onSavePayoutProfile,
+  onApproveJoinRequest, onRejectJoinRequest, onSavePayoutProfile, onAssignCaptain,
 }) => {
-  const [tab, setTab] = useState<'teams' | 'invites' | 'iban' | 'requests'>('teams');
+  const [tab, setTab] = useState<'teams' | 'invites' | 'iban' | 'requests' | 'captain'>('teams');
+  const [showAssignModal, setShowAssignModal] = useState<string | null>(null); // teamId
   const [newTeamName, setNewTeamName] = useState('');
   const [copiedKey, setCopiedKey] = useState('');
 
-  const myTeams = useMemo(() => teams.filter(t => t.captainUserId === currentUser?.id), [teams, currentUser]);
+  const myTeams = useMemo(() => teams.filter(t => 
+    t.captainUserId === currentUser?.id || (t as any).ownerUserId === currentUser?.id
+  ), [teams, currentUser]);
   const myInvites = useMemo(() => teamInvites.filter(i => myTeams.some(t => t.id === i.teamId)), [teamInvites, myTeams]);
   const myRequests = useMemo(() => teamJoinRequests.filter(r => myTeams.some(t => t.id === r.teamId) && r.status === 'pending'), [teamJoinRequests, myTeams]);
   const captainProfile = captainPayoutProfiles.find(p => p.captainUserId === currentUser?.id) ?? { captainUserId: currentUser?.id ?? '' };
@@ -86,23 +90,64 @@ export const TeamManagement: React.FC<Props> = ({
                 Oluştur
               </button>
             </div>
-            {myTeams.map(team => (
+            {myTeams.map(team => {
+              const isOwner = (team as any).ownerUserId
+                ? (team as any).ownerUserId === currentUser?.id
+                : team.captainUserId === currentUser?.id;
+              return (
               <div key={team.id} className="bg-surface rounded-2xl border border-white/5 p-4">
                 <div className="flex items-center gap-3 mb-3">
                   <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
                     <Icon name="groups" size={18} className="text-primary" />
                   </div>
-                  <div>
+                  <div className="flex-1 min-w-0">
                     <p className="text-white font-bold">{team.name}</p>
                     <p className="text-slate-400 text-xs">{team.memberUserIds.length} üye</p>
                   </div>
+                  {isOwner && (
+                    <span className="text-[9px] font-black px-2 py-0.5 rounded-full"
+                      style={{ background: 'rgba(245,158,11,0.12)', color: '#F59E0B', border: '1px solid rgba(245,158,11,0.2)' }}>
+                      SAHİP
+                    </span>
+                  )}
                 </div>
-                <button onClick={() => setTab('invites')}
-                  className="w-full py-2 rounded-xl bg-white/5 border border-white/8 text-slate-300 text-sm font-bold">
-                  Davet Kodu Yönet →
-                </button>
+                <div className="flex gap-2">
+                  <button onClick={() => setTab('invites')}
+                    className="flex-1 py-2 rounded-xl bg-white/5 border border-white/8 text-slate-300 text-sm font-bold">
+                    Davet Kodu →
+                  </button>
+                  {isOwner && onAssignCaptain && team.memberUserIds.length > 1 && (
+                    <button
+                      onClick={() => setShowAssignModal(showAssignModal === team.id ? null : team.id)}
+                      className="flex-1 py-2 rounded-xl text-sm font-black transition-all"
+                      style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.2)', color: '#F59E0B' }}>
+                      Kaptan Ata
+                    </button>
+                  )}
+                </div>
+                {/* Captain assign dropdown */}
+                {showAssignModal === team.id && (
+                  <div className="mt-3 rounded-xl overflow-hidden"
+                    style={{ background: 'rgba(245,158,11,0.05)', border: '1px solid rgba(245,158,11,0.15)' }}>
+                    <p className="text-[10px] font-black text-yellow-500 px-3 py-2 uppercase tracking-widest border-b border-yellow-500/10">
+                      Kaptan seç — mevcut kaptan: {team.captainUserId}
+                    </p>
+                    {team.memberUserIds.filter(uid => uid !== team.captainUserId).map(uid => (
+                      <button key={uid}
+                        onClick={() => { onAssignCaptain!(team.id, uid); setShowAssignModal(null); }}
+                        className="w-full flex items-center gap-3 px-3 py-2.5 text-left hover:bg-white/5 transition-colors">
+                        <div className="w-7 h-7 rounded-xl bg-yellow-500/10 flex items-center justify-center text-sm">👤</div>
+                        <div>
+                          <p className="text-white text-xs font-bold">{uid}</p>
+                          <p className="text-slate-600 text-[10px]">Kaptan yap</p>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
-            ))}
+              );
+            })}
           </>
         )}
 

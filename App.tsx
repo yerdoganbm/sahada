@@ -1704,6 +1704,20 @@ function App() {
     }
   };
 
+  // ── Assign Captain (team owner can reassign) ────────────────────────
+  const handleAssignCaptain = (teamId: string, newCaptainUserId: string) => {
+    if (!currentUser) return;
+    const team = teams.find(t => t.id === teamId);
+    if (!team) return;
+    // Only the team owner (original creator / captainUserId if ownerUserId not set) can reassign
+    const isOwner = (team as any).ownerUserId
+      ? (team as any).ownerUserId === currentUser.id
+      : team.captainUserId === currentUser.id;
+    if (!isOwner) return;
+    setTeams(prev => prev.map(t => t.id === teamId ? { ...t, captainUserId: newCaptainUserId } : t));
+    addAudit('team', teamId, 'CAPTAIN_ASSIGNED', { newCaptainUserId, assignedBy: currentUser.id });
+  };
+
   // ── Invite code ─────────────────────────────────────────────────────
   const handleCreateInviteCode = (teamId: string, opts: { maxUses?: number; autoApprove?: boolean; expiresInDays?: number }) => {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -2061,6 +2075,8 @@ function App() {
             onLogin={handleLogin}
             onNavigate={navigateTo}
             userType={pendingUserType}
+            pendingJoinCode={pendingJoinCode}
+            pendingRole={pendingRole}
             onRegisterVenueOwner={(phone) => {
               setPendingPhone(phone);
               setPendingUserType('venue_owner');
@@ -2088,18 +2104,6 @@ function App() {
               setPendingUserType(null);
               setScreenHistory([]);
               setCurrentScreen('venueOwnerDashboard');
-            }}
-          />
-        );
-
-      case 'joinTeam':
-        return (
-          <JoinTeamScreen 
-            onBack={goBack}
-            onSubmit={(request) => {
-              console.log('📝 Katılım isteği alındı:', request);
-              setJoinRequests(prev => [...prev, request]);
-              navigateTo('createProfile');
             }}
           />
         );
@@ -2908,6 +2912,7 @@ function App() {
           onBack={goBack}
           onNavigate={navigateTo}
           onNavigateWithParam={(s, p) => { setNavParams(p); navigateTo(s); }}
+          onLogout={handleLogout}
         />;
 
       case 'teamManagement':
@@ -2925,6 +2930,7 @@ function App() {
           onApproveJoinRequest={handleApproveJoinTeamRequest}
           onRejectJoinRequest={handleRejectJoinTeamRequest}
           onSavePayoutProfile={handleSaveCaptainPayoutProfile}
+          onAssignCaptain={handleAssignCaptain}
         />;
 
       case 'captainBookingFlow':
@@ -3050,6 +3056,7 @@ function App() {
           onNavigate={navigateTo}
           onNavigateWithParam={(s, p) => { setNavParams(p); navigateTo(s); }}
           onJoinTeam={() => navigateTo('joinTeam')}
+          onLogout={handleLogout}
         />;
 
       case 'memberMatchDetails':

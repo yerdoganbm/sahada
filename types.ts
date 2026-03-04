@@ -719,9 +719,15 @@ export interface VenueLocation {
 export interface Team {
   id: string;
   name: string;
+  /** Creator / owner of the team (can reassign captain) */
+  ownerUserId?: string;
+  /** Active captain — can be changed by owner */
   captainUserId: string;
   memberUserIds: string[];
   createdAt: string;
+  avatar?: string;
+  description?: string;
+  city?: string;
 }
 
 export interface TeamInvite {

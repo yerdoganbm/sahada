@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { ProfileMenu } from '../components/ProfileMenu';
 import { Icon } from '../components/Icon';
 import { Reservation, Player } from '../types';
 
@@ -91,15 +92,9 @@ export const VenueOwnerDashboard: React.FC<VenueOwnerDashboardProps> = ({
                 <Icon name="settings" className="text-white" size={20} />
               </button>
             )}
-            <button
-              onClick={() => {
-                onLogout?.();
-              }}
-              className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-red-500/20 hover:border-red-500/30 transition-colors"
-              title="Çıkış Yap"
-            >
-              <Icon name="logout" className="text-slate-400" size={18} />
-            </button>
+            {currentUser && onLogout && (
+              <ProfileMenu user={currentUser} onLogout={onLogout} onNavigate={onNavigate as any} accentColor="#3B82F6" />
+            )}
           </div>
         </div>
 

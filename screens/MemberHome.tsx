@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import { ProfileMenu } from '../components/ProfileMenu';
 import { Icon } from '../components/Icon';
 import { Player, Team, Reservation, MemberContribution, MatchRSVP, OutboxMessage, InboxItem, ScreenName } from '../types';
 
@@ -14,6 +15,7 @@ interface Props {
   onNavigate: (s: ScreenName) => void;
   onNavigateWithParam: (s: ScreenName, p: Record<string, any>) => void;
   onJoinTeam: () => void;
+  onLogout?: () => void;
 }
 
 export const MemberHome: React.FC<Props> = ({
@@ -56,21 +58,26 @@ export const MemberHome: React.FC<Props> = ({
     <div className="pb-24 bg-secondary min-h-screen">
       {/* Header */}
       <div className="sticky top-0 z-50 bg-gradient-to-br from-slate-900 to-slate-800 px-4 pt-6 pb-4 border-b border-white/10">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-xl font-black text-white">Merhaba, {currentUser.name?.split(' ')[0] ?? 'Üye'} 👋</h1>
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <h1 className="text-xl font-black text-white leading-none">Merhaba, {currentUser.name?.split(' ')[0] ?? 'Üye'} 👋</h1>
             <p className="text-xs text-slate-400 mt-0.5">{myTeams.length} takım · {myReservations.length} yaklaşan maç</p>
           </div>
-          <button onClick={() => onNavigate('memberPayments')} className="relative">
-            <div className="w-10 h-10 rounded-full bg-surface border border-white/10 flex items-center justify-center">
-              <Icon name="payments" size={18} className="text-slate-400" />
-            </div>
-            {totalUnpaid > 0 && (
-              <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-red-500 flex items-center justify-center">
-                <span className="text-[8px] font-black text-white">!</span>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <button onClick={() => onNavigate('memberPayments')} className="relative">
+              <div className="w-10 h-10 rounded-full bg-surface border border-white/10 flex items-center justify-center">
+                <Icon name="payments" size={18} className="text-slate-400" />
               </div>
+              {totalUnpaid > 0 && (
+                <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-red-500 flex items-center justify-center">
+                  <span className="text-[8px] font-black text-white">!</span>
+                </div>
+              )}
+            </button>
+            {onLogout && (
+              <ProfileMenu user={currentUser} onLogout={onLogout} onNavigate={onNavigate} accentColor="#10B981" />
             )}
-          </button>
+          </div>
         </div>
       </div>
 
