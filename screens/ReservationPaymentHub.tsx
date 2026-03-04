@@ -115,15 +115,33 @@ export const ReservationPaymentHub: React.FC<Props> = ({
           </span>
         </div>
 
-        {/* Progress */}
-        <div className="mb-3">
-          <div className="flex gap-3 mb-1.5 text-[10px]">
-            <span className="text-slate-500 flex-1">Toplama %{collectPct} · {totalCollected.toLocaleString('tr-TR')}₺ / {totalExpected.toLocaleString('tr-TR')}₺</span>
-            {goingCount > 0 && <span className="text-primary">{goingCount} katılıyor</span>}
-            {unpaidCount > 0 && <span className="text-red-400">{unpaidCount} eksik</span>}
+        {/* Progress bar — Ödeyen X / Toplam Y + RSVP */}
+        <div className="mb-3 space-y-2">
+          {/* KPI row */}
+          <div className="grid grid-cols-3 gap-2">
+            <div className="text-center">
+              <p className="text-[9px] text-slate-600 uppercase font-bold tracking-wide">Ödeyen</p>
+              <p className="text-sm font-black text-white">{contribs.filter(c => c.status === 'paid').length}<span className="text-slate-600 font-normal text-xs"> / {contribs.length}</span></p>
+            </div>
+            <div className="text-center">
+              <p className="text-[9px] text-slate-600 uppercase font-bold tracking-wide">Toplanan</p>
+              <p className="text-sm font-black text-primary">%{collectPct}</p>
+            </div>
+            <div className="text-center">
+              <p className="text-[9px] text-slate-600 uppercase font-bold tracking-wide">RSVP ✓</p>
+              <p className="text-sm font-black text-white">{goingCount}<span className="text-slate-600 font-normal text-xs"> / {contribs.length}</span></p>
+            </div>
           </div>
-          <div className="h-1.5 bg-white/8 rounded-full overflow-hidden">
-            <div className={`h-full rounded-full ${collectPct >= 100 ? 'bg-primary' : collectPct >= 60 ? 'bg-yellow-500' : 'bg-red-500'}`} style={{ width: `${collectPct}%` }} />
+          {/* Amount + bar */}
+          <div>
+            <div className="flex justify-between text-[10px] mb-1">
+              <span className="text-slate-500">{totalCollected.toLocaleString('tr-TR')}₺ toplandı</span>
+              <span className={unpaidCount > 0 ? 'text-red-400' : 'text-green-400'}>{unpaidCount > 0 ? `${unpaidCount} eksik` : '✓ Tamamlandı'}</span>
+            </div>
+            <div className="h-2 bg-white/8 rounded-full overflow-hidden">
+              <div className={`h-full rounded-full transition-all ${collectPct >= 100 ? 'bg-primary' : collectPct >= 60 ? 'bg-yellow-500' : 'bg-red-500'}`}
+                style={{ width: `${collectPct}%` }} />
+            </div>
           </div>
         </div>
 

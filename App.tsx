@@ -93,6 +93,25 @@ function App() {
   useViewportHeight();
   useViewportHeightFix();
 
+  // ── Deep link: /join?code=XXXX on page load ─────────────────────
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get('code');
+    if (code) {
+      const clean = code.toUpperCase();
+      setPendingJoinCode(clean);
+      // Save to localStorage so it survives auth redirect
+      try { localStorage.setItem('sahada_pending_join', clean); } catch {}
+      setCurrentScreen('joinTeam');
+    } else {
+      // Restore from localStorage if navigated back after auth
+      try {
+        const saved = localStorage.getItem('sahada_pending_join');
+        if (saved) { setPendingJoinCode(saved); }
+      } catch {}
+    }
+  }, []);
+
   // Browser back button desteği
   useEffect(() => {
     const handlePopState = (event: PopStateEvent) => {
@@ -1618,6 +1637,10 @@ function App() {
     };
     setTeams(prev => [...prev, newTeam]);
     addAudit('team', teamId, 'TEAM_CREATED', { name });
+    // Auto-elevate role to captain if currently member
+    if (currentUser.role === 'member' || !(currentUser as any).role) {
+      setCurrentUser({ ...currentUser, role: 'captain' as any });
+    }
   };
 
   // ── Invite code ─────────────────────────────────────────────────────
@@ -2848,9 +2871,16 @@ function App() {
         return <PhoneAuth
           pendingJoinCode={pendingJoinCode}
           onLoginSuccess={(user) => {
-            setCurrentUser(user);
+            // Auto-assign member role when coming from join link
+            const authedUser = pendingJoinCode ? { ...user, role: 'member' as any } : user;
+            setCurrentUser(authedUser);
             if (pendingJoinCode) {
-              navigateTo('joinTeam');
+              const profile = memberProfiles.find(p => p.userId === authedUser.id);
+              if (!profile || profile.status === 'incomplete') {
+                navigateTo('memberOnboarding');
+              } else {
+                navigateTo('joinTeam');
+              }
             } else if (authRedirectPath) {
               navigateTo(authRedirectPath);
               setAuthRedirectPath(null);
@@ -2866,8 +2896,12 @@ function App() {
           currentUser={currentUser}
           pendingJoinCode={pendingJoinCode}
           onComplete={(fullName, phone) => {
-            if (currentUser) handleCompleteMemberProfile(currentUser.id, { fullName, phone });
-            if (pendingJoinCode) navigateTo('joinTeam');
+            // Save profile; phone may already be set from phoneAuth
+            const phoneToSave = phone || (currentUser as any)?.phone;
+            if (currentUser) handleCompleteMemberProfile(currentUser.id, { fullName, phone: phoneToSave });
+            // Also update currentUser.name so JoinTeamImproved shows correct name
+            if (currentUser) setCurrentUser({ ...currentUser, name: fullName, phone: phoneToSave });
+            if (pendingJoinCode) navigateTo('joinTeam'); // auto-join triggers in JoinTeamImproved
             else navigateTo('memberHome');
           }}
           onBack={goBack}
@@ -2944,7 +2978,32 @@ function App() {
             }
             return result;
           }}
-          onJoinSuccess={() => { setPendingJoinCode(null); navigateTo('memberHome'); }}
+          onJoinSuccess={() => {
+            setPendingJoinCode(null);
+            try { localStorage.removeItem('sahada_pending_join'); } catch {}
+            navigateTo('memberHome');
+          }}
+          onGuestJoin={(guestName, code) => {
+            // Create a transient guest player (member role, no persistence)
+            const guestUser: any = {
+              id: 'guest_' + Date.now(),
+              name: guestName,
+              role: 'member',
+              tier: 'free',
+              avatar: '',
+              position: 'MID',
+              goals: 0, assists: 0, matchesPlayed: 0,
+              rating: 0, yellowCards: 0, redCards: 0,
+              joinDate: new Date().toISOString(),
+              isActive: true,
+              isGuest: true,
+            };
+            setCurrentUser(guestUser);
+            // Attempt auto-join with autoApprove
+            const result = handleSubmitJoinByCode(code, guestUser.id, guestName);
+            setPendingJoinCode(null);
+            if (result === 'joined' || result === 'pending') navigateTo('memberHome');
+          }}
         />;
 
       default:
