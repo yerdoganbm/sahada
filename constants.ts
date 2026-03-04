@@ -1,5 +1,5 @@
 
-import { Match, Player, Payment, Venue, Transaction, Poll, TournamentTeam, BracketMatch, Reservation, AppNotification } from './types';
+import { Match, Player, Payment, Venue, Transaction, Poll, TournamentTeam, BracketMatch, Reservation, AppNotification, WaitlistEntry, AuditEvent } from './types';
 
 export const MOCK_NOTIFICATIONS: AppNotification[] = [
   { id: '1', type: 'match', title: 'Maç Daveti', message: 'Salı 21:00 maçı için kadroya eklendin. Lütfen onay ver.', time: '10 dk önce', isRead: false, actionScreen: 'matchDetails' },
@@ -45,14 +45,14 @@ export const MOCK_PLAYERS: Player[] = [
   { 
     id: 'venue_owner_1', 
     name: 'Kemal Arslan', 
-    position: 'MID', // Position zorunlu ama saha sahibi için önemsiz
+    position: 'MID',
     rating: 9.5, 
     reliability: 100, 
     avatar: 'https://i.pravatar.cc/150?u=venue_owner_1', 
     role: 'venue_owner', 
     tier: 'premium',
     venueOwnerInfo: {
-      venueIds: ['v1', 'v3'], // Olimpik Halı Saha ve Premium Arena
+      venueIds: ['v1', 'v3'],
       businessInfo: {
         companyName: 'Arslan Spor Tesisleri Ltd. Şti.',
         taxNumber: '1234567890',
@@ -60,11 +60,51 @@ export const MOCK_PLAYERS: Player[] = [
         bankName: 'Ziraat Bankası',
         accountHolder: 'Kemal Arslan'
       },
-      commissionRate: 15, // %15 komisyon
-      totalRevenue: 125000, // Toplam gelir
-      totalReservations: 240, // Toplam rezervasyon
-      responseTime: 12 // 12 dakika ortalama yanıt
+      commissionRate: 15,
+      totalRevenue: 125000,
+      totalReservations: 240,
+      responseTime: 12
     }
+  },
+  // SAHA PERSONELİ
+  {
+    id: 'venue_staff_1',
+    name: 'Serkan Yıldız',
+    position: 'GK',
+    rating: 7.0,
+    reliability: 95,
+    avatar: 'https://i.pravatar.cc/150?u=venue_staff_1',
+    role: 'venue_staff',
+    tier: 'free',
+    contactNumber: '5000000098',
+    venueOwnerInfo: {
+      venueIds: ['v1', 'v3'],
+      businessInfo: { companyName: 'Arslan Spor', taxNumber: '', iban: '', bankName: '', accountHolder: '' },
+      commissionRate: 0,
+      totalRevenue: 0,
+      totalReservations: 0,
+      responseTime: 0,
+    },
+  },
+  // SAHA MUHASEBECİSİ
+  {
+    id: 'venue_accountant_1',
+    name: 'Ayşe Kaya',
+    position: 'MID',
+    rating: 7.0,
+    reliability: 98,
+    avatar: 'https://i.pravatar.cc/150?u=venue_accountant_1',
+    role: 'venue_accountant',
+    tier: 'free',
+    contactNumber: '5000000097',
+    venueOwnerInfo: {
+      venueIds: ['v1', 'v3'],
+      businessInfo: { companyName: 'Arslan Spor', taxNumber: '', iban: '', bankName: '', accountHolder: '' },
+      commissionRate: 0,
+      totalRevenue: 125000,
+      totalReservations: 240,
+      responseTime: 0,
+    },
   },
 ];
 
@@ -299,94 +339,113 @@ export const MOCK_RESERVATIONS: Reservation[] = [
     venueId: 'v1',
     venueName: 'Olimpik Halı Saha',
     teamName: 'Kuzey Yıldızları',
-    date: '2026-02-15',
+    date: '2026-03-10',
     startTime: '20:00',
     endTime: '21:30',
     duration: 90,
-    price: 1200,
+    price: 1800,
     status: 'pending',
     participants: 14,
     contactPerson: 'Ahmet Yılmaz',
     contactPhone: '0532 111 22 33',
     notes: 'İlk maçımız, lütfen sahayı temiz hazırlayın',
-    createdAt: '2026-02-14T10:30:00',
-    paymentStatus: 'pending'
+    createdAt: '2026-03-09T10:30:00',
+    paymentStatus: 'pending',
+    paymentMethod: 'bank_transfer',
+    depositRequired: true,
+    depositAmount: 300,
+    holdExpiresAt: new Date(Date.now() + 10 * 60 * 1000).toISOString(), // 10 dk hold
+    cancellationPolicy: { freeCancelUntilHours: 24, latePenaltyPercent: 100 },
   },
   {
     id: 'res2',
     venueId: 'v1',
     venueName: 'Olimpik Halı Saha',
     teamName: 'Doğu Şampiyonları',
-    date: '2026-02-16',
+    date: '2026-03-11',
     startTime: '18:00',
     endTime: '19:30',
     duration: 90,
-    price: 1200,
+    price: 1800,
     status: 'confirmed',
     participants: 12,
     contactPerson: 'Mehmet Demir',
     contactPhone: '0532 222 33 44',
-    createdAt: '2026-02-13T14:20:00',
-    confirmedAt: '2026-02-13T14:25:00',
+    createdAt: '2026-03-08T14:20:00',
+    confirmedAt: '2026-03-08T14:25:00',
     paymentStatus: 'paid',
-    paymentMethod: 'bank_transfer'
+    paymentMethod: 'bank_transfer',
+    depositRequired: true,
+    depositAmount: 300,
+    depositPaidAt: '2026-03-08T14:22:00',
+    cancellationPolicy: { freeCancelUntilHours: 24, latePenaltyPercent: 100 },
   },
   {
     id: 'res3',
     venueId: 'v3',
     venueName: 'Premium Arena',
     teamName: 'Güney Fırtınası',
-    date: '2026-02-14',
+    date: '2026-03-08',
     startTime: '21:00',
     endTime: '22:30',
     duration: 90,
-    price: 1500,
+    price: 2250,
     status: 'completed',
     participants: 16,
     contactPerson: 'Can Öztürk',
     contactPhone: '0532 333 44 55',
-    createdAt: '2026-02-10T09:15:00',
-    confirmedAt: '2026-02-10T09:20:00',
+    createdAt: '2026-03-05T09:15:00',
+    confirmedAt: '2026-03-05T09:20:00',
     paymentStatus: 'paid',
-    paymentMethod: 'credit_card'
+    paymentMethod: 'credit_card',
+    depositRequired: true,
+    depositAmount: 450,
+    depositPaidAt: '2026-03-05T09:16:00',
   },
   {
     id: 'res4',
     venueId: 'v1',
     venueName: 'Olimpik Halı Saha',
     teamName: 'Yazılımcılar FC',
-    date: '2026-02-17',
+    date: '2026-03-12',
     startTime: '19:00',
-    endTime: '20:30',
-    duration: 90,
+    endTime: '20:00',
+    duration: 60,
     price: 1200,
     status: 'cancelled',
     participants: 10,
     contactPerson: 'Ali Veli',
     contactPhone: '0532 444 55 66',
     notes: 'Yağmur yağıyor iptal ettik',
-    createdAt: '2026-02-12T16:40:00',
-    confirmedAt: '2026-02-12T16:45:00',
-    cancelledAt: '2026-02-17T15:30:00',
+    createdAt: '2026-03-07T16:40:00',
+    confirmedAt: '2026-03-07T16:45:00',
+    cancelledAt: '2026-03-12T15:30:00',
     cancelReason: 'Hava şartları uygun değil',
-    paymentStatus: 'refunded'
+    paymentStatus: 'refunded',
+    refundedAt: '2026-03-12T16:00:00',
+    depositRequired: false,
   },
   {
     id: 'res5',
     venueId: 'v1',
     venueName: 'Olimpik Halı Saha',
     teamName: 'Kuzey Yıldızları',
-    date: '2026-02-18',
+    date: '2026-03-13',
     startTime: '20:00',
     endTime: '21:30',
     duration: 90,
-    price: 1200,
+    price: 1800,
     status: 'pending',
     participants: 14,
     contactPerson: 'Ahmet Yılmaz',
     contactPhone: '0532 111 22 33',
-    createdAt: '2026-02-14T11:00:00',
-    paymentStatus: 'pending'
+    createdAt: '2026-03-09T11:00:00',
+    paymentStatus: 'paid',
+    paymentMethod: 'credit_card',
+    depositRequired: true,
+    depositAmount: 360,
+    depositPaidAt: '2026-03-09T11:01:00',
+    cancellationPolicy: { freeCancelUntilHours: 24, latePenaltyPercent: 100 },
   }
 ];
 
@@ -517,3 +576,81 @@ export const MOCK_TALENT_POOL: any[] = [
   }
 ];
 
+
+// ── WAITLIST MOCK ────────────────────────────────────────────────────────────
+export const MOCK_WAITLIST: WaitlistEntry[] = [
+  {
+    id: 'wl1',
+    venueId: 'v1',
+    venueName: 'Olimpik Halı Saha',
+    date: '2026-03-15',
+    startTime: '20:00',
+    durationMinutes: 90,
+    createdByUserId: '2',
+    createdByName: 'Mehmet Demir',
+    status: 'waiting',
+    createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 'wl2',
+    venueId: 'v1',
+    venueName: 'Olimpik Halı Saha',
+    date: '2026-03-15',
+    startTime: '20:00',
+    durationMinutes: 90,
+    createdByUserId: '7',
+    createdByName: 'Burak Yılmaz',
+    status: 'offered',
+    createdAt: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
+    offeredAt: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
+    offerExpiresAt: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
+  },
+];
+
+// ── AUDIT LOG MOCK ───────────────────────────────────────────────────────────
+export const MOCK_AUDIT: AuditEvent[] = [
+  {
+    id: 'aud1',
+    at: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
+    actorUserId: 'venue_owner_1',
+    actorName: 'Kemal Arslan',
+    actorRole: 'venue_owner',
+    entityType: 'reservation',
+    entityId: 'res2',
+    action: 'RESERVATION_APPROVED',
+    meta: { venueName: 'Olimpik Halı Saha', teamName: 'Doğu Şampiyonları' },
+  },
+  {
+    id: 'aud2',
+    at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+    actorUserId: '1',
+    actorName: 'Ahmet Yılmaz',
+    actorRole: 'admin',
+    entityType: 'reservation',
+    entityId: 'res1',
+    action: 'RESERVATION_CREATED',
+    meta: { price: 1800, paymentMethod: 'bank_transfer' },
+  },
+  {
+    id: 'aud3',
+    at: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
+    actorUserId: '2',
+    actorName: 'Mehmet Demir',
+    actorRole: 'member',
+    entityType: 'waitlist',
+    entityId: 'wl1',
+    action: 'WAITLIST_JOINED',
+    meta: { venueId: 'v1', date: '2026-03-15', startTime: '20:00' },
+  },
+  {
+    id: 'aud4',
+    at: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
+    actorUserId: 'venue_owner_1',
+    actorName: 'Kemal Arslan',
+    actorRole: 'venue_owner',
+    entityType: 'venue',
+    entityId: 'v1',
+    action: 'VENUE_SETTINGS_SAVED',
+    meta: { fields: ['workingHours', 'pricing'] },
+  },
+];

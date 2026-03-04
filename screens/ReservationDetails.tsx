@@ -1,6 +1,6 @@
 import React from 'react';
 import { Icon } from '../components/Icon';
-import { Reservation } from '../types';
+import { Reservation, Player, Venue, AlternativeSlotOffer } from '../types';
 
 interface ReservationDetailsProps {
   reservation: Reservation;
@@ -8,13 +8,35 @@ interface ReservationDetailsProps {
   onApprove?: (id: string) => void;
   onReject?: (id: string, reason: string) => void;
   onMarkPaid?: (id: string) => void;
+  onProposeAlternative?: (id: string, alternatives: AlternativeSlotOffer['alternatives']) => void;
+  currentUser?: Player | null;
+  venues?: Venue[];
+  existingReservations?: Reservation[];
 }
 
 export const ReservationDetails: React.FC<ReservationDetailsProps> = ({
-  reservation: r, onBack, onApprove, onReject, onMarkPaid,
+  reservation: r, onBack, onApprove, onReject, onMarkPaid, onProposeAlternative,
+  currentUser, venues = [], existingReservations = [],
 }) => {
   const [rejectReason, setRejectReason] = React.useState('');
   const [showRejectModal, setShowRejectModal] = React.useState(false);
+  const [showAltModal, setShowAltModal] = React.useState(false);
+
+  // Alternative slot builder state
+  const [altSlots, setAltSlots] = React.useState<Array<{ date: string; startTime: string; durationMinutes: number; price: number }>>([
+    { date: '', startTime: '18:00', durationMinutes: 90, price: r.price },
+  ]);
+
+  const addAltSlot = () => {
+    if (altSlots.length >= 3) return;
+    setAltSlots(prev => [...prev, { date: '', startTime: '20:00', durationMinutes: 90, price: r.price }]);
+  };
+
+  const updateAlt = (i: number, key: string, val: string | number) => {
+    setAltSlots(prev => prev.map((s, idx) => idx === i ? { ...s, [key]: val } : s));
+  };
+
+  const canSubmitAlts = altSlots.some(s => s.date && s.startTime);
 
   const handleReject = () => {
     if (rejectReason.trim() && onReject) {
@@ -184,6 +206,21 @@ export const ReservationDetails: React.FC<ReservationDetailsProps> = ({
                 Kapora Geldi — Ödemeyi Onayla
               </button>
             )}
+            {/* Alternative offer banner if already proposed */}
+            {r.alternativeOffer && (
+              <div className={`flex items-center gap-2 rounded-xl px-3 py-2 border ${
+                r.alternativeOffer.status === 'offered' ? 'bg-yellow-500/8 border-yellow-500/20' :
+                r.alternativeOffer.status === 'accepted' ? 'bg-green-500/8 border-green-500/20' :
+                'bg-slate-500/8 border-slate-500/20'
+              }`}>
+                <Icon name="swap_horiz" size={14} className={r.alternativeOffer.status==='offered'?'text-yellow-400':'text-slate-400'} />
+                <span className="text-[11px] text-slate-300">
+                  Alternatif teklif: <strong>{
+                    {offered:'Kullanıcı yanıtı bekleniyor', accepted:'Kabul edildi ✓', expired:'Süresi doldu', rejected:'Reddedildi'}[r.alternativeOffer.status]
+                  }</strong>
+                </span>
+              </div>
+            )}
             <div className="grid grid-cols-2 gap-3">
               <button onClick={() => setShowRejectModal(true)}
                 className="bg-red-500/20 border border-red-500/30 text-red-500 py-4 rounded-2xl font-bold hover:bg-red-500/30 transition-colors">
@@ -194,6 +231,13 @@ export const ReservationDetails: React.FC<ReservationDetailsProps> = ({
                 Onayla
               </button>
             </div>
+            {onProposeAlternative && !r.alternativeOffer && (
+              <button onClick={() => setShowAltModal(true)}
+                className="w-full bg-yellow-500/10 border border-yellow-500/25 text-yellow-300 py-3.5 rounded-2xl font-bold text-sm hover:bg-yellow-500/15 transition-colors flex items-center justify-center gap-2">
+                <Icon name="swap_horiz" size={16} />
+                Reddetmek Yerine Alternatif Öner
+              </button>
+            )}
           </div>
         )}
       </div>
@@ -212,6 +256,88 @@ export const ReservationDetails: React.FC<ReservationDetailsProps> = ({
               <button onClick={() => setShowRejectModal(false)} className="bg-secondary border border-white/10 text-white py-3 rounded-xl font-bold">Vazgeç</button>
               <button onClick={handleReject} disabled={!rejectReason.trim()} className="bg-red-500 text-white py-3 rounded-xl font-bold disabled:opacity-50 disabled:cursor-not-allowed">Reddet</button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Alternative Proposal Modal */}
+      {showAltModal && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in">
+          <div className="bg-surface w-full max-w-md rounded-3xl border border-white/10 p-5 shadow-2xl animate-slide-up max-h-[80vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-white font-black text-base">Alternatif Saat Öner</h3>
+              <button onClick={() => setShowAltModal(false)} className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center">
+                <Icon name="close" size={16} className="text-slate-400" />
+              </button>
+            </div>
+            <p className="text-slate-400 text-xs mb-4">Müşteriye en fazla 3 alternatif saat önerebilirsiniz. Kabul ederlerse rezervasyon otomatik güncellenir.</p>
+
+            <div className="space-y-3 mb-4">
+              {altSlots.map((alt, i) => (
+                <div key={i} className="bg-secondary rounded-xl border border-white/8 p-3 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-black text-slate-500 uppercase">Alternatif {i + 1}</span>
+                    {altSlots.length > 1 && (
+                      <button onClick={() => setAltSlots(prev => prev.filter((_, idx) => idx !== i))}
+                        className="text-[9px] text-red-400">× Kaldır</button>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-[9px] text-slate-500 block mb-1">Tarih</label>
+                      <input type="date" value={alt.date}
+                        onChange={e => updateAlt(i, 'date', e.target.value)}
+                        className="w-full bg-surface border border-white/10 rounded-lg px-2 py-1.5 text-white text-xs focus:outline-none focus:border-primary" />
+                    </div>
+                    <div>
+                      <label className="text-[9px] text-slate-500 block mb-1">Saat</label>
+                      <input type="time" value={alt.startTime}
+                        onChange={e => updateAlt(i, 'startTime', e.target.value)}
+                        className="w-full bg-surface border border-white/10 rounded-lg px-2 py-1.5 text-white text-xs focus:outline-none focus:border-primary" />
+                    </div>
+                    <div>
+                      <label className="text-[9px] text-slate-500 block mb-1">Süre (dk)</label>
+                      <select value={alt.durationMinutes} onChange={e => updateAlt(i, 'durationMinutes', Number(e.target.value))}
+                        className="w-full bg-surface border border-white/10 rounded-lg px-2 py-1.5 text-white text-xs focus:outline-none">
+                        <option value={60}>60 dk</option>
+                        <option value={90}>90 dk</option>
+                        <option value={120}>120 dk</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-[9px] text-slate-500 block mb-1">Fiyat (₺)</label>
+                      <input type="number" value={alt.price}
+                        onChange={e => updateAlt(i, 'price', Number(e.target.value))}
+                        className="w-full bg-surface border border-white/10 rounded-lg px-2 py-1.5 text-white text-xs focus:outline-none focus:border-primary" />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {altSlots.length < 3 && (
+              <button onClick={addAltSlot} className="w-full py-2 mb-3 rounded-xl border border-dashed border-white/20 text-slate-400 text-xs font-bold hover:border-white/30 transition-colors">
+                + Alternatif Ekle
+              </button>
+            )}
+
+            <div className="text-[10px] text-yellow-400 bg-yellow-500/8 border border-yellow-500/20 rounded-xl p-2.5 mb-4">
+              ⏰ Teklif 6 saat geçerlidir. Kullanıcı kabul ederse rezervasyon otomatik güncellenir.
+            </div>
+
+            <button
+              onClick={() => {
+                const validAlts = altSlots.filter(s => s.date && s.startTime);
+                if (validAlts.length > 0 && onProposeAlternative) {
+                  onProposeAlternative(r.id, validAlts);
+                  setShowAltModal(false);
+                }
+              }}
+              disabled={!canSubmitAlts}
+              className="w-full py-3.5 rounded-2xl bg-yellow-500 text-black font-black disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              Alternatifleri Gönder
+            </button>
           </div>
         </div>
       )}

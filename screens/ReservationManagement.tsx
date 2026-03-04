@@ -107,6 +107,7 @@ export const ReservationManagement: React.FC<ReservationManagementProps> = ({
               <ReservationCard
                 key={r.id}
                 reservation={r}
+                canApproveReject={currentUser.role !== 'venue_accountant'}
                 onApprove={() => onApproveReservation(r.id)}
                 onReject={() => { setSelectedReservation(r.id); setShowRejectModal(true); }}
                 onMarkPaid={() => onMarkReservationPaid(r.id)}
@@ -175,11 +176,12 @@ const FilterTab: React.FC<{
 // ── ReservationCard ────────────────────────────────────────────────────────────
 const ReservationCard: React.FC<{
   reservation: Reservation;
+  canApproveReject?: boolean;
   onApprove: () => void;
   onReject: () => void;
   onMarkPaid: () => void;
   onViewDetails: () => void;
-}> = ({ reservation: r, onApprove, onReject, onMarkPaid, onViewDetails }) => {
+}> = ({ reservation: r, canApproveReject = true, onApprove, onReject, onMarkPaid, onViewDetails }) => {
   const statusMap = {
     pending:   { text: 'text-yellow-500', icon: 'pending' },
     confirmed: { text: 'text-green-500',  icon: 'check_circle' },
@@ -288,22 +290,29 @@ const ReservationCard: React.FC<{
       {/* Actions */}
       <div className="flex gap-2">
         {r.status === 'pending' ? (
-          <>
-            <button onClick={onReject}
-              className="flex-1 py-2.5 rounded-xl bg-red-500/10 border border-red-500/30 text-red-500 font-bold text-xs hover:bg-red-500/20 transition-colors">
-              Reddet
-            </button>
-            {showMarkPaid && (
-              <button onClick={onMarkPaid}
-                className="flex-1 py-2.5 rounded-xl bg-yellow-500/15 border border-yellow-500/30 text-yellow-400 font-bold text-xs hover:bg-yellow-500/25 transition-colors">
-                Kapora Geldi
+          canApproveReject ? (
+            <>
+              <button onClick={onReject}
+                className="flex-1 py-2.5 rounded-xl bg-red-500/10 border border-red-500/30 text-red-500 font-bold text-xs hover:bg-red-500/20 transition-colors">
+                Reddet
               </button>
-            )}
-            <button onClick={onApprove}
-              className="flex-1 py-2.5 rounded-xl bg-primary text-secondary font-bold text-xs shadow-glow hover:bg-green-400 transition-all">
-              Onayla
-            </button>
-          </>
+              {showMarkPaid && (
+                <button onClick={onMarkPaid}
+                  className="flex-1 py-2.5 rounded-xl bg-yellow-500/15 border border-yellow-500/30 text-yellow-400 font-bold text-xs hover:bg-yellow-500/25 transition-colors">
+                  Kapora Geldi
+                </button>
+              )}
+              <button onClick={onApprove}
+                className="flex-1 py-2.5 rounded-xl bg-primary text-secondary font-bold text-xs shadow-glow hover:bg-green-400 transition-all">
+                Onayla
+              </button>
+            </>
+          ) : (
+            <div className="w-full flex items-center gap-2 py-2.5 px-3 rounded-xl bg-white/4 border border-white/8">
+              <Icon name="lock" size={12} className="text-slate-600" />
+              <span className="text-[10px] text-slate-600">Bu role onay/ret yetkisi yok</span>
+            </div>
+          )
         ) : (
           <button onClick={onViewDetails}
             className="w-full py-2.5 rounded-xl bg-white/5 border border-white/10 text-white font-bold text-xs hover:bg-white/10 transition-colors">
@@ -320,3 +329,4 @@ const ReservationCard: React.FC<{
     </div>
   );
 };
+

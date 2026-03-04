@@ -144,6 +144,12 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
     } else if (rawPhone === '5000000099') {
       // Demo venue owner login
       onLogin('venue_owner_1');
+    } else if (rawPhone === '5000000098') {
+      // Demo venue staff login
+      onLogin('venue_staff_1');
+    } else if (rawPhone === '5000000097') {
+      // Demo venue accountant login
+      onLogin('venue_accountant_1');
     } else {
       // Unknown user
       if (isVenueOwner) {
@@ -293,6 +299,8 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
               <div className="space-y-1">
                 <DemoHint phone="5000000001" label="Admin" accent={accent.text} onSelect={(p) => setPhone(formatPhone(p))} />
                 <DemoHint phone="5000000099" label="Saha Sahibi (Kemal)" accent={accent.text} onSelect={(p) => setPhone(formatPhone(p))} />
+                <DemoHint phone="5000000098" label="Saha Personeli" accent={accent.text} onSelect={(p) => setPhone(formatPhone(p))} />
+                <DemoHint phone="5000000097" label="Saha Muhasebecisi" accent={accent.text} onSelect={(p) => setPhone(formatPhone(p))} />
                 <DemoHint phone="5000000002" label="Üye" accent={accent.text} onSelect={(p) => setPhone(formatPhone(p))} />
               </div>
             </div>

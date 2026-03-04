@@ -6,9 +6,79 @@ export enum Tab {
   Profile = 'Profile'
 }
 
-export type ScreenName = 'welcome' | 'login' | 'joinTeam' | 'teamSetup' | 'createProfile' | 'dashboard' | 'matches' | 'team' | 'profile' | 'editProfile' | 'matchDetails' | 'matchCreate' | 'payments' | 'admin' | 'members' | 'venues' | 'venueDetails' | 'venueAdd' | 'lineupManager' | 'squadShare' | 'settings' | 'leaderboard' | 'financialReports' | 'debtList' | 'subscription' | 'polls' | 'booking' | 'tournament' | 'whatsappCenter' | 'attendance' | 'reserveSystem' | 'messageLogs' | 'notifications' | 'venueOwnerDashboard' | 'venueOwnerOnboarding' | 'reservationManagement' | 'reservationDetails' | 'venueCalendar' | 'venueFinancialReports' | 'venueSettings' | 'customerManagement' | 'scoutDashboard' | 'scoutReports' | 'talentPool';
+export type ScreenName = 'welcome' | 'login' | 'joinTeam' | 'teamSetup' | 'createProfile' | 'dashboard' | 'matches' | 'team' | 'profile' | 'editProfile' | 'matchDetails' | 'matchCreate' | 'payments' | 'admin' | 'members' | 'venues' | 'venueDetails' | 'venueAdd' | 'lineupManager' | 'squadShare' | 'settings' | 'leaderboard' | 'financialReports' | 'debtList' | 'subscription' | 'polls' | 'booking' | 'tournament' | 'whatsappCenter' | 'attendance' | 'reserveSystem' | 'messageLogs' | 'notifications' | 'venueOwnerDashboard' | 'reservationManagement' | 'reservationDetails' | 'venueCalendar' | 'venueFinancialReports' | 'venueSettings' | 'customerManagement' | 'scoutDashboard' | 'scoutReports' | 'talentPool' | 'venueOwnerOnboarding' | 'myReservations' | 'auditLog' | 'venueAnalytics';
 
 export type SubscriptionTier = 'free' | 'premium' | 'partner';
+
+/** Domain: Attendance. YES/NO/MAYBE + sonradan CANCELLED. */
+export type RsvpStatus = 'yes' | 'maybe' | 'no' | 'pending' | 'cancelled';
+
+/** All user roles */
+export type Role = 'admin' | 'member' | 'guest' | 'venue_owner' | 'venue_staff' | 'venue_accountant';
+
+// ─── Permission matrix ────────────────────────────────────────────────────────
+export const PERMS: Record<Role, ScreenName[]> = {
+  admin:             ['dashboard','team','matches','payments','admin','members','venues','venueDetails','booking','financialReports','debtList','lineupManager','squadShare','polls','settings','leaderboard','tournament','attendance','matchDetails','matchCreate','editProfile','profile','notifications','whatsappCenter','reserveSystem','messageLogs','subscription','scoutDashboard','talentPool','scoutReports','myReservations'],
+  member:            ['dashboard','team','matches','venues','venueDetails','booking','polls','leaderboard','tournament','attendance','matchDetails','editProfile','profile','notifications','settings','myReservations'],
+  guest:             ['dashboard','team','venues','venueDetails','profile','notifications','settings'],
+  venue_owner:       ['venueOwnerDashboard','reservationManagement','reservationDetails','venueCalendar','venueFinancialReports','venueSettings','customerManagement','auditLog','venueAnalytics','notifications','settings','profile'],
+  venue_staff:       ['venueOwnerDashboard','reservationManagement','reservationDetails','venueCalendar','customerManagement','notifications','settings','profile'],
+  venue_accountant:  ['venueFinancialReports','venueAnalytics','auditLog','notifications','settings','profile'],
+};
+
+// ─── Waitlist ─────────────────────────────────────────────────────────────────
+export type WaitlistStatus = 'waiting' | 'offered' | 'accepted' | 'expired' | 'cancelled';
+
+export interface WaitlistEntry {
+  id: string;
+  venueId: string;
+  venueName: string;
+  date: string;              // ISO YYYY-MM-DD
+  startTime: string;         // "18:00"
+  durationMinutes: number;
+  createdByUserId: string;
+  createdByName: string;
+  status: WaitlistStatus;
+  createdAt: string;
+  offeredAt?: string;
+  offerExpiresAt?: string;   // now + 15 dk
+  acceptedAt?: string;
+  cancelledAt?: string;
+  reservationId?: string;    // oluşturulan rezervasyon ID'si
+}
+
+// ─── Alternative slot offer ───────────────────────────────────────────────────
+export interface AlternativeSlot {
+  date: string;
+  startTime: string;
+  durationMinutes: number;
+  price: number;
+}
+
+export interface AlternativeSlotOffer {
+  id: string;
+  proposedByUserId: string;
+  proposedAt: string;
+  expiresAt: string;          // now + 6h
+  alternatives: AlternativeSlot[];
+  status: 'offered' | 'accepted' | 'expired' | 'rejected';
+  acceptedAlternativeIndex?: number;
+  acceptedAt?: string;
+}
+
+// ─── Audit ────────────────────────────────────────────────────────────────────
+export interface AuditEvent {
+  id: string;
+  at: string;
+  actorUserId: string;
+  actorName: string;
+  actorRole: Role;
+  entityType: 'reservation' | 'venue' | 'waitlist';
+  entityId: string;
+  action: string;
+  meta?: Record<string, unknown>;
+}
+
 
 /** Domain: Attendance. YES/NO/MAYBE + sonradan CANCELLED. */
 export type RsvpStatus = 'yes' | 'maybe' | 'no' | 'pending' | 'cancelled';
@@ -43,7 +113,7 @@ export interface Player {
   reliability: number; // 0-100%
   avatar: string;
   isCaptain?: boolean;
-  role?: 'admin' | 'member' | 'guest' | 'venue_owner';
+  role?: Role;
   tier?: SubscriptionTier;
   marketValue?: string; // e.g. "Free Agent" or "1.2k"
   attributes?: {
@@ -192,6 +262,7 @@ export interface Venue {
   priceHistory?: { date: string; price: number; reason: string }[];
   createdAt?: string;
   updatedAt?: string;
+  cancellationPolicy?: { freeCancelUntilHours: number; latePenaltyPercent: number };
 }
 
 // Rezervasyon durumu
@@ -220,6 +291,23 @@ export interface Reservation {
   cancelReason?: string;
   paymentStatus: 'pending' | 'paid' | 'refunded';
   paymentMethod?: 'cash' | 'credit_card' | 'bank_transfer';
+  // PRO: kapora & hold
+  createdByUserId?: string;
+  depositRequired?: boolean;
+  depositAmount?: number;
+  depositPaidAt?: string;
+  holdExpiresAt?: string;             // soft-lock: dolunca slot boşa çıkar
+  paymentProofUrl?: string;
+  refundedAt?: string;
+  refundedAmount?: number;
+  penaltyAmount?: number;
+  cancellationPolicy?: {
+    freeCancelUntilHours: number;
+    latePenaltyPercent: number;
+  };
+  // PRO++
+  waitlistEntryId?: string;
+  alternativeOffer?: AlternativeSlotOffer;
 }
 
 // Saha değerlendirmesi

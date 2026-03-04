@@ -56,24 +56,38 @@ export const VenueOwnerDashboard: React.FC<VenueOwnerDashboardProps> = ({
   const potentialSlots = venueIds.length * 30 * 10; // Saha sayısı * 30 gün * 10 slot
   const occupancyRate = potentialSlots > 0 ? Math.round((thisMonthReservations.length / potentialSlots) * 100) : 0;
 
+  const roleLabels: Record<string, { label: string; cls: string }> = {
+    venue_owner:      { label: 'Saha Sahibi',  cls: 'bg-primary/15 text-primary border-primary/25' },
+    venue_staff:      { label: 'Personel',      cls: 'bg-blue-500/15 text-blue-400 border-blue-500/25' },
+    venue_accountant: { label: 'Muhasebeci',    cls: 'bg-purple-500/15 text-purple-400 border-purple-500/25' },
+  };
+  const roleMeta = roleLabels[currentUser.role ?? ''] ?? roleLabels.venue_owner;
+
   return (
     <div className="pb-8 bg-secondary min-h-screen">
       {/* Header */}
       <div className="sticky top-0 z-50 bg-gradient-to-br from-slate-900 to-slate-800 px-4 pt-6 pb-4 border-b border-white/10">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h1 className="text-2xl font-black text-white flex items-center gap-2">
-              <Icon name="stadium" size={28} className="text-primary" />
-              Saha Yönetimi
-            </h1>
-            <p className="text-slate-400 text-sm mt-1">Hoş geldin, {currentUser.name}</p>
+            <div className="flex items-center gap-2 mb-0.5">
+              <h1 className="text-2xl font-black text-white flex items-center gap-2">
+                <Icon name="stadium" size={28} className="text-primary" />
+                Saha Yönetimi
+              </h1>
+              <span className={`text-[9px] font-black px-2 py-0.5 rounded-lg border ${roleMeta.cls}`}>
+                {roleMeta.label}
+              </span>
+            </div>
+            <p className="text-slate-400 text-sm mt-0.5">Hoş geldin, {currentUser.name}</p>
           </div>
-          <button 
-            onClick={() => onNavigate('venueSettings')}
-            className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 transition-colors"
-          >
-            <Icon name="settings" className="text-white" size={20} />
-          </button>
+          {currentUser.role === 'venue_owner' && (
+            <button
+              onClick={() => onNavigate('venueSettings')}
+              className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 transition-colors"
+            >
+              <Icon name="settings" className="text-white" size={20} />
+            </button>
+          )}
         </div>
 
         {/* Quick Stats */}
@@ -155,13 +169,15 @@ export const VenueOwnerDashboard: React.FC<VenueOwnerDashboardProps> = ({
               color="bg-purple-500/10 text-purple-500 border-purple-500/20"
               onClick={() => onNavigate('venueCalendar')}
             />
-            <QuickActionCard
-              icon="account_balance_wallet"
-              title="Gelir Raporu"
-              subtitle={`${currentUser.venueOwnerInfo?.totalRevenue.toLocaleString('tr-TR')}₺`}
-              color="bg-green-500/10 text-green-500 border-green-500/20"
-              onClick={() => onNavigate('venueFinancialReports')}
-            />
+            {(currentUser.role === 'venue_owner' || currentUser.role === 'venue_accountant') && (
+              <QuickActionCard
+                icon="account_balance_wallet"
+                title="Gelir Raporu"
+                subtitle={`${currentUser.venueOwnerInfo?.totalRevenue.toLocaleString('tr-TR')}₺`}
+                color="bg-green-500/10 text-green-500 border-green-500/20"
+                onClick={() => onNavigate('venueFinancialReports')}
+              />
+            )}
             <QuickActionCard
               icon="groups"
               title="Müşteriler"
@@ -169,6 +185,24 @@ export const VenueOwnerDashboard: React.FC<VenueOwnerDashboardProps> = ({
               color="bg-orange-500/10 text-orange-500 border-orange-500/20"
               onClick={() => onNavigate('customerManagement')}
             />
+            {(currentUser.role === 'venue_owner' || currentUser.role === 'venue_accountant') && (
+              <QuickActionCard
+                icon="bar_chart"
+                title="Analitik"
+                subtitle="Heatmap + KPI"
+                color="bg-cyan-500/10 text-cyan-400 border-cyan-500/20"
+                onClick={() => onNavigate('venueAnalytics')}
+              />
+            )}
+            {(currentUser.role === 'venue_owner' || currentUser.role === 'venue_accountant') && (
+              <QuickActionCard
+                icon="history"
+                title="Audit Log"
+                subtitle="Kim ne yaptı"
+                color="bg-slate-500/10 text-slate-400 border-slate-500/20"
+                onClick={() => onNavigate('auditLog')}
+              />
+            )}
           </div>
         </div>
 

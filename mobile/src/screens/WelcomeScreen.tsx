@@ -1,8 +1,9 @@
 /**
- * Welcome Screen – Web ile uyumlu: Oyuncuyum / Saha Sahibiyim seçimi
+ * Welcome Screen
+ * First screen users see - converted from web version
  */
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -10,7 +11,6 @@ import {
   StyleSheet,
   ImageBackground,
   Animated,
-  ScrollView,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -20,50 +20,28 @@ import { colors, spacing, borderRadius, typography } from '../theme';
 
 type WelcomeScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Welcome'>;
 
-type UserType = 'player' | 'venue_owner' | null;
-
-const PLAYER_FEATURES = [
-  { icon: 'soccer' as const, text: 'Maç oluştur & katıl' },
-  { icon: 'account-group' as const, text: 'Takımını yönet' },
-  { icon: 'chart-line' as const, text: 'İstatistik takibi' },
-  { icon: 'cash' as const, text: 'Borç & ödeme takibi' },
-];
-
-const VENUE_FEATURES = [
-  { icon: 'calendar-check' as const, text: 'Rezervasyonları onayla' },
-  { icon: 'chart-bar' as const, text: 'Gelir & doluluk raporu' },
-  { icon: 'account-cog' as const, text: 'Müşteri yönetimi' },
-  { icon: 'calendar-month' as const, text: 'Saha takvimi' },
-];
-
 export default function WelcomeScreen() {
   const navigation = useNavigation<WelcomeScreenNavigationProp>();
-  const [selected, setSelected] = useState<UserType>(null);
+  
+  // Animations
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(30)).current;
+  const slideAnim = useRef(new Animated.Value(50)).current;
 
   useEffect(() => {
     Animated.parallel([
-      Animated.timing(fadeAnim, { toValue: 1, duration: 600, useNativeDriver: true }),
-      Animated.spring(slideAnim, { toValue: 0, tension: 40, friction: 8, useNativeDriver: true }),
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 800,
+        useNativeDriver: true,
+      }),
+      Animated.spring(slideAnim, {
+        toValue: 0,
+        tension: 20,
+        friction: 7,
+        useNativeDriver: true,
+      }),
     ]).start();
   }, []);
-
-  const handleContinue = () => {
-    if (!selected) return;
-    navigation.navigate('Login', { userType: selected });
-  };
-
-  const accentGreen = {
-    border: colors.primary,
-    bg: `${colors.primary}20`,
-    text: colors.primary,
-  };
-  const accentBlue = {
-    border: '#3B82F6',
-    bg: 'rgba(59,130,246,0.15)',
-    text: '#60A5FA',
-  };
 
   return (
     <ImageBackground
@@ -72,212 +50,263 @@ export default function WelcomeScreen() {
       blurRadius={3}
     >
       <View style={styles.overlay} />
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
+      
+      {/* Top Badge */}
+      <Animated.View style={[styles.topBadge, { opacity: fadeAnim }]}>
+        <View style={styles.badgeIndicator} />
+        <Text style={styles.badgeText}>10.000+ OYUNCU SAHADA</Text>
+      </Animated.View>
+
+      {/* Main Content */}
+      <Animated.View 
+        style={[
+          styles.content,
+          {
+            opacity: fadeAnim,
+            transform: [{ translateY: slideAnim }],
+          },
+        ]}
       >
-        <Animated.View style={[styles.header, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
-          <View style={styles.logoContainer}>
-            <Icon name="soccer" size={34} color="#fff" />
-          </View>
-          <Text style={styles.title}>SAHADA</Text>
-          <Text style={styles.subtitle}>Maç Senin. Kontrol Sende.</Text>
-        </Animated.View>
-
-        <Text style={styles.roleLabel}>Nasıl kullanmak istiyorsun?</Text>
-
-        <TouchableOpacity
-          style={[
-            styles.roleCard,
-            selected === 'player' && { borderColor: accentGreen.border, backgroundColor: accentGreen.bg },
-          ]}
-          onPress={() => setSelected('player')}
-          activeOpacity={0.8}
-        >
-          <View style={styles.roleRow}>
-            <View style={[styles.roleIconWrap, selected === 'player' && { backgroundColor: accentGreen.bg }]}>
-              <Icon name="soccer" size={24} color={selected === 'player' ? accentGreen.text : colors.text.disabled} />
-            </View>
-            <View style={styles.roleTextWrap}>
-              <Text style={[styles.roleTitle, selected === 'player' && { color: colors.text.primary }]}>Oyuncuyum</Text>
-              <Text style={styles.roleSubtitle}>Maç oyna, takım yönet, istatistik takip et</Text>
-            </View>
-            <View style={[styles.radio, selected === 'player' && { borderColor: colors.primary, backgroundColor: colors.primary }]}>
-              {selected === 'player' && <View style={styles.radioInner} />}
-            </View>
-          </View>
-          {selected === 'player' && (
-            <View style={styles.featuresRow}>
-              {PLAYER_FEATURES.map((f, i) => (
-                <View key={i} style={styles.featureChip}>
-                  <Icon name={f.icon} size={11} color={accentGreen.text} />
-                  <Text style={styles.featureChipText}>{f.text}</Text>
-                </View>
-              ))}
-            </View>
-          )}
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[
-            styles.roleCard,
-            selected === 'venue_owner' && { borderColor: accentBlue.border, backgroundColor: accentBlue.bg },
-          ]}
-          onPress={() => setSelected('venue_owner')}
-          activeOpacity={0.8}
-        >
-          <View style={styles.roleRow}>
-            <View style={[styles.roleIconWrap, selected === 'venue_owner' && { backgroundColor: accentBlue.bg }]}>
-              <Icon name="stadium" size={24} color={selected === 'venue_owner' ? accentBlue.text : colors.text.disabled} />
-            </View>
-            <View style={styles.roleTextWrap}>
-              <Text style={[styles.roleTitle, selected === 'venue_owner' && { color: colors.text.primary }]}>Saha Sahibiyim</Text>
-              <Text style={styles.roleSubtitle}>Rezervasyon yönet, gelir takip et, sahan dolsun</Text>
-            </View>
-            <View style={[styles.radio, selected === 'venue_owner' && { borderColor: '#3B82F6', backgroundColor: '#3B82F6' }]}>
-              {selected === 'venue_owner' && <View style={styles.radioInner} />}
-            </View>
-          </View>
-          {selected === 'venue_owner' && (
-            <View style={styles.featuresRow}>
-              {VENUE_FEATURES.map((f, i) => (
-                <View key={i} style={styles.featureChip}>
-                  <Icon name={f.icon} size={11} color={accentBlue.text} />
-                  <Text style={styles.featureChipText}>{f.text}</Text>
-                </View>
-              ))}
-            </View>
-          )}
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[
-            styles.continueBtn,
-            selected === 'venue_owner' && styles.continueBtnVenue,
-            !selected && styles.continueBtnDisabled,
-          ]}
-          onPress={handleContinue}
-          disabled={!selected}
-          activeOpacity={0.8}
-        >
-          <Text style={styles.continueBtnText}>
-            {selected ? 'Devam Et' : 'Bir seçenek seç'}
-          </Text>
-          {selected && <Icon name="arrow-right" size={18} color="#fff" />}
-        </TouchableOpacity>
-
-        <View style={styles.divider}>
-          <View style={styles.dividerLine} />
-          <Text style={styles.dividerText}>veya</Text>
-          <View style={styles.dividerLine} />
+        {/* Logo */}
+        <View style={styles.logoContainer}>
+          <Icon name="soccer" size={64} color={colors.primary} />
         </View>
 
-        <TouchableOpacity
-          style={styles.loginLink}
-          onPress={() => navigation.navigate('Login')}
-          activeOpacity={0.8}
-        >
-          <Icon name="login" size={16} color={colors.text.disabled} />
-          <Text style={styles.loginLinkText}>Zaten hesabım var, giriş yap</Text>
-        </TouchableOpacity>
-
-        <Text style={styles.footer}>
-          Devam ederek Kullanım Koşulları ve Gizlilik Politikası'nı kabul edersiniz.
+        {/* Title */}
+        <Text style={styles.title}>SAHADA</Text>
+        <Text style={styles.subtitle}>
+          Maç Senin. <Text style={styles.subtitleBold}>Kontrol Sende.</Text>
         </Text>
-      </ScrollView>
+
+        {/* Features */}
+        <View style={styles.featuresContainer}>
+          {[
+            'Kadro kurmak artık işkence değil',
+            'Borç takibi için birebir',
+            'İstatistiklerimi görmek motive ediyor',
+          ].map((feature, index) => (
+            <Animated.View
+              key={index}
+              style={[
+                styles.featureItem,
+                {
+                  opacity: fadeAnim,
+                  transform: [
+                    {
+                      translateX: slideAnim.interpolate({
+                        inputRange: [0, 50],
+                        outputRange: [0, 20],
+                      }),
+                    },
+                  ],
+                },
+              ]}
+            >
+              <Icon name="check-circle" size={16} color={colors.primary} />
+              <Text style={styles.featureText}>{feature}</Text>
+            </Animated.View>
+          ))}
+        </View>
+
+        {/* Action Buttons */}
+        <View style={styles.actionsContainer}>
+          <TouchableOpacity
+            style={styles.primaryButton}
+            onPress={() => navigation.navigate('Login')}
+            activeOpacity={0.8}
+            accessibilityLabel="Hemen başla, giriş yap"
+            accessibilityRole="button"
+          >
+            <Text style={styles.primaryButtonText}>Hemen Başla</Text>
+            <Icon name="arrow-right" size={20} color={colors.secondary} />
+          </TouchableOpacity>
+
+          <View style={styles.secondaryActions}>
+            <TouchableOpacity
+              style={styles.secondaryButton}
+              onPress={() => navigation.navigate('TeamSetup')}
+              activeOpacity={0.8}
+              accessibilityLabel="Takımını sıfırdan kur"
+              accessibilityRole="button"
+            >
+              <Icon name="plus-circle-outline" size={18} color={colors.text.secondary} />
+              <Text style={styles.secondaryButtonText}>Takım Kur</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.secondaryButton}
+              onPress={() => navigation.navigate('JoinTeam')}
+              activeOpacity={0.8}
+              accessibilityLabel="Takıma katıl"
+              accessibilityRole="button"
+            >
+              <Icon name="qrcode-scan" size={18} color={colors.text.secondary} />
+              <Text style={styles.secondaryButtonText}>Takıma Katıl</Text>
+            </TouchableOpacity>
+          </View>
+
+          <TouchableOpacity
+            style={styles.registerLink}
+            onPress={() => navigation.navigate('Register')}
+            activeOpacity={0.8}
+            accessibilityLabel="Hesap oluştur"
+            accessibilityRole="button"
+          >
+            <Text style={styles.registerLinkText}>Hesabım yok, kayıt ol</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Footer */}
+        <Text style={styles.footer}>
+          Devam ederek Hizmet Şartları ve Gizlilik Politikasını kabul etmiş sayılırsınız.
+        </Text>
+      </Animated.View>
     </ImageBackground>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  overlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.75)' },
-  scrollContent: { flexGrow: 1, paddingHorizontal: spacing.lg, paddingTop: 56, paddingBottom: 40 },
-  header: { alignItems: 'center', marginBottom: spacing.xl },
+  container: {
+    flex: 1,
+  },
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+  },
+  topBadge: {
+    position: 'absolute',
+    top: 60,
+    alignSelf: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: borderRadius.full,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  badgeIndicator: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: colors.primary,
+    marginRight: spacing.sm,
+  },
+  badgeText: {
+    color: colors.text.primary,
+    fontSize: typography.fontSize.xs,
+    fontWeight: typography.fontWeight.bold,
+    letterSpacing: 1.5,
+  },
+  content: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.xxl,
+  },
   logoContainer: {
-    width: 64,
-    height: 64,
-    borderRadius: borderRadius.xl,
-    backgroundColor: `${colors.primary}30`,
+    width: 80,
+    height: 80,
+    borderRadius: borderRadius.xxl,
+    backgroundColor: `${colors.primary}20`,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: spacing.md,
+    borderWidth: 2,
+    borderColor: `${colors.primary}40`,
     transform: [{ rotate: '-3deg' }],
   },
   title: {
-    fontSize: 36,
-    fontWeight: '900',
+    fontSize: 48,
+    fontWeight: typography.fontWeight.extraBold,
     color: colors.text.primary,
     fontStyle: 'italic',
+    marginBottom: spacing.sm,
   },
-  subtitle: { fontSize: typography.fontSize.md, color: colors.text.secondary, marginTop: spacing.xs },
-  roleLabel: {
-    fontSize: 10,
-    fontWeight: '900',
-    color: colors.text.disabled,
-    letterSpacing: 2,
-    textAlign: 'center',
+  subtitle: {
+    fontSize: typography.fontSize.xl,
+    color: colors.text.secondary,
+    marginBottom: spacing.xl,
+  },
+  subtitleBold: {
+    color: colors.primary,
+    fontWeight: typography.fontWeight.bold,
+  },
+  featuresContainer: {
+    marginBottom: spacing.xl,
+  },
+  featureItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: spacing.md,
   },
-  roleCard: {
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
-    borderRadius: borderRadius.xl,
-    padding: spacing.md,
-    marginBottom: spacing.md,
-    backgroundColor: 'rgba(255,255,255,0.03)',
+  featureText: {
+    color: colors.text.secondary,
+    fontSize: typography.fontSize.sm,
+    fontStyle: 'italic',
+    marginLeft: spacing.sm,
   },
-  roleRow: { flexDirection: 'row', alignItems: 'flex-start' },
-  roleIconWrap: {
-    width: 44,
-    height: 44,
-    borderRadius: borderRadius.lg,
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: spacing.md,
+  actionsContainer: {
+    marginBottom: spacing.lg,
   },
-  roleTextWrap: { flex: 1, minWidth: 0 },
-  roleTitle: { fontSize: typography.fontSize.sm, fontWeight: '800', color: colors.text.secondary },
-  roleSubtitle: { fontSize: 11, color: colors.text.disabled, marginTop: 2 },
-  radio: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    borderWidth: 2,
-    borderColor: colors.text.disabled,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  radioInner: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#fff' },
-  featuresRow: { flexDirection: 'row', flexWrap: 'wrap', marginTop: spacing.md, paddingTop: spacing.md, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.06)', gap: spacing.sm },
-  featureChip: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  featureChipText: { fontSize: 10, color: colors.text.disabled },
-  continueBtn: {
+  primaryButton: {
     backgroundColor: colors.primary,
     borderRadius: borderRadius.lg,
     paddingVertical: spacing.md,
+    paddingHorizontal: spacing.xl,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: spacing.sm,
-    marginTop: spacing.sm,
     marginBottom: spacing.md,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
   },
-  continueBtnVenue: { backgroundColor: '#3B82F6' },
-  continueBtnDisabled: { backgroundColor: 'rgba(255,255,255,0.08)', opacity: 0.8 },
-  continueBtnText: { color: '#fff', fontSize: typography.fontSize.lg, fontWeight: '800' },
-  divider: { flexDirection: 'row', alignItems: 'center', marginVertical: spacing.md },
-  dividerLine: { flex: 1, height: 1, backgroundColor: 'rgba(255,255,255,0.06)' },
-  dividerText: { fontSize: 10, fontWeight: '700', color: colors.text.disabled, marginHorizontal: spacing.md },
-  loginLink: {
+  primaryButtonText: {
+    color: colors.secondary,
+    fontSize: typography.fontSize.lg,
+    fontWeight: typography.fontWeight.bold,
+    marginRight: spacing.sm,
+  },
+  secondaryActions: {
+    flexDirection: 'row',
+    gap: spacing.md,
+  },
+  secondaryButton: {
+    flex: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: borderRadius.lg,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.md,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: spacing.md,
-    gap: spacing.sm,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
-  loginLinkText: { fontSize: typography.fontSize.sm, fontWeight: '700', color: colors.text.disabled },
-  footer: { fontSize: 9, color: colors.text.disabled, textAlign: 'center', marginTop: spacing.lg, lineHeight: 14 },
+  secondaryButtonText: {
+    color: colors.text.primary,
+    fontSize: typography.fontSize.sm,
+    fontWeight: typography.fontWeight.semiBold,
+    marginLeft: spacing.sm,
+  },
+  registerLink: {
+    paddingVertical: spacing.md,
+    alignItems: 'center',
+    marginTop: spacing.sm,
+  },
+  registerLinkText: {
+    color: colors.primary,
+    fontSize: typography.fontSize.sm,
+    fontWeight: typography.fontWeight.semiBold,
+  },
+  footer: {
+    color: colors.text.disabled,
+    fontSize: typography.fontSize.xs,
+    textAlign: 'center',
+    lineHeight: typography.lineHeight.normal * typography.fontSize.xs,
+  },
 });

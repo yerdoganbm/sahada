@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Icon } from '../components/Icon';
-import { Venue, Reservation, Player, TeamProfile } from '../types';
+import { Venue, Reservation, Player, TeamProfile, WaitlistEntry } from '../types';
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -8,10 +8,12 @@ interface BookingScreenProps {
   venueId: string;
   venues: Venue[];
   existingReservations: Reservation[];
+  existingWaitlist?: WaitlistEntry[];
   currentUser: Player | null;
   teamProfile: TeamProfile | null;
   onBack: () => void;
   onCreateReservation: (reservation: Reservation) => void;
+  onJoinWaitlist?: (venueId: string, venueName: string, date: string, startTime: string, durationMinutes: number) => void;
 }
 
 type Duration = 60 | 90 | 120;
@@ -165,7 +167,7 @@ function calcDeposit(slotPrice: number, startMin: number, isoDate: string): Depo
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export const BookingScreen: React.FC<BookingScreenProps> = ({
-  venueId, venues, existingReservations, currentUser, teamProfile, onBack, onCreateReservation,
+  venueId, venues, existingReservations, existingWaitlist = [], currentUser, teamProfile, onBack, onCreateReservation, onJoinWaitlist,
 }) => {
   const venue = useMemo(() => venues.find(v => v.id === venueId) || venues[0], [venueId, venues]);
 
@@ -194,6 +196,17 @@ export const BookingScreen: React.FC<BookingScreenProps> = ({
   const [selectedDateIndex, setSelectedDateIndex] = useState(0);
   const [duration, setDuration] = useState<Duration>(60);
   const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null);
+  const [waitlistSuccess, setWaitlistSuccess] = useState(false);
+
+  // Check if current user is already waiting for a specific slot
+  const isAlreadyWaiting = (startTime: string): boolean => {
+    if (!currentUser) return false;
+    return existingWaitlist.some(
+      w => w.venueId === venue.id && w.date === activeDate.isoDate &&
+           w.startTime === startTime && w.createdByUserId === currentUser.id &&
+           (w.status === 'waiting' || w.status === 'offered')
+    );
+  };
   const [step, setStep] = useState<Step>('selection');
   // Contact
   const [contactPerson, setContactPerson] = useState(currentUser?.name || '');
@@ -359,6 +372,34 @@ export const BookingScreen: React.FC<BookingScreenProps> = ({
     );
   }
 
+  // ── Waitlist success ────────────────────────────────────────────────────────
+  if (waitlistSuccess && activeSlot) {
+    return (
+      <div className="bg-secondary min-h-screen flex flex-col items-center justify-center p-8 text-center animate-fade-in">
+        <div className="w-24 h-24 rounded-full bg-blue-500/20 border-2 border-blue-500/40 flex items-center justify-center mb-6">
+          <Icon name="queue" size={44} className="text-blue-400" />
+        </div>
+        <h1 className="text-2xl font-black text-white mb-2">Sıraya Alındın!</h1>
+        <p className="text-slate-400 text-sm mb-6 max-w-xs leading-relaxed">
+          Slot açıldığında sana 15 dakikalık ödeme penceresi sunulacak. <br />
+          <span className="text-blue-400 font-bold">Rezervasyonlarım</span> ekranından takip edebilirsin.
+        </p>
+        <div className="w-full max-w-xs bg-surface border border-white/8 rounded-2xl p-4 mb-6 text-left space-y-2">
+          <SRow icon="stadium" label={venue.name} />
+          <SRow icon="calendar_today" label={activeDate.displayDate} />
+          <SRow icon="schedule" label={`${activeSlot.startTime} – ${activeSlot.endTime} (${duration} dk)`} />
+          <div className="flex items-center gap-2 mt-2 p-2 bg-blue-500/8 rounded-xl border border-blue-500/20">
+            <Icon name="info" size={13} className="text-blue-400" />
+            <span className="text-[10px] text-blue-300">Slot DOLU. Sıradaki kişisin.</span>
+          </div>
+        </div>
+        <button onClick={onBack} className="w-full max-w-xs bg-surface border border-white/10 py-4 rounded-2xl text-white font-bold">
+          Ana Sayfaya Dön
+        </button>
+      </div>
+    );
+  }
+
   // ── Processing screen ──────────────────────────────────────────────────────
   if (step === 'processing') {
     return (
@@ -465,7 +506,12 @@ export const BookingScreen: React.FC<BookingScreenProps> = ({
                       slot={slot}
                       selected={selectedSlotId === slot.id}
                       isWeekend={activeDate.isWeekend}
+                      alreadyWaiting={isAlreadyWaiting(slot.startTime)}
                       onSelect={() => slot.status !== 'blocked' && setSelectedSlotId(slot.id)}
+                      onJoinWaitlist={onJoinWaitlist && slot.status === 'blocked' ? () => {
+                        onJoinWaitlist(venue.id, venue.name, activeDate.isoDate, slot.startTime, duration);
+                        setWaitlistSuccess(true);
+                      } : undefined}
                     />
                   ))}
                 </div>
@@ -656,8 +702,10 @@ const SlotCard: React.FC<{
   slot: SlotItem;
   selected: boolean;
   isWeekend: boolean;
+  alreadyWaiting?: boolean;
   onSelect: () => void;
-}> = ({ slot, selected, isWeekend, onSelect }) => {
+  onJoinWaitlist?: () => void;
+}> = ({ slot, selected, isWeekend, alreadyWaiting, onSelect, onJoinWaitlist }) => {
   const isPrime = slot.startMin / 60 >= 18;
   const statusMap = {
     available: { cls: selected ? 'bg-primary/10 border-primary shadow-[0_0_12px_rgba(16,185,129,0.2)]' : 'bg-surface border-white/5 hover:border-white/20 active:scale-[0.97]', label: 'BOŞ', labelCls: 'bg-green-500/15 text-green-400' },
@@ -688,6 +736,21 @@ const SlotCard: React.FC<{
         </div>
         <span className={`text-[9px] font-black px-1.5 py-0.5 rounded-md ${s.labelCls}`}>{s.label}</span>
       </div>
+
+      {/* Waitlist button for blocked slots */}
+      {slot.status === 'blocked' && onJoinWaitlist && (
+        <button
+          onClick={e => { e.stopPropagation(); onJoinWaitlist(); }}
+          className={`mt-2 w-full py-1.5 rounded-lg text-[9px] font-black border transition-all ${
+            alreadyWaiting
+              ? 'bg-blue-500/10 border-blue-500/20 text-blue-400 cursor-default'
+              : 'bg-white/5 border-white/15 text-slate-300 hover:bg-blue-500/10 hover:border-blue-500/20 hover:text-blue-400'
+          }`}
+          disabled={alreadyWaiting}
+        >
+          {alreadyWaiting ? '✓ Waitlist\'tesiniz' : '+ Waitlist\'e Gir'}
+        </button>
+      )}
     </button>
   );
 };

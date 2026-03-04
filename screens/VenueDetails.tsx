@@ -216,13 +216,22 @@ export const VenueDetails: React.FC<VenueDetailsProps> = ({ venueId, venues, onB
       {/* Floating Call/Book Button */}
       {(!canManage || activeTab === 'info') && (
          <div className="fixed bottom-0 left-0 right-0 p-4 bg-secondary/90 backdrop-blur-xl border-t border-white/5 safe-bottom z-40">
-            <button 
-               onClick={() => onNavigate('booking', { id: venueId })}
-               className="w-full bg-primary hover:bg-green-400 text-secondary py-4 rounded-2xl font-bold flex items-center justify-center gap-2 shadow-glow transition-all active:scale-[0.98]"
-            >
-               <Icon name="calendar_month" />
-               Hemen Rezerve Et
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={() => onNavigate('myReservations')}
+                className="flex-shrink-0 w-12 h-14 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 transition-all"
+                title="Rezervasyonlarım"
+              >
+                <Icon name="event_note" size={20} />
+              </button>
+              <button 
+                onClick={() => onNavigate('booking', { id: venueId })}
+                className="flex-1 bg-primary hover:bg-green-400 text-secondary py-4 rounded-2xl font-bold flex items-center justify-center gap-2 shadow-glow transition-all active:scale-[0.98]"
+              >
+                <Icon name="calendar_month" />
+                Hemen Rezerve Et
+              </button>
+            </div>
          </div>
       )}
     </div>

@@ -6,14 +6,14 @@ import { MobileHeader } from './components/MobileHeader';
 import { InstallBanner } from './components/InstallBanner';
 import { useViewportHeight } from './hooks/useMobileFeatures';
 import { useViewportHeightFix } from './hooks/useIOSScrollFix';
-import { ScreenName, Venue, Player, Payment, Transaction, SubscriptionTier, RsvpStatus, Match, TransferRequest, Poll, TeamProfile, JoinRequest, Reservation, AppNotification } from './types';
+import { ScreenName, Venue, Player, Payment, Transaction, SubscriptionTier, RsvpStatus, Match, TransferRequest, Poll, TeamProfile, JoinRequest, Reservation, AppNotification, WaitlistEntry, AuditEvent, AlternativeSlotOffer, Role, PERMS } from './types';
 import { Dashboard } from './screens/Dashboard';
 import { TeamList } from './screens/TeamList';
 import { MatchDetails } from './screens/MatchDetails';
 import { MatchCard } from './components/MatchCard'; 
 import { Header } from './components/Header';
 import { Icon } from './components/Icon';
-import { MOCK_MATCHES, MOCK_VENUES, MOCK_PLAYERS, MOCK_PAYMENTS, MOCK_TRANSACTIONS, MOCK_POLLS, MOCK_RESERVATIONS, MOCK_TALENT_POOL, MOCK_NOTIFICATIONS } from './constants';
+import { MOCK_MATCHES, MOCK_VENUES, MOCK_PLAYERS, MOCK_PAYMENTS, MOCK_TRANSACTIONS, MOCK_POLLS, MOCK_RESERVATIONS, MOCK_TALENT_POOL, MOCK_NOTIFICATIONS, MOCK_WAITLIST, MOCK_AUDIT } from './constants';
 import { PaymentLedger } from './screens/PaymentLedger';
 import { AdminDashboard } from './screens/AdminDashboard';
 import { MemberManagement } from './screens/MemberManagement';
@@ -45,17 +45,20 @@ import { TeamSetup } from './screens/TeamSetup';
 import { EditProfileScreen } from './screens/EditProfileScreen';
 // VENUE OWNER SCREENS
 import { VenueOwnerDashboard } from './screens/VenueOwnerDashboard';
-import { VenueOwnerOnboarding } from './screens/VenueOwnerOnboarding';
-import { VenueSettings } from './screens/VenueSettings';
 import { ReservationManagement } from './screens/ReservationManagement';
 import { ReservationDetails } from './screens/ReservationDetails';
 import { VenueCalendar } from './screens/VenueCalendar';
+import { VenueOwnerOnboarding } from './screens/VenueOwnerOnboarding';
+import { VenueSettings } from './screens/VenueSettings';
 import { VenueFinancialReports } from './screens/VenueFinancialReports';
 import { CustomerManagement } from './screens/CustomerManagement';
 // SCOUT SYSTEM SCREENS
 import { ScoutDashboard } from './screens/ScoutDashboard';
 import { TalentPool } from './screens/TalentPool';
 import { ScoutReports } from './screens/ScoutReports';
+import { MyReservations } from './screens/MyReservations';
+import { AuditLog } from './screens/AuditLog';
+import { VenueAnalytics } from './screens/VenueAnalytics';
 // 🧠 NEURO-CORE INTEGRATION
 import { useSynapseTracking, useActionTracker } from './hooks/useNeuroCore';
 
@@ -96,6 +99,8 @@ function App() {
   const [transactions, setTransactions] = useState<Transaction[]>(MOCK_TRANSACTIONS);
   const [polls, setPolls] = useState<Poll[]>(MOCK_POLLS);
   const [reservations, setReservations] = useState<Reservation[]>(MOCK_RESERVATIONS); // VENUE OWNER
+  const [waitlist, setWaitlist] = useState<WaitlistEntry[]>(MOCK_WAITLIST);
+  const [audit, setAudit] = useState<AuditEvent[]>(MOCK_AUDIT);
   const [talentPool, setTalentPool] = useState<any[]>(MOCK_TALENT_POOL); // SCOUT SYSTEM
   
   // Additional States
@@ -144,10 +149,8 @@ function App() {
     const user = MOCK_PLAYERS.find(p => p.id === userId);
     
     if (user) {
-      // User found - Log in with their role; auth stack temizlensin, gereksiz geri dönüş olmasın
       setCurrentUser(user);
       setScreenHistory([]);
-      // Giriş yapan kullanıcının takımını gösterebilmek için varsayılan takım (henüz takım kurulmadıysa)
       setTeamProfile(prev => prev ?? {
         id: 'default',
         name: 'Sahada FC',
@@ -158,39 +161,38 @@ function App() {
         inviteCode: 'SAHADA-2024'
       });
       
-      // Sabit Test Senaryoları:
       if (userId === '1') {
-        // Admin (Ahmet Yılmaz)
         console.log('✅ Yönetici olarak giriş yapıldı:', user.name);
         setCurrentScreen('dashboard');
       } else if (userId === '7') {
-        // Kaptan (Burak Yılmaz)
         console.log('✅ Kaptan olarak giriş yapıldı:', user.name);
         setCurrentScreen('dashboard');
       } else if (userId === '2') {
-        // Üye (Mehmet Demir)
         console.log('✅ Üye olarak giriş yapıldı:', user.name);
         setCurrentScreen('dashboard');
       } else if (user.role === 'venue_owner') {
-        // Saha Sahibi
         console.log('🏟️ Saha sahibi olarak giriş yapıldı:', user.name);
         setCurrentScreen('venueOwnerDashboard');
+      } else if (user.role === 'venue_staff') {
+        console.log('🧑‍💼 Saha personeli olarak giriş yapıldı:', user.name);
+        setCurrentScreen('venueOwnerDashboard');
+      } else if (user.role === 'venue_accountant') {
+        console.log('📊 Saha muhasebecisi olarak giriş yapıldı:', user.name);
+        setCurrentScreen('venueAnalytics');
       } else {
-        // Diğer mevcut kullanıcılar
         console.log('✅ Giriş yapıldı:', user.name);
         setCurrentScreen('dashboard');
       }
     } else if (userId.startsWith('new_venue_owner_')) {
-      // Yeni saha sahibi → onboarding sihirbazı
+      // New venue owner → onboarding wizard
       const phone = userId.replace('new_venue_owner_', '');
       setPendingPhone(phone);
       setPendingUserType('venue_owner');
       setScreenHistory([]);
       setCurrentScreen('venueOwnerOnboarding');
     } else if (isNewTeam) {
-      // Yeni takım kuruluyor - admin olarak giriş
       const newAdmin: Player = {
-        id: userId, // Unique ID with timestamp
+        id: userId,
         name: 'Yeni Yönetici',
         position: 'MID',
         rating: 7.0,
@@ -199,14 +201,15 @@ function App() {
         role: 'admin',
         isCaptain: true,
         tier: 'free',
-        phone: userId.replace('new_admin_', '') // Telefon numarasını kaydet
       };
       setCurrentUser(newAdmin);
-      console.log('✅ Yeni takım kurucusu oluşturuldu:', newAdmin);
       setScreenHistory(prev => [...prev, 'login']);
       setCurrentScreen('teamSetup');
+    } else if (userId.startsWith('new_player_')) {
+      // New player → profile setup
+      setScreenHistory(prev => [...prev, 'login']);
+      setCurrentScreen('createProfile');
     } else {
-      // Bilinmeyen kullanıcı - profil oluşturma ekranına yönlendir (geri = login)
       console.log('❌ Kullanıcı bulunamadı, profil oluşturma ekranına yönlendiriliyor...');
       setScreenHistory(prev => [...prev, 'login']);
       setCurrentScreen('createProfile');
@@ -591,18 +594,115 @@ function App() {
     }
   };
 
-  // 17. FIX #9: BOOKING (REZERVASYON) TAMAMLAMA
-  const handleBooking = (newMatch: Match) => {
-    console.log('📅 Rezervasyon tamamlanıyor:', newMatch);
-    setMatches(prev => [...prev, newMatch]);
-    console.log('✅ Maç oluşturuldu ve takvime eklendi!');
-    navigateTo('dashboard');
-  };
+  // ── AUDIT HELPER ──────────────────────────────────────────────────────────
+  const addAudit = React.useCallback((
+    entityType: AuditEvent['entityType'],
+    entityId: string,
+    action: string,
+    meta?: Record<string, unknown>
+  ) => {
+    if (!currentUser) return;
+    setAudit(prev => [{
+      id: `aud_${Date.now()}`,
+      at: new Date().toISOString(),
+      actorUserId: currentUser.id,
+      actorName: currentUser.name,
+      actorRole: (currentUser.role ?? 'member') as Role,
+      entityType,
+      entityId,
+      action,
+      meta,
+    }, ...prev]);
+  }, [currentUser]);
 
-  // Rezervasyon oluşturma (BookingScreen – saha rezervasyonu)
-  const handleCreateReservation = (reservation: Reservation) => {
-    setReservations(prev => [...prev, reservation]);
-    console.log('✅ Rezervasyon talebi oluşturuldu.');
+  // ── AUTO-EXPIRE: hold süresi dolan pending rezervasyonları iptal et ──────────
+  React.useEffect(() => {
+    const interval = setInterval(() => {
+      const now = new Date().toISOString();
+
+      // 1) Hold-expired reservations → auto-cancel
+      setReservations(prev => prev.map(r => {
+        if (
+          r.status === 'pending' &&
+          r.paymentStatus !== 'paid' &&
+          r.holdExpiresAt &&
+          r.holdExpiresAt < now
+        ) {
+          console.log('⏰ Hold süresi doldu, rezervasyon iptal ediliyor:', r.id);
+          return { ...r, status: 'cancelled' as const, cancelReason: 'Ödeme süresi doldu', cancelledAt: now };
+        }
+        return r;
+      }));
+
+      // 2) Waitlist: expire offered entries whose offerExpiresAt passed
+      setWaitlist(prev => prev.map(w => {
+        if (w.status === 'offered' && w.offerExpiresAt && w.offerExpiresAt < now) {
+          console.log('⏰ Waitlist teklifi süresi doldu:', w.id);
+          return { ...w, status: 'expired' as const };
+        }
+        return w;
+      }));
+
+      // 3) Waitlist: auto-offer next waiting entry for freed slots
+      setWaitlist(prev => {
+        // Group by slot key
+        const slots = new Map<string, WaitlistEntry[]>();
+        for (const w of prev) {
+          if (w.status !== 'waiting') continue;
+          const key = `${w.venueId}|${w.date}|${w.startTime}|${w.durationMinutes}`;
+          if (!slots.has(key)) slots.set(key, []);
+          slots.get(key)!.push(w);
+        }
+        const updates = new Map<string, Partial<WaitlistEntry>>();
+
+        slots.forEach((entries, key) => {
+          const [venueId, date, startTime, durStr] = key.split('|');
+          const dur = Number(durStr);
+          // Check if any offered exists already for this slot
+          const alreadyOffered = prev.some(
+            w => w.status === 'offered' &&
+              w.venueId === venueId && w.date === date &&
+              w.startTime === startTime && w.durationMinutes === dur
+          );
+          if (alreadyOffered) return;
+
+          // Check slot availability from reservations (access via closure — will use functional update)
+          // We'll do a rough check: sort by createdAt and offer the first one
+          const sorted = [...entries].sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+          if (sorted.length > 0) {
+            updates.set(sorted[0].id, {
+              status: 'offered',
+              offeredAt: now,
+              offerExpiresAt: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
+            });
+          }
+        });
+
+        if (updates.size === 0) return prev;
+        return prev.map(w => updates.has(w.id) ? { ...w, ...updates.get(w.id) } : w);
+      });
+
+      // 4) Alternative offer expiry
+      setReservations(prev => prev.map(r => {
+        if (r.alternativeOffer?.status === 'offered' && r.alternativeOffer.expiresAt < now) {
+          return { ...r, alternativeOffer: { ...r.alternativeOffer, status: 'expired' as const } };
+        }
+        return r;
+      }));
+
+    }, 60_000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // 17. FIX #9: BOOKING (REZERVASYON) TAMAMLAMA
+  const handleCreateReservation = (newReservation: Reservation) => {
+    console.log('📅 Rezervasyon talebi oluşturuluyor:', newReservation.id);
+    setReservations(prev => [...prev, newReservation]);
+    addAudit('reservation', newReservation.id, 'RESERVATION_CREATED', {
+      venueId: newReservation.venueId, venueName: newReservation.venueName,
+      price: newReservation.price, paymentMethod: newReservation.paymentMethod,
+    });
+    console.log('✅ Rezervasyon talebi oluşturuldu → Saha onayı bekleniyor');
     navigateTo('dashboard');
   };
 
@@ -673,49 +773,270 @@ function App() {
     console.log('✅ Gelir kaydedildi!');
   };
 
-  // VENUE OWNER HANDLERS
-  // Rezervasyon onaylama
+  // Rezervasyon onaylama — onay sonrası takım tarafında Match oluşturur
   const handleApproveReservation = (reservationId: string) => {
     console.log('✅ Rezervasyon onaylanıyor:', reservationId);
-    setReservations(prev => prev.map(r => 
-      r.id === reservationId 
-        ? { ...r, status: 'confirmed' as const, confirmedAt: new Date().toISOString() }
-        : r
-    ));
-    console.log('Rezervasyon onaylandı! Takıma bildirim gönderildi.');
+    setReservations(prev => prev.map(r => {
+      if (r.id !== reservationId) return r;
+      const newMatch: Match = {
+        id: `match_res_${r.id}`,
+        date: r.date,
+        time: r.startTime,
+        location: r.venueName,
+        venueId: r.venueId,
+        status: 'upcoming',
+        pricePerPerson: Math.round(r.price / (r.participants || 14)),
+        opponent: 'Rakip Aranıyor',
+      };
+      setMatches(prev => [...prev, newMatch]);
+      addAudit('reservation', r.id, 'RESERVATION_APPROVED', {
+        teamName: r.teamName, venueName: r.venueName, date: r.date, startTime: r.startTime,
+      });
+      console.log('📅 Onay sonrası maç takvime eklendi:', newMatch.id);
+      return { ...r, status: 'confirmed' as const, confirmedAt: new Date().toISOString() };
+    }));
+    console.log('Rezervasyon onaylandı!');
   };
 
-  // Rezervasyon reddetme
+  // Rezervasyon reddetme — ödenmişse iade et
   const handleRejectReservation = (reservationId: string, reason: string) => {
     console.log('❌ Rezervasyon reddediliyor:', reservationId, 'Neden:', reason);
-    setReservations(prev => prev.map(r => 
-      r.id === reservationId 
-        ? { 
-            ...r, 
-            status: 'cancelled' as const, 
-            cancelledAt: new Date().toISOString(),
-            cancelReason: reason,
-            paymentStatus: 'refunded' as const
-          }
-        : r
-    ));
+    setReservations(prev => prev.map(r => {
+      if (r.id !== reservationId) return r;
+      const wasRefunded = r.paymentStatus === 'paid';
+      addAudit('reservation', r.id, 'RESERVATION_REJECTED', { reason, wasRefunded });
+      return {
+        ...r,
+        status: 'cancelled' as const,
+        cancelledAt: new Date().toISOString(),
+        cancelReason: reason,
+        paymentStatus: wasRefunded ? ('refunded' as const) : r.paymentStatus,
+        ...(wasRefunded ? { refundedAt: new Date().toISOString(), refundedAmount: r.depositAmount || 0 } : {}),
+      };
+    }));
     console.log('Rezervasyon reddedildi. Müşteriye bildirim gönderildi.');
   };
 
-  // Saha ayarlarını güncelle (VenueSettings)
+  // Saha ayarlarını güncelle (VenueSettings → immutable update)
   const handleUpdateVenue = (venueId: string, updates: Partial<Venue>) => {
-    setVenues(prev => prev.map(v =>
-      v.id === venueId ? { ...v, ...updates } : v
-    ));
+    console.log('🏟️ Saha güncelleniyor:', venueId, updates);
+    setVenues(prev => prev.map(v => v.id === venueId ? { ...v, ...updates } : v));
+    addAudit('venue', venueId, 'VENUE_SETTINGS_SAVED', { fields: Object.keys(updates) });
+    console.log('✅ Saha ayarları kaydedildi.');
   };
 
-  // Rezervasyon ödeme onayı (saha sahibi)
+  // Ödeme onaylama
   const handleMarkReservationPaid = (reservationId: string) => {
+    console.log('💳 Kapora ödeme onaylanıyor:', reservationId);
     setReservations(prev => prev.map(r =>
       r.id === reservationId
         ? { ...r, paymentStatus: 'paid' as const, depositPaidAt: new Date().toISOString(), holdExpiresAt: undefined }
         : r
     ));
+    addAudit('reservation', reservationId, 'RESERVATION_PAYMENT_CONFIRMED');
+    console.log('✅ Kapora onaylandı → Hard block aktif');
+  };
+
+  // ── WAITLIST HANDLERS ──────────────────────────────────────────────────────
+  const handleJoinWaitlist = (
+    venueId: string,
+    venueName: string,
+    date: string,
+    startTime: string,
+    durationMinutes: number,
+  ) => {
+    if (!currentUser) return;
+    // Check not already in waitlist
+    const existing = waitlist.find(
+      w => w.venueId === venueId && w.date === date && w.startTime === startTime &&
+           w.durationMinutes === durationMinutes && w.createdByUserId === currentUser.id &&
+           (w.status === 'waiting' || w.status === 'offered')
+    );
+    if (existing) { console.log('Zaten waitlist\'tesiniz'); return; }
+    const entry: WaitlistEntry = {
+      id: `wl_${Date.now()}`,
+      venueId,
+      venueName,
+      date,
+      startTime,
+      durationMinutes,
+      createdByUserId: currentUser.id,
+      createdByName: currentUser.name,
+      status: 'waiting',
+      createdAt: new Date().toISOString(),
+    };
+    setWaitlist(prev => [...prev, entry]);
+    addAudit('waitlist', entry.id, 'WAITLIST_JOINED', { venueId, date, startTime });
+    console.log('✅ Waitlist\'e eklendi:', entry.id);
+    navigateTo('myReservations');
+  };
+
+  const handleAcceptWaitlistOffer = (
+    waitlistEntryId: string,
+    payMethod: 'credit_card' | 'bank_transfer' | 'cash'
+  ) => {
+    if (!currentUser) return;
+    const entry = waitlist.find(w => w.id === waitlistEntryId);
+    if (!entry || entry.status !== 'offered') return;
+
+    const now = new Date().toISOString();
+    const HOLD_MIN = 15;
+    const holdExpiresAt = new Date(Date.now() + HOLD_MIN * 60 * 1000).toISOString();
+
+    // Price from venue
+    const venue = venues.find(v => v.id === entry.venueId);
+    const price = venue?.price ?? 1200;
+    const isWeekend = [0, 6].includes(new Date(`${entry.date}T12:00:00`).getDay());
+    const startHour = parseInt(entry.startTime.split(':')[0]);
+    const isPrime = startHour >= 18;
+    const depositRequired = isPrime || isWeekend;
+    const depositAmount = depositRequired ? Math.max(200, Math.min(500, Math.round(price * 0.2 / 10) * 10)) : 0;
+    const paymentStatus = payMethod === 'credit_card' ? 'paid' as const : 'pending' as const;
+
+    const reservation: Reservation = {
+      id: `res_wl_${Date.now()}`,
+      venueId: entry.venueId,
+      venueName: entry.venueName,
+      teamId: teamProfile?.id,
+      teamName: teamProfile?.name || currentUser.name,
+      date: entry.date,
+      startTime: entry.startTime,
+      endTime: (() => {
+        const [h, m] = entry.startTime.split(':').map(Number);
+        const endMin = h * 60 + m + entry.durationMinutes;
+        return `${String(Math.floor(endMin / 60) % 24).padStart(2, '0')}:${String(endMin % 60).padStart(2, '0')}`;
+      })(),
+      duration: entry.durationMinutes,
+      price,
+      status: 'pending',
+      participants: 14,
+      contactPerson: currentUser.name,
+      contactPhone: currentUser.contactNumber || '',
+      createdAt: now,
+      createdByUserId: currentUser.id,
+      paymentStatus,
+      paymentMethod: payMethod,
+      depositRequired,
+      depositAmount,
+      depositPaidAt: payMethod === 'credit_card' && depositRequired ? now : undefined,
+      holdExpiresAt: payMethod !== 'credit_card' ? holdExpiresAt : undefined,
+      waitlistEntryId: entry.id,
+      cancellationPolicy: { freeCancelUntilHours: 24, latePenaltyPercent: 100 },
+    };
+
+    setReservations(prev => [...prev, reservation]);
+    setWaitlist(prev => prev.map(w =>
+      w.id === waitlistEntryId
+        ? { ...w, status: 'accepted' as const, acceptedAt: now, reservationId: reservation.id }
+        : w
+    ));
+    addAudit('waitlist', entry.id, 'WAITLIST_OFFER_ACCEPTED', { reservationId: reservation.id });
+    console.log('✅ Waitlist teklifi kabul edildi, rezervasyon oluşturuldu:', reservation.id);
+  };
+
+  const handleCancelWaitlist = (waitlistEntryId: string) => {
+    setWaitlist(prev => prev.map(w =>
+      w.id === waitlistEntryId
+        ? { ...w, status: 'cancelled' as const, cancelledAt: new Date().toISOString() }
+        : w
+    ));
+    addAudit('waitlist', waitlistEntryId, 'WAITLIST_CANCELLED');
+  };
+
+  // ── ALTERNATIVE SLOT OFFER HANDLERS ─────────────────────────────────────
+  const handleProposeAlternative = (
+    reservationId: string,
+    alternatives: AlternativeSlotOffer['alternatives']
+  ) => {
+    if (!currentUser) return;
+    const offer: AlternativeSlotOffer = {
+      id: `altoff_${Date.now()}`,
+      proposedByUserId: currentUser.id,
+      proposedAt: new Date().toISOString(),
+      expiresAt: new Date(Date.now() + 6 * 60 * 60 * 1000).toISOString(),
+      alternatives,
+      status: 'offered',
+    };
+    setReservations(prev => prev.map(r =>
+      r.id === reservationId ? { ...r, alternativeOffer: offer } : r
+    ));
+    addAudit('reservation', reservationId, 'ALTERNATIVE_OFFER_PROPOSED', {
+      count: alternatives.length,
+    });
+    console.log('✅ Alternatif teklif gönderildi:', reservationId);
+  };
+
+  const handleAcceptAlternative = (reservationId: string, altIndex: number) => {
+    setReservations(prev => prev.map(r => {
+      if (r.id !== reservationId || !r.alternativeOffer) return r;
+      const alt = r.alternativeOffer.alternatives[altIndex];
+      if (!alt) return r;
+      const endMin = (() => {
+        const [h, m] = alt.startTime.split(':').map(Number);
+        return h * 60 + m + alt.durationMinutes;
+      })();
+      const endTime = `${String(Math.floor(endMin / 60) % 24).padStart(2, '0')}:${String(endMin % 60).padStart(2, '0')}`;
+      addAudit('reservation', r.id, 'ALTERNATIVE_ACCEPTED', { altIndex, newDate: alt.date, newStart: alt.startTime });
+      return {
+        ...r,
+        date: alt.date,
+        startTime: alt.startTime,
+        endTime,
+        duration: alt.durationMinutes,
+        price: alt.price,
+        alternativeOffer: {
+          ...r.alternativeOffer,
+          status: 'accepted' as const,
+          acceptedAlternativeIndex: altIndex,
+          acceptedAt: new Date().toISOString(),
+        },
+      };
+    }));
+  };
+
+  const handleRejectAlternative = (reservationId: string) => {
+    setReservations(prev => prev.map(r =>
+      r.id === reservationId && r.alternativeOffer
+        ? { ...r, alternativeOffer: { ...r.alternativeOffer, status: 'rejected' as const } }
+        : r
+    ));
+    addAudit('reservation', reservationId, 'ALTERNATIVE_REJECTED');
+  };
+
+  // ── USER CANCEL RESERVATION ───────────────────────────────────────────────
+  const handleUserCancelReservation = (reservationId: string, reason: string) => {
+    setReservations(prev => prev.map(r => {
+      if (r.id !== reservationId) return r;
+      const now = new Date();
+      const resStart = new Date(`${r.date}T${r.startTime}:00`);
+      const hoursUntil = (resStart.getTime() - now.getTime()) / (1000 * 60 * 60);
+      const policy = r.cancellationPolicy ?? { freeCancelUntilHours: 24, latePenaltyPercent: 100 };
+      const wasPaid = r.paymentStatus === 'paid';
+      let refundedAmount = 0;
+      let penaltyAmount = 0;
+
+      if (wasPaid && r.depositAmount) {
+        if (hoursUntil >= policy.freeCancelUntilHours) {
+          refundedAmount = r.depositAmount;
+        } else {
+          penaltyAmount = Math.round(r.depositAmount * policy.latePenaltyPercent / 100);
+          refundedAmount = r.depositAmount - penaltyAmount;
+        }
+      }
+      addAudit('reservation', r.id, 'RESERVATION_USER_CANCELLED', {
+        reason, refundedAmount, penaltyAmount, hoursUntil: Math.round(hoursUntil),
+      });
+      return {
+        ...r,
+        status: 'cancelled' as const,
+        cancelledAt: now.toISOString(),
+        cancelReason: reason,
+        paymentStatus: refundedAmount > 0 ? ('refunded' as const) : r.paymentStatus,
+        refundedAmount: refundedAmount > 0 ? refundedAmount : undefined,
+        penaltyAmount: penaltyAmount > 0 ? penaltyAmount : undefined,
+        refundedAt: refundedAmount > 0 ? now.toISOString() : undefined,
+      };
+    }));
   };
 
   // =========================================== 
@@ -930,6 +1251,7 @@ function App() {
               goBack();
             }}
             onComplete={(newOwner, newVenue) => {
+              // Add the new owner and venue to state
               setPlayers(prev => [...prev, newOwner]);
               setVenues(prev => [...prev, newVenue]);
               setCurrentUser(newOwner);
@@ -1260,13 +1582,15 @@ function App() {
         }
         return (
           <BookingScreen 
-            venueId={venueDetailsId || venues[0]?.id || ''}
+            onBack={goBack}
             venues={venues}
-            existingReservations={reservations}
+            venueId={venueDetailsId || venues[0]?.id}
             currentUser={currentUser}
             teamProfile={teamProfile}
-            onBack={goBack}
+            existingReservations={reservations}
+            existingWaitlist={waitlist}
             onCreateReservation={handleCreateReservation}
+            onJoinWaitlist={handleJoinWaitlist}
           />
         );
 
@@ -1442,7 +1766,7 @@ function App() {
 
       // ========== VENUE OWNER SCREENS ==========
       case 'venueOwnerDashboard':
-        if (!currentUser || currentUser.role !== 'venue_owner') {
+        if (!currentUser || !(['venue_owner','venue_staff','venue_accountant'] as string[]).includes(currentUser.role ?? '')) {
           navigateTo('login');
           return null;
         }
@@ -1457,7 +1781,7 @@ function App() {
         );
 
       case 'reservationManagement':
-        if (!currentUser || currentUser.role !== 'venue_owner') {
+        if (!currentUser || !(['venue_owner','venue_staff','venue_accountant'] as string[]).includes(currentUser.role ?? '')) {
           navigateTo('login');
           return null;
         }
@@ -1493,11 +1817,15 @@ function App() {
             onApprove={handleApproveReservation}
             onReject={handleRejectReservation}
             onMarkPaid={handleMarkReservationPaid}
+            onProposeAlternative={handleProposeAlternative}
+            currentUser={currentUser}
+            venues={venues}
+            existingReservations={reservations}
           />
         );
 
       case 'venueCalendar':
-        if (!currentUser || currentUser.role !== 'venue_owner') {
+        if (!currentUser || !(['venue_owner','venue_staff','venue_accountant'] as string[]).includes(currentUser.role ?? '')) {
           navigateTo('login');
           return null;
         }
@@ -1510,14 +1838,14 @@ function App() {
         );
 
       case 'venueFinancialReports':
-        if (!currentUser || currentUser.role !== 'venue_owner') {
+        if (!currentUser || !(['venue_owner','venue_accountant'] as string[]).includes(currentUser.role ?? '')) {
           navigateTo('login');
           return null;
         }
         return <VenueFinancialReports currentUser={currentUser} onBack={goBack} />;
 
       case 'customerManagement':
-        if (!currentUser || currentUser.role !== 'venue_owner') {
+        if (!currentUser || !(['venue_owner','venue_staff','venue_accountant'] as string[]).includes(currentUser.role ?? '')) {
           navigateTo('login');
           return null;
         }
@@ -1546,6 +1874,58 @@ function App() {
             />
           );
         }
+
+      case 'auditLog':
+        if (!currentUser || !['venue_owner', 'venue_accountant'].includes(currentUser.role ?? '')) {
+          navigateTo('login');
+          return null;
+        }
+        return (
+          <AuditLog
+            events={audit}
+            onBack={goBack}
+            currentUser={currentUser}
+          />
+        );
+
+      case 'venueAnalytics':
+        if (!currentUser || !['venue_owner', 'venue_accountant'].includes(currentUser.role ?? '')) {
+          navigateTo('login');
+          return null;
+        }
+        {
+          const ownerVenues = venues.filter(v =>
+            (currentUser.venueOwnerInfo?.venueIds || []).includes(v.id)
+          );
+          return (
+            <VenueAnalytics
+              venues={ownerVenues}
+              reservations={reservations}
+              onBack={goBack}
+              onNavigate={navigateTo}
+            />
+          );
+        }
+
+      case 'myReservations':
+        if (!currentUser) {
+          navigateTo('login');
+          return null;
+        }
+        return (
+          <MyReservations
+            currentUser={currentUser}
+            reservations={reservations}
+            waitlist={waitlist}
+            onBack={goBack}
+            onCancelReservation={handleUserCancelReservation}
+            onAcceptWaitlistOffer={handleAcceptWaitlistOffer}
+            onCancelWaitlist={handleCancelWaitlist}
+            onAcceptAlternative={handleAcceptAlternative}
+            onRejectAlternative={handleRejectAlternative}
+            onNavigate={navigateTo}
+          />
+        );
 
       // ========== SCOUT SYSTEM ==========
       case 'scoutDashboard':
@@ -1624,8 +2004,10 @@ function App() {
     'welcome', 'login', 'createProfile', 'teamSetup',
     'dashboard', 'profile', 'settings', 'matchDetails',
     'booking', 'venueDetails', 'editProfile',
-    'venueOwnerDashboard', 'venueOwnerOnboarding', 'reservationManagement', 'reservationDetails',
-    'venueSettings', 'scoutDashboard', 'talentPool', 'scoutReports'
+    'venueOwnerDashboard', 'reservationManagement', 'reservationDetails',
+    'venueSettings', 'venueCalendar', 'venueFinancialReports', 'customerManagement',
+    'scoutDashboard', 'talentPool', 'scoutReports',
+    'myReservations', 'auditLog', 'venueAnalytics',
   ];
 
   // Screens where BottomNav should be visible
@@ -1714,14 +2096,17 @@ function getScreenTitle(screen: ScreenName): string {
     joinTeam: 'Takıma Katıl',
     venueOwnerDashboard: 'Saha Yönetimi',
     reservationManagement: 'Rezervasyonlar',
-    venueSettings: 'Saha Ayarları',
     reservationDetails: 'Rezervasyon Detayı',
     venueCalendar: 'Saha Takvimi',
     venueFinancialReports: 'Saha Finansları',
     customerManagement: 'Müşteri Yönetimi',
+    venueSettings: 'Saha Ayarları',
     scoutDashboard: 'Scout Paneli',
     talentPool: 'Yetenek Havuzu',
     scoutReports: 'Scout Raporları',
+    myReservations: 'Rezervasyonlarım',
+    auditLog: 'Audit Log',
+    venueAnalytics: 'Saha Analitikleri',
   };
   return titles[screen] || 'Sahada';
 }

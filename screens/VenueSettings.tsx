@@ -40,7 +40,7 @@ const STATUS_OPTIONS: { value: Venue['status']; label: string; color: string; ic
   { value: 'maintenance', label: 'Bakımda',     color: 'border-yellow-500/40 bg-yellow-500/10 text-yellow-400', icon: 'build' },
 ];
 
-const TABS = ['Genel', 'Fiyatlar', 'Çalışma Saatleri'] as const;
+const TABS = ['Genel', 'Fiyatlar', 'Çalışma Saatleri', 'İptal Politikası'] as const;
 type Tab = typeof TABS[number];
 
 export const VenueSettings: React.FC<VenueSettingsProps> = ({ venues, onBack, onSave }) => {
@@ -65,6 +65,11 @@ export const VenueSettings: React.FC<VenueSettingsProps> = ({ venues, onBack, on
     ...(venue?.workingHours || {}),
   });
 
+  const [cancelPolicy, setCancelPolicy] = useState({
+    freeCancelUntilHours: venue?.cancellationPolicy?.freeCancelUntilHours ?? 24,
+    latePenaltyPercent: venue?.cancellationPolicy?.latePenaltyPercent ?? 100,
+  });
+
   // Sync when venue changes
   useEffect(() => {
     if (!venue) return;
@@ -73,6 +78,10 @@ export const VenueSettings: React.FC<VenueSettingsProps> = ({ venues, onBack, on
     setEmail(venue.email || '');
     setPricing({ ...DEFAULT_PRICING, ...(venue.pricing || {}) });
     setWorkingHours({ ...DEFAULT_WORKING_HOURS, ...(venue.workingHours || {}) });
+    setCancelPolicy({
+      freeCancelUntilHours: venue.cancellationPolicy?.freeCancelUntilHours ?? 24,
+      latePenaltyPercent: venue.cancellationPolicy?.latePenaltyPercent ?? 100,
+    });
     setSaveSuccess(false);
   }, [selectedVenueId]);
 
@@ -95,6 +104,7 @@ export const VenueSettings: React.FC<VenueSettingsProps> = ({ venues, onBack, on
       email: email.trim() || undefined,
       pricing,
       workingHours,
+      cancellationPolicy: cancelPolicy,
       updatedAt: new Date().toISOString(),
     };
     onSave(selectedVenueId, updates);
@@ -269,6 +279,60 @@ export const VenueSettings: React.FC<VenueSettingsProps> = ({ venues, onBack, on
               </div>
             </Section>
             <InfoBox icon="info" text="Kapalı günlerde rezervasyon alınmaz. Değişiklikler anında geçerli olur." color="blue" />
+          </>
+        )}
+
+        {activeTab === 'İptal Politikası' && (
+          <>
+            <Section title="İptal Kuralları" icon="policy">
+              <div className="space-y-4">
+                <div>
+                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-2">
+                    Ücretsiz İptal Süresi
+                  </label>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="number"
+                      value={cancelPolicy.freeCancelUntilHours}
+                      onChange={e => setCancelPolicy(p => ({ ...p, freeCancelUntilHours: Number(e.target.value) }))}
+                      className="w-24 bg-secondary border border-white/10 rounded-xl px-3 py-2.5 text-white font-bold text-sm text-center focus:outline-none focus:border-primary"
+                      min={0} max={168}
+                    />
+                    <span className="text-slate-400 text-sm">saat öncesine kadar ücretsiz iptal</span>
+                  </div>
+                  <p className="text-[10px] text-slate-600 mt-1">Örn: 24 = maçtan 24 saat öncesine kadar ücretsiz</p>
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-2">
+                    Geç İptal Cezası
+                  </label>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="number"
+                      value={cancelPolicy.latePenaltyPercent}
+                      onChange={e => setCancelPolicy(p => ({ ...p, latePenaltyPercent: Math.min(100, Math.max(0, Number(e.target.value))) }))}
+                      className="w-24 bg-secondary border border-white/10 rounded-xl px-3 py-2.5 text-white font-bold text-sm text-center focus:outline-none focus:border-primary"
+                      min={0} max={100}
+                    />
+                    <span className="text-slate-400 text-sm">% kapora iade edilmez</span>
+                  </div>
+                  <p className="text-[10px] text-slate-600 mt-1">Örn: 100 = kapora tamamen yanar · 50 = yarısı iade</p>
+                </div>
+
+                {/* Preview */}
+                <div className="bg-yellow-500/8 border border-yellow-500/20 rounded-xl p-3 mt-2">
+                  <p className="text-[11px] text-yellow-300 font-bold mb-1">Politika Önizlemesi</p>
+                  <p className="text-[10px] text-slate-300 leading-relaxed">
+                    Maçtan <span className="text-white font-bold">{cancelPolicy.freeCancelUntilHours} saat</span> öncesine kadar iptal ücretsiz.<br />
+                    Daha geç iptal edilirse kapora'nın{' '}
+                    <span className="text-white font-bold">%{cancelPolicy.latePenaltyPercent}</span>'i iade edilmez
+                    {cancelPolicy.latePenaltyPercent < 100 ? ` (kalan %${100 - cancelPolicy.latePenaltyPercent} iade edilir)` : ''}.
+                  </p>
+                </div>
+              </div>
+            </Section>
+            <InfoBox icon="info" text="Bu politika yalnızca bu sahaya ait rezervasyonlara uygulanır." color="blue" />
           </>
         )}
 
