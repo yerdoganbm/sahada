@@ -241,6 +241,16 @@ export const VenueOwnerDashboard: React.FC<VenueOwnerDashboardProps> = ({
                 onClick={() => onNavigate('auditLog')}
               />
             )}
+            {/* ── Ekip Yönetimi: sadece owner ── */}
+            {currentUser.role === 'venue_owner' && (
+              <QuickActionCard
+                icon="group_add"
+                title="Ekip Yönetimi"
+                subtitle="Personel & muhasebeci"
+                color="bg-violet-500/10 text-violet-400 border-violet-500/20"
+                onClick={() => onNavigate('venueStaffManagement')}
+              />
+            )}
             {/* ── Saha Ekle: sadece owner ── */}
             {currentUser.role === 'venue_owner' && (
               <QuickActionCard

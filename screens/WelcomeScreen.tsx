@@ -131,7 +131,8 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onNavigate, onSetR
   // ── HERO ──────────────────────────────────────────────────
   if (step === 'hero') {
     return (
-      <div className="min-h-screen bg-[#060a0e] flex flex-col overflow-hidden relative select-none"
+      <div className="fixed inset-0 z-[60] bg-[#060a0e] flex flex-col overflow-hidden relative select-none"
+        style={{ height: '100dvh' }}
         onMouseUp={onMouseUp} onMouseLeave={() => setDragging(false)}>
 
         {/* ── CSS ── */}
@@ -439,7 +440,8 @@ const PlayerStartScreen: React.FC<{
   };
 
   return (
-    <div className={`min-h-screen bg-[#060a0e] flex flex-col overflow-hidden relative transition-opacity duration-200 ${animating ? 'opacity-0' : 'opacity-100'}`}>
+    <div className={`fixed inset-0 z-[60] bg-[#060a0e] flex flex-col overflow-hidden relative transition-opacity duration-200 ${animating ? 'opacity-0' : 'opacity-100'}`}
+    style={{ height: '100dvh' }}>
       {/* BG */}
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse 70% 50% at 50% 0%, rgba(16,185,129,0.06) 0%, transparent 70%)' }} />
@@ -578,7 +580,8 @@ const VenueStartScreen: React.FC<{
   onBack: () => void;
   onNavigate: (s: ScreenName, p?: any) => void;
 }> = ({ animating, onBack, onNavigate }) => (
-  <div className={`min-h-screen bg-[#060a0e] flex flex-col overflow-hidden relative transition-opacity duration-200 ${animating ? 'opacity-0' : 'opacity-100'}`}>
+  <div className={`fixed inset-0 z-[60] bg-[#060a0e] flex flex-col overflow-hidden relative transition-opacity duration-200 ${animating ? 'opacity-0' : 'opacity-100'}`}
+    style={{ height: '100dvh' }}>
     {/* BG */}
     <div className="absolute inset-0 pointer-events-none">
       <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse 70% 50% at 50% 0%, rgba(59,130,246,0.06) 0%, transparent 70%)' }} />
@@ -682,7 +685,8 @@ const VenueStaffStartScreen: React.FC<{
   onBack: () => void;
   onNavigate: (s: ScreenName, p?: any) => void;
 }> = ({ animating, onBack, onNavigate }) => (
-  <div className={`min-h-screen bg-[#060a0e] flex flex-col overflow-hidden relative transition-opacity duration-200 ${animating ? 'opacity-0' : 'opacity-100'}`}>
+  <div className={`fixed inset-0 z-[60] bg-[#060a0e] flex flex-col overflow-hidden relative transition-opacity duration-200 ${animating ? 'opacity-0' : 'opacity-100'}`}
+    style={{ height: '100dvh' }}>
     <div className="absolute inset-0 pointer-events-none">
       <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse 70% 50% at 50% 0%, rgba(139,92,246,0.06) 0%, transparent 70%)' }} />
     </div>

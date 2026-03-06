@@ -261,7 +261,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
         .ls-cursor:focus { outline: none; }
       `}</style>
 
-      <div className="min-h-screen flex flex-col" style={{ background: 'linear-gradient(180deg, #07090e 0%, #060a0e 100%)' }}>
+      <div className="fixed inset-0 z-[60] flex flex-col" style={{ height: '100dvh', background: 'linear-gradient(180deg, #07090e 0%, #060a0e 100%)' }}>
 
         {/* ── Ambient glow ── */}
         <div className="fixed inset-0 pointer-events-none overflow-hidden">

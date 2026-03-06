@@ -728,6 +728,7 @@ export type RootStackParamList = {
   VenueOwnerOnboarding: { phone?: string } | undefined;
   VenueSettings: undefined;
   VenueAnalytics: undefined;
+  VenueStaffManagement: undefined;
   // Business pack
   AuditLog: undefined;
   RecurringManagement: undefined;

@@ -192,9 +192,9 @@ export const VenueOwnerOnboarding: React.FC<VenueOwnerOnboardingProps> = ({ phon
   };
 
   return (
-    <div className="min-h-screen bg-secondary flex flex-col">
+    <div className="fixed inset-0 z-[60] bg-secondary flex flex-col" style={{ height: '100dvh' }}>
       {/* Header */}
-      <div className="sticky top-0 z-50 bg-secondary/90 backdrop-blur-xl border-b border-white/5 px-5 pt-10 pb-4">
+      <div className="flex-shrink-0 bg-secondary/90 backdrop-blur-xl border-b border-white/5 px-5 pt-10 pb-4">
         <div className="flex items-center gap-3 mb-4">
           <button
             onClick={() => step > 0 ? setStep(s => s - 1) : onBack()}
@@ -236,7 +236,7 @@ export const VenueOwnerOnboarding: React.FC<VenueOwnerOnboardingProps> = ({ phon
       </div>
 
       {/* Form content */}
-      <div className="flex-1 overflow-y-auto px-5 py-6 pb-6">
+      <div className="flex-1 overflow-y-auto px-5 py-6">
 
         {/* STEP 0 — Kişisel Bilgiler */}
         {step === 0 && (
@@ -460,7 +460,7 @@ export const VenueOwnerOnboarding: React.FC<VenueOwnerOnboardingProps> = ({ phon
       </div>
 
       {/* Bottom CTA */}
-      <div className="sticky bottom-0 z-50 bg-secondary/95 backdrop-blur-xl border-t border-white/5 p-5 space-y-2 mt-auto flex-shrink-0">
+      <div className="flex-shrink-0 bg-secondary/95 backdrop-blur-xl border-t border-white/5 p-5 space-y-2">
         <button
           onClick={handleNext}
           disabled={isLoading}
