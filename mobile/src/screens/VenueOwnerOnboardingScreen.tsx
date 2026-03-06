@@ -236,7 +236,10 @@ export default function VenueOwnerOnboardingScreen() {
             <Text style={styles.label}>Telefon</Text>
             <View style={styles.phoneDisplay}>
               <Text style={styles.phoneDisplayText}>+90 {phone.replace(/(\d{3})(\d{3})(\d{2})(\d{2})/, '$1 $2 $3 $4')}</Text>
-              <Icon name="check-circle" size={18} color="#3B82F6" />
+              <View style={styles.phoneVerified}>
+                <Icon name="check-circle" size={14} color="#10B981" />
+                <Text style={styles.phoneVerifiedText}>Onaylandı</Text>
+              </View>
             </View>
             <Text style={styles.label}>E-posta (opsiyonel)</Text>
             <TextInput value={form.email} onChangeText={v => set('email', v)} placeholder="ornek@email.com" keyboardType="email-address" style={inputStyle(!!errors.email)} placeholderTextColor={colors.text.disabled} />
@@ -364,8 +367,10 @@ const styles = StyleSheet.create({
   errorText: { fontSize: 10, color: '#ef4444', marginTop: -4, marginBottom: spacing.sm },
   row: { flexDirection: 'row', gap: spacing.md },
   half: { flex: 1 },
-  phoneDisplay: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface, borderRadius: borderRadius.lg, padding: spacing.md, marginBottom: spacing.sm },
+  phoneDisplay: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface, borderRadius: borderRadius.lg, padding: spacing.md, marginBottom: spacing.sm, borderWidth: 1, borderColor: 'rgba(16,185,129,0.2)' },
   phoneDisplayText: { flex: 1, fontSize: typography.fontSize.md, fontWeight: '700', color: colors.text.primary },
+  phoneVerified: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  phoneVerifiedText: { fontSize: 10, fontWeight: '700', color: '#10B981' },
   pickerWrap: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border.light, borderRadius: borderRadius.lg, paddingHorizontal: spacing.md, paddingVertical: spacing.md, marginBottom: spacing.sm },
   pickerText: { fontSize: typography.fontSize.md, color: colors.text.primary },
   featuresGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
