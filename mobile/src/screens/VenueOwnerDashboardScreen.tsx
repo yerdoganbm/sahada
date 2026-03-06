@@ -143,7 +143,7 @@ export default function VenueOwnerDashboardScreen() {
     },
   ];
 
-  // ── Accountant menu (gelir + EFT only) ───────────────────────────────────
+  // ── Accountant menu (gelir + EFT + kasa + analitik) ──────────────────────
   const accountantMenuItems: MenuItem[] = [
     {
       icon: 'chart-line',
@@ -159,9 +159,23 @@ export default function VenueOwnerDashboardScreen() {
       color: '#6366F1',
       onPress: () => navigation.navigate('VenueIncomingEft'),
     },
+    {
+      icon: 'cash-register',
+      label: 'Kasa',
+      sublabel: 'Günlük tahsilat',
+      color: '#10B981',
+      onPress: () => navigation.navigate('CashRegister' as any),
+    },
+    {
+      icon: 'chart-bar',
+      label: 'Analitik',
+      sublabel: 'Heatmap + KPI',
+      color: '#06B6D4',
+      onPress: () => navigation.navigate('VenueAnalytics' as any),
+    },
   ];
 
-  // ── Staff menu (rezervasyon + takvim + müşteri) ───────────────────────────
+  // ── Staff menu (rezervasyon + takvim + müşteri + operasyon) ────────────
   const staffMenuItems: MenuItem[] = [
     {
       icon: 'calendar-edit',
@@ -191,6 +205,34 @@ export default function VenueOwnerDashboardScreen() {
       sublabel: 'Ödeme takibi',
       color: '#6366F1',
       onPress: () => navigation.navigate('VenueIncomingEft'),
+    },
+    {
+      icon: 'cash-register',
+      label: 'Kasa',
+      sublabel: 'Günlük tahsilat',
+      color: '#10B981',
+      onPress: () => navigation.navigate('CashRegister' as any),
+    },
+    {
+      icon: 'calendar-check',
+      label: 'Sabit Rezervasyon',
+      sublabel: 'Kurumsal anlaşma',
+      color: '#818CF8',
+      onPress: () => navigation.navigate('RecurringManagement' as any),
+    },
+    {
+      icon: 'tools',
+      label: 'Bakım & Arıza',
+      sublabel: 'Görev / ticket',
+      color: '#F59E0B',
+      onPress: () => navigation.navigate('MaintenanceCenter' as any),
+    },
+    {
+      icon: 'whatsapp',
+      label: 'Toplu Mesaj',
+      sublabel: 'WhatsApp şablonları',
+      color: '#25D366',
+      onPress: () => navigation.navigate('WhatsAppIntegration'),
     },
   ];
 

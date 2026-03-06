@@ -260,7 +260,7 @@ export const VenueOwnerOnboarding: React.FC<VenueOwnerOnboardingProps> = ({ phon
             <Field label="Telefon">
               <div className="flex items-center bg-surface border border-green-500/20 rounded-xl px-4 py-3.5 gap-2">
                 <span className="text-base">🇹🇷</span>
-                <span className="text-white font-bold text-sm">+90 {phone.replace(/(\d{3})(\d{3})(\d{2})(\d{2})/, '$1 $2 $3 $4')}</span>
+                <span className="text-white font-bold text-sm">+90 {(phone.length === 10 ? phone : phone.slice(-10)).replace(/(\d{3})(\d{3})(\d{2})(\d{2})/, '$1 $2 $3 $4')}</span>
                 <div className="ml-auto flex items-center gap-1">
                   <Icon name="verified" size={14} className="text-green-400" />
                   <span className="text-[10px] font-bold text-green-400">Onaylandı</span>

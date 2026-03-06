@@ -192,9 +192,9 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
     if (isVenueStaff) { onLogin('venue_staff_' + rawPhone); return; }
     // Non-demo owner → new registration onboarding
     if (onRegisterVenueOwner) {
-      onRegisterVenueOwner(rawPhone);
+      onRegisterVenueOwner(rawPhone.slice(-10));
     } else {
-      onLogin('venue_owner_' + rawPhone);
+      onLogin('venue_owner_' + rawPhone.slice(-10));
     }
   };
 
@@ -348,13 +348,14 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                     height: 62,
                   }}>
                   <span className="text-xl flex-shrink-0">🇹🇷</span>
+                  <span className="text-white/40 text-[15px] font-black flex-shrink-0">+90</span>
                   <div className="w-px h-5 flex-shrink-0" style={{ background: 'rgba(255,255,255,0.1)' }} />
                   <input
                     type="tel"
                     value={phone}
                     onChange={e => { setPhone(fmt(e.target.value)); setError(''); }}
                     onKeyDown={e => e.key === 'Enter' && phoneValid && handleSend()}
-                    placeholder="0532 000 00 00"
+                    placeholder="532 000 00 00"
                     autoFocus
                     className="flex-1 bg-transparent text-white text-[19px] font-black focus:outline-none placeholder-slate-800 tracking-wider"
                   />
@@ -413,13 +414,13 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                 )}
               </div>
 
-              <div className="flex-1" />
+              <div className="flex-1 min-h-4" />
 
               {/* CTA */}
               <button
                 onClick={handleSend}
                 disabled={loading || !phoneValid}
-                className="ls-5 w-full flex items-center justify-center gap-2.5 font-black text-[16px] rounded-2xl transition-all active:scale-[0.97]"
+                className="ls-5 w-full flex items-center justify-center gap-2.5 font-black text-[16px] rounded-2xl transition-all active:scale-[0.97] flex-shrink-0 sticky bottom-4"
                 style={{
                   height: 58,
                   background: phoneValid ? ac.primary : 'rgba(255,255,255,0.06)',
@@ -530,13 +531,13 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                 <span className="text-yellow-400 text-[12px] font-black">⚡ Demo kod: {DEMO_OTP} — otomatik doldur</span>
               </button>
 
-              <div className="flex-1" />
+              <div className="flex-1 min-h-4" />
 
               {/* verify CTA */}
               <button
                 onClick={() => doVerify(otp)}
                 disabled={!otpFull || loading || verified}
-                className="ls-5 w-full flex items-center justify-center gap-2.5 font-black text-[16px] rounded-2xl transition-all active:scale-[0.97]"
+                className="ls-5 w-full flex items-center justify-center gap-2.5 font-black text-[16px] rounded-2xl transition-all active:scale-[0.97] flex-shrink-0 sticky bottom-4"
                 style={{
                   height: 58,
                   background: verified ? '#10B981' : (otpFull ? ac.primary : 'rgba(255,255,255,0.06)'),
@@ -597,12 +598,12 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                 ))}
               </div>
 
-              <div className="flex-1" />
+              <div className="flex-1 min-h-4" />
 
               <button
                 onClick={() => finishLogin(name)}
                 disabled={name.trim().length < 2}
-                className="ls-5 w-full flex items-center justify-center gap-2.5 font-black text-[16px] rounded-2xl transition-all active:scale-[0.97]"
+                className="ls-5 w-full flex items-center justify-center gap-2.5 font-black text-[16px] rounded-2xl transition-all active:scale-[0.97] flex-shrink-0 sticky bottom-4"
                 style={{
                   height: 58,
                   background: name.trim().length >= 2 ? ac.primary : 'rgba(255,255,255,0.06)',
