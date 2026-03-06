@@ -14,7 +14,6 @@ import { RootStackParamList } from '../types';
 import WelcomeScreen from '../screens/WelcomeScreen';
 import LoginScreen from '../screens/LoginScreen';
 import RegisterScreen from '../screens/RegisterScreen';
-import VenueOwnerOnboardingScreen from '../screens/VenueOwnerOnboardingScreen';
 
 // Main App
 import MainTabNavigator from './MainTabNavigator';
@@ -60,14 +59,6 @@ import SquadShareWizardScreen from '../screens/SquadShareWizardScreen';
 import MessageLogsScreen from '../screens/MessageLogsScreen';
 import TeamChatScreen from '../screens/TeamChatScreen';
 import MatchAnalysisScreen from '../screens/MatchAnalysisScreen';
-import VenueSettingsScreen from '../screens/VenueSettingsScreen';
-import MyReservationsScreen from '../screens/MyReservationsScreen';
-import AuditLogScreen from '../screens/AuditLogScreen';
-import VenueAnalyticsScreen from '../screens/VenueAnalyticsScreen';
-import RecurringManagementScreen from '../screens/RecurringManagementScreen';
-import CashRegisterScreen from '../screens/CashRegisterScreen';
-import MaintenanceCenterScreen from '../screens/MaintenanceCenterScreen';
-import BroadcastCenterScreen from '../screens/BroadcastCenterScreen';
 
 const Stack = createStackNavigator<RootStackParamList>();
 
@@ -104,7 +95,6 @@ export default function RootNavigator() {
         <>
           <Stack.Screen name="Welcome" component={WelcomeScreen} />
           <Stack.Screen name="Login" component={LoginScreen} />
-          <Stack.Screen name="VenueOwnerOnboarding" component={VenueOwnerOnboardingScreen} />
           <Stack.Screen name="Register" component={RegisterScreen} />
           <Stack.Screen name="TeamSetup" component={TeamSetupScreen} />
           <Stack.Screen name="JoinTeam" component={JoinTeamScreen} />
@@ -159,14 +149,6 @@ export default function RootNavigator() {
           <Stack.Screen name="MessageLogs" component={MessageLogsScreen} />
           <Stack.Screen name="TeamChat" component={TeamChatScreen} />
           <Stack.Screen name="MatchAnalysis" component={MatchAnalysisScreen} />
-          <Stack.Screen name="VenueSettings" component={VenueSettingsScreen} />
-          <Stack.Screen name="MyReservations" component={MyReservationsScreen} />
-          <Stack.Screen name="AuditLog" component={AuditLogScreen} />
-          <Stack.Screen name="VenueAnalytics" component={VenueAnalyticsScreen} />
-          <Stack.Screen name="RecurringManagement" component={RecurringManagementScreen} />
-          <Stack.Screen name="CashRegister" component={CashRegisterScreen} />
-          <Stack.Screen name="MaintenanceCenter" component={MaintenanceCenterScreen} />
-          <Stack.Screen name="BroadcastCenter" component={BroadcastCenterScreen} />
         </>
       )}
     </Stack.Navigator>
