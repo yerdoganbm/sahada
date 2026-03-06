@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Icon } from '../components/Icon';
-import { Player, Team, Reservation, MemberContribution, CaptainPayoutProfile, ScreenName } from '../types';
+import { Player, Team, Reservation, MemberContribution, CaptainPayoutProfile, ScreenName, ProofEntry } from '../types';
 
 interface Props {
   currentUser: Player | null;
@@ -135,6 +135,46 @@ export const MemberPayments: React.FC<Props> = ({
                         style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.2)', color: '#10B981' }}>
                         💳 Ödeme / Dekont Gönder
                       </button>
+                    </div>
+                  )}
+
+                  {/* Proof history */}
+                  {mc.proofHistory && mc.proofHistory.length > 0 && (
+                    <div className="px-4 pb-3 border-t border-white/5 pt-3">
+                      <p className="text-[9px] text-slate-500 uppercase font-bold mb-2 tracking-wider">Dekont Geçmişi ({mc.proofHistory.length})</p>
+                      <div className="space-y-2">
+                        {mc.proofHistory.map((proof: ProofEntry) => (
+                          <div key={proof.id} className="flex items-center justify-between bg-white/3 rounded-xl px-3 py-2 border border-white/5">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <span className="text-sm">{proof.type === 'image' ? '🖼' : proof.type === 'pdf' ? '📄' : '🔗'}</span>
+                              <div className="min-w-0">
+                                <p className="text-white text-xs font-bold truncate">
+                                  {proof.method === 'eft' ? 'EFT/Havale' : proof.method === 'cash' ? 'Nakit' : 'Kart'} · ₺{proof.amount}
+                                </p>
+                                <p className="text-slate-500 text-[10px]">
+                                  {new Date(proof.submittedAt).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                                  {proof.note && ` · ${proof.note}`}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              {proof.url && (
+                                <a href={proof.url} target="_blank" rel="noopener noreferrer"
+                                  className="text-[9px] font-bold px-2 py-1 rounded-lg border border-blue-500/20 text-blue-400 hover:bg-blue-500/10 transition-all">
+                                  Görüntüle
+                                </a>
+                              )}
+                              <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${
+                                proof.status === 'approved' ? 'bg-green-500/15 text-green-400' :
+                                proof.status === 'rejected' ? 'bg-red-500/15 text-red-400' :
+                                'bg-yellow-500/15 text-yellow-400'
+                              }`}>
+                                {proof.status === 'approved' ? '✓ Onaylı' : proof.status === 'rejected' ? '✗ Reddedildi' : '⏳ Bekliyor'}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   )}
 
