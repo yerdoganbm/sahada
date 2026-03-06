@@ -1,6 +1,6 @@
 /**
  * Root Navigator
- * Main navigation structure
+ * Main navigation structure — synced with web App.tsx screens
  */
 
 import React from 'react';
@@ -60,6 +60,38 @@ import MessageLogsScreen from '../screens/MessageLogsScreen';
 import TeamChatScreen from '../screens/TeamChatScreen';
 import MatchAnalysisScreen from '../screens/MatchAnalysisScreen';
 
+// Captain / Member screens (web parity)
+import CaptainBookingFlowScreen from '../screens/CaptainBookingFlowScreen';
+import CaptainOutboxScreen from '../screens/CaptainOutboxScreen';
+import CaptainDashboardScreen from '../screens/CaptainDashboardScreen';
+import MemberOnboardingScreen from '../screens/MemberOnboardingScreen';
+import MemberPaymentsScreen from '../screens/MemberPaymentsScreen';
+import MemberHomeScreen from '../screens/MemberHomeScreen';
+import MemberMatchDetailsScreen from '../screens/MemberMatchDetailsScreen';
+import MemberMatchHubScreen from '../screens/MemberMatchHubScreen';
+import PhoneAuthScreen from '../screens/PhoneAuthScreen';
+
+// Team management
+import TeamListScreen from '../screens/TeamListScreen';
+import TeamManagementScreen from '../screens/TeamManagementScreen';
+
+// Venue screens
+import VenueLocationEditorScreen from '../screens/VenueLocationEditorScreen';
+import VenueOwnerOnboardingScreen from '../screens/VenueOwnerOnboardingScreen';
+import VenueSettingsScreen from '../screens/VenueSettingsScreen';
+import VenueAnalyticsScreen from '../screens/VenueAnalyticsScreen';
+
+// Business pack screens
+import AuditLogScreen from '../screens/AuditLogScreen';
+import RecurringManagementScreen from '../screens/RecurringManagementScreen';
+import CashRegisterScreen from '../screens/CashRegisterScreen';
+import MaintenanceCenterScreen from '../screens/MaintenanceCenterScreen';
+import BroadcastCenterScreen from '../screens/BroadcastCenterScreen';
+
+// Payment
+import ReservationPaymentHubScreen from '../screens/ReservationPaymentHubScreen';
+import MyReservationsScreen from '../screens/MyReservationsScreen';
+
 const Stack = createStackNavigator<RootStackParamList>();
 
 export default function RootNavigator() {
@@ -98,57 +130,99 @@ export default function RootNavigator() {
           <Stack.Screen name="Register" component={RegisterScreen} />
           <Stack.Screen name="TeamSetup" component={TeamSetupScreen} />
           <Stack.Screen name="JoinTeam" component={JoinTeamScreen} />
+          <Stack.Screen name="PhoneAuth" component={PhoneAuthScreen} />
         </>
       ) : (
         // App Stack
         <>
           <Stack.Screen name="MainTabs" component={MainTabNavigator} />
-          <Stack.Screen 
-            name="MatchDetails" 
-            component={MatchDetailsScreen}
-            options={{
-              presentation: 'modal',
-              animationEnabled: true,
-            }}
-          />
+
+          {/* Match & Details */}
+          <Stack.Screen name="MatchDetails" component={MatchDetailsScreen} options={{ presentation: 'modal', animationEnabled: true }} />
+          <Stack.Screen name="MatchCreate" component={MatchCreateScreen} />
+          <Stack.Screen name="MatchAnalysis" component={MatchAnalysisScreen} />
+
+          {/* Venue screens */}
           <Stack.Screen name="VenueDetails" component={VenueDetailsScreen} />
           <Stack.Screen name="VenueList" component={VenueListScreen} />
+          <Stack.Screen name="VenueAdd" component={VenueAddScreen} />
+          <Stack.Screen name="VenueCalendar" component={VenueCalendarScreen} />
+          <Stack.Screen name="VenueLocationEditor" component={VenueLocationEditorScreen} />
+          <Stack.Screen name="VenueOwnerDashboard" component={VenueOwnerDashboardScreen} />
+          <Stack.Screen name="VenueOwnerOnboarding" component={VenueOwnerOnboardingScreen} />
+          <Stack.Screen name="VenueSettings" component={VenueSettingsScreen} />
+          <Stack.Screen name="VenueAnalytics" component={VenueAnalyticsScreen} />
+          <Stack.Screen name="VenueFinancialReports" component={VenueFinancialReportsScreen} />
+
+          {/* Profile & Settings */}
           <Stack.Screen name="ProfileDetails" component={ProfileScreen} />
-          <Stack.Screen name="Notifications" component={NotificationsScreen} />
-          <Stack.Screen name="Polls" component={PollsScreen} />
           <Stack.Screen name="EditProfile" component={EditProfileScreen} />
           <Stack.Screen name="Settings" component={SettingsScreen} />
+          <Stack.Screen name="CreateProfile" component={CreateProfileScreen} />
+          <Stack.Screen name="Subscription" component={SubscriptionScreen} />
+
+          {/* Team & Members */}
           <Stack.Screen name="TeamSwitch" component={TeamSwitchScreen} />
-          <Stack.Screen name="MatchCreate" component={MatchCreateScreen} />
-          <Stack.Screen name="Admin" component={AdminDashboardScreen} />
-          <Stack.Screen name="Leaderboard" component={LeaderboardScreen} />
+          <Stack.Screen name="TeamList" component={TeamListScreen} />
+          <Stack.Screen name="TeamManagement" component={TeamManagementScreen} />
+          <Stack.Screen name="TeamSetup" component={TeamSetupScreen} />
+          <Stack.Screen name="TeamChat" component={TeamChatScreen} />
           <Stack.Screen name="JoinTeam" component={JoinTeamScreen} />
           <Stack.Screen name="MemberManagement" component={MemberManagementScreen} />
+
+          {/* Admin */}
+          <Stack.Screen name="Admin" component={AdminDashboardScreen} />
+          <Stack.Screen name="Notifications" component={NotificationsScreen} />
+          <Stack.Screen name="Polls" component={PollsScreen} />
+          <Stack.Screen name="Leaderboard" component={LeaderboardScreen} />
+
+          {/* Scout system */}
+          <Stack.Screen name="ScoutDashboard" component={ScoutDashboardScreen} />
           <Stack.Screen name="ScoutReports" component={ScoutReportsScreen} />
           <Stack.Screen name="TalentPool" component={TalentPoolScreen} />
-          <Stack.Screen name="ScoutDashboard" component={ScoutDashboardScreen} />
-          <Stack.Screen name="LineupManager" component={LineupManagerScreen} />
-          <Stack.Screen name="DebtList" component={DebtListScreen} />
-          <Stack.Screen name="CreateProfile" component={CreateProfileScreen} />
-          <Stack.Screen name="CustomerManagement" component={CustomerManagementScreen} />
-          <Stack.Screen name="ReservationDetails" component={ReservationDetailsScreen} />
-          <Stack.Screen name="VenueCalendar" component={VenueCalendarScreen} />
-          <Stack.Screen name="VenueOwnerDashboard" component={VenueOwnerDashboardScreen} />
+
+          {/* Captain screens */}
+          <Stack.Screen name="CaptainDashboard" component={CaptainDashboardScreen} />
+          <Stack.Screen name="CaptainBookingFlow" component={CaptainBookingFlowScreen} />
+          <Stack.Screen name="CaptainOutbox" component={CaptainOutboxScreen} />
+
+          {/* Member screens */}
+          <Stack.Screen name="MemberHome" component={MemberHomeScreen} />
+          <Stack.Screen name="MemberOnboarding" component={MemberOnboardingScreen} />
+          <Stack.Screen name="MemberPayments" component={MemberPaymentsScreen} />
+          <Stack.Screen name="MemberMatchDetails" component={MemberMatchDetailsScreen} />
+          <Stack.Screen name="MemberMatchHub" component={MemberMatchHubScreen} />
+
+          {/* Financial */}
           <Stack.Screen name="FinancialReports" component={FinancialReportsScreen} />
-          <Stack.Screen name="VenueFinancialReports" component={VenueFinancialReportsScreen} />
-          <Stack.Screen name="ReservationManagement" component={ReservationManagementScreen} />
-          <Stack.Screen name="Attendance" component={AttendanceScreen} />
-          <Stack.Screen name="Booking" component={BookingScreen} />
+          <Stack.Screen name="DebtList" component={DebtListScreen} />
           <Stack.Screen name="PaymentLedger" component={PaymentLedgerScreen} />
-          <Stack.Screen name="WhatsAppIntegration" component={WhatsAppIntegrationScreen} />
-          <Stack.Screen name="VenueAdd" component={VenueAddScreen} />
-          <Stack.Screen name="Subscription" component={SubscriptionScreen} />
-          <Stack.Screen name="Tournament" component={TournamentScreen} />
+          <Stack.Screen name="ReservationPaymentHub" component={ReservationPaymentHubScreen} />
+
+          {/* Reservations */}
+          <Stack.Screen name="Booking" component={BookingScreen} />
+          <Stack.Screen name="ReservationManagement" component={ReservationManagementScreen} />
+          <Stack.Screen name="ReservationDetails" component={ReservationDetailsScreen} />
           <Stack.Screen name="ReserveSystem" component={ReserveSystemScreen} />
-          <Stack.Screen name="SquadShareWizard" component={SquadShareWizardScreen} />
+          <Stack.Screen name="MyReservations" component={MyReservationsScreen} />
+          <Stack.Screen name="CustomerManagement" component={CustomerManagementScreen} />
+
+          {/* Business pack */}
+          <Stack.Screen name="AuditLog" component={AuditLogScreen} />
+          <Stack.Screen name="RecurringManagement" component={RecurringManagementScreen} />
+          <Stack.Screen name="CashRegister" component={CashRegisterScreen} />
+          <Stack.Screen name="MaintenanceCenter" component={MaintenanceCenterScreen} />
+          <Stack.Screen name="BroadcastCenter" component={BroadcastCenterScreen} />
+
+          {/* Communication */}
+          <Stack.Screen name="WhatsAppIntegration" component={WhatsAppIntegrationScreen} />
           <Stack.Screen name="MessageLogs" component={MessageLogsScreen} />
-          <Stack.Screen name="TeamChat" component={TeamChatScreen} />
-          <Stack.Screen name="MatchAnalysis" component={MatchAnalysisScreen} />
+
+          {/* Other */}
+          <Stack.Screen name="Attendance" component={AttendanceScreen} />
+          <Stack.Screen name="LineupManager" component={LineupManagerScreen} />
+          <Stack.Screen name="SquadShareWizard" component={SquadShareWizardScreen} />
+          <Stack.Screen name="Tournament" component={TournamentScreen} />
         </>
       )}
     </Stack.Navigator>
