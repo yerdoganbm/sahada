@@ -26,10 +26,12 @@ const ACCENTS = {
 };
 
 const DEMO_USERS = [
-  { phone: '5000000001', label: 'Admin',       icon: '🛡' },
-  { phone: '5000000007', label: 'Kaptan Ali',  icon: '🏆' },
-  { phone: '5000000002', label: 'Üye Ahmet',   icon: '⚽' },
-  { phone: '5000000099', label: 'Saha Sahibi', icon: '🏟' },
+  { phone: '5000000001', label: 'Admin',           icon: '🛡',  role: 'admin' },
+  { phone: '5000000007', label: 'Kaptan Ali',      icon: '🏆',  role: 'captain' },
+  { phone: '5000000002', label: 'Üye Ahmet',       icon: '⚽',  role: 'member' },
+  { phone: '5000000099', label: 'Saha Sahibi',     icon: '🏟',  role: 'venue_owner' },
+  { phone: '5000000098', label: 'Saha Personeli',  icon: '👷',  role: 'venue_staff' },
+  { phone: '5000000097', label: 'Saha Muhasebeci', icon: '📊',  role: 'venue_accountant' },
 ];
 
 type LoginRoute = RouteProp<RootStackParamList, 'Login'>;
@@ -151,8 +153,24 @@ export default function LoginScreen() {
     try {
       try { await loginWithCredentials({ phone: rawPhone.slice(-10) }); } catch {}
       hapticLight();
+
+      const knownUser = DEMO_USERS.find(u => rawPhone.endsWith(u.phone));
+      const isVenueRole = knownUser?.role === 'venue_owner' || knownUser?.role === 'venue_staff' || knownUser?.role === 'venue_accountant';
+
       if (hasCode) {
         navigation.navigate('JoinTeam', { inviteCode: pendingJoinCode });
+      } else if (isVenueRole) {
+        // Kayıtlı saha kullanıcısı — onboarding atla, direkt dashboard
+        navigation.dispatch(CommonActions.reset({
+          index: 0,
+          routes: [{ name: 'VenueOwnerDashboard' }],
+        }));
+      } else if (isVenue) {
+        // Yeni saha sahibi kaydı — onboarding'e yönlendir
+        navigation.dispatch(CommonActions.reset({
+          index: 0,
+          routes: [{ name: 'VenueOwnerOnboarding', params: { phone: rawPhone.slice(-10) } }],
+        }));
       } else {
         navigation.dispatch(CommonActions.reset({ index: 0, routes: [{ name: 'MainTabs' }] }));
       }
