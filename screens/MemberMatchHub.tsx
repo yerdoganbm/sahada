@@ -15,7 +15,8 @@ interface Props {
   onBack: () => void;
   onRsvpChange: (status: RsvpStatus) => void;
   onUploadProof: (paymentId: string, proofUrl: string) => void;
-  onSignUp: () => void;  // for guest → "create account"
+  onSignUp: () => void;
+  onOpenPaymentModal?: () => void;
 }
 
 const RSVP_OPTS: { status: RsvpStatus; label: string; icon: string; cls: string }[] = [
@@ -26,7 +27,7 @@ const RSVP_OPTS: { status: RsvpStatus; label: string; icon: string; cls: string 
 
 export const MemberMatchHub: React.FC<Props> = ({
   match, currentUser, guestSession, payment, rsvpStatus,
-  onBack, onRsvpChange, onUploadProof, onSignUp,
+  onBack, onRsvpChange, onUploadProof, onSignUp, onOpenPaymentModal,
 }) => {
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [uploadLoading, setUploadLoading] = useState(false);
@@ -238,20 +239,25 @@ export const MemberMatchHub: React.FC<Props> = ({
                 </button>
               </div>
             ) : proofDone || payment?.proofUrl ? (
-              <div className="flex items-center gap-2 p-3 bg-green-500/8 border border-green-500/15 rounded-xl">
-                <Icon name="check_circle" size={16} className="text-green-400" />
-                <div>
-                  <p className="text-sm font-bold text-green-400">Kanıt Gönderildi ✓</p>
-                  <p className="text-[10px] text-slate-500">Kaptan onayı bekleniyor</p>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 p-3 bg-green-500/8 border border-green-500/15 rounded-xl">
+                  <Icon name="check_circle" size={16} className="text-green-400" />
+                  <div>
+                    <p className="text-sm font-bold text-green-400">Kanıt Gönderildi ✓</p>
+                    <p className="text-[10px] text-slate-500">Kaptan onayı bekleniyor</p>
+                  </div>
                 </div>
+                {onOpenPaymentModal && (
+                  <button onClick={onOpenPaymentModal}
+                    className="w-full py-2.5 rounded-xl bg-white/5 border border-white/10 text-slate-400 text-xs font-bold flex items-center justify-center gap-1.5 hover:bg-white/8 transition-all">
+                    <Icon name="add" size={14} /> Yeni Dekont Ekle
+                  </button>
+                )}
               </div>
             ) : (
-              <button onClick={handleUploadProof} disabled={uploadLoading}
-                className="w-full py-3.5 rounded-2xl bg-blue-500/15 border border-blue-500/25 text-blue-400 font-black flex items-center justify-center gap-2 disabled:opacity-50">
-                {uploadLoading
-                  ? <><div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" />Yükleniyor…</>
-                  : <><Icon name="upload" size={16} />Dekont / Ekran Görüntüsü Gönder</>
-                }
+              <button onClick={onOpenPaymentModal ?? handleUploadProof} disabled={uploadLoading && !onOpenPaymentModal}
+                className="w-full py-3.5 rounded-2xl bg-primary/15 border border-primary/25 text-primary font-black flex items-center justify-center gap-2 transition-all active:scale-[0.97]">
+                <Icon name="payments" size={16} />Ödeme / Dekont Gönder
               </button>
             )}
           </div>

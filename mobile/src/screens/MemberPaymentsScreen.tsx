@@ -1,6 +1,6 @@
 /**
  * Member Payments Screen
- * Payment summary, filter tabs, contribution list, IBAN copy, proof upload
+ * Payment summary, filter tabs, contribution list, IBAN copy, proof upload modal, proof history
  */
 
 import React, { useState } from 'react';
@@ -11,6 +11,7 @@ import {
   StyleSheet,
   Alert,
   Platform,
+  Image,
 } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { useNavigation } from '@react-navigation/native';
@@ -18,6 +19,8 @@ import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import { colors, spacing, borderRadius, typography } from '../theme';
 import AppScrollView from '../components/AppScrollView';
+import PaymentProofModal, { type ProofSubmitPayload } from '../components/PaymentProofModal';
+import type { ProofEntry } from '../types';
 
 type PaymentStatus = 'paid' | 'partial' | 'unpaid';
 type FilterType = 'all' | 'unpaid' | 'partial' | 'paid';
@@ -30,17 +33,36 @@ interface PaymentContribution {
   status: PaymentStatus;
   dueDate: string;
   description?: string;
+  proofHistory?: ProofEntry[];
 }
 
 const MOCK_IBAN = 'TR33 0006 1005 1978 6457 8413 26';
 
 const MOCK_PAYMENTS: PaymentContribution[] = [
-  { id: '1', label: 'Ocak Aidatı', amount: 200, paidAmount: 200, status: 'paid', dueDate: '2024-01-31', description: 'Aylık takım aidatı' },
-  { id: '2', label: 'Şubat Aidatı', amount: 200, paidAmount: 100, status: 'partial', dueDate: '2024-02-28', description: 'Aylık takım aidatı' },
+  {
+    id: '1', label: 'Ocak Aidatı', amount: 200, paidAmount: 200, status: 'paid',
+    dueDate: '2024-01-31', description: 'Aylık takım aidatı',
+    proofHistory: [
+      { id: 'p1', url: '', type: 'image', method: 'eft', amount: 200, submittedAt: '2024-01-28T14:30:00Z', status: 'approved', note: 'Havale yapıldı' },
+    ],
+  },
+  {
+    id: '2', label: 'Şubat Aidatı', amount: 200, paidAmount: 100, status: 'partial',
+    dueDate: '2024-02-28', description: 'Aylık takım aidatı',
+    proofHistory: [
+      { id: 'p2', url: '', type: 'image', method: 'eft', amount: 100, submittedAt: '2024-02-15T10:00:00Z', status: 'approved' },
+    ],
+  },
   { id: '3', label: 'Mart Aidatı', amount: 200, paidAmount: 0, status: 'unpaid', dueDate: '2024-03-31', description: 'Aylık takım aidatı' },
   { id: '4', label: 'Saha Kirası (15 Ocak)', amount: 120, paidAmount: 120, status: 'paid', dueDate: '2024-01-15' },
   { id: '5', label: 'Saha Kirası (22 Ocak)', amount: 120, paidAmount: 0, status: 'unpaid', dueDate: '2024-01-22' },
-  { id: '6', label: 'Forma Ücreti', amount: 150, paidAmount: 75, status: 'partial', dueDate: '2024-02-15', description: 'Sezon forması' },
+  {
+    id: '6', label: 'Forma Ücreti', amount: 150, paidAmount: 75, status: 'partial',
+    dueDate: '2024-02-15', description: 'Sezon forması',
+    proofHistory: [
+      { id: 'p3', url: '', type: 'link', method: 'card', amount: 75, submittedAt: '2024-02-10T09:00:00Z', status: 'pending' },
+    ],
+  },
 ];
 
 const FILTERS: { key: FilterType; label: string }[] = [
@@ -54,6 +76,9 @@ export default function MemberPaymentsScreen() {
   const navigation = useNavigation();
   const { user } = useAuth();
   const [filter, setFilter] = useState<FilterType>('all');
+  const [proofModalVisible, setProofModalVisible] = useState(false);
+  const [selectedPayment, setSelectedPayment] = useState<PaymentContribution | null>(null);
+  const [expandedHistory, setExpandedHistory] = useState<string | null>(null);
 
   const filteredPayments = MOCK_PAYMENTS.filter((p) => {
     if (filter === 'all') return true;
@@ -73,48 +98,56 @@ export default function MemberPaymentsScreen() {
     }
   };
 
-  const handleUploadProof = (paymentId: string) => {
+  const handleOpenProofModal = (payment: PaymentContribution) => {
+    setSelectedPayment(payment);
+    setProofModalVisible(true);
+  };
+
+  const handleProofSubmit = async (payload: ProofSubmitPayload) => {
+    // In production this would call FirebaseProvider.submitProof
     Alert.alert(
-      'Dekont Yükle',
-      'Ödeme dekontunu galeriden seçin veya fotoğraf çekin.',
-      [
-        { text: 'İptal', style: 'cancel' },
-        { text: 'Galeri', onPress: () => {} },
-        { text: 'Kamera', onPress: () => {} },
-      ],
+      'Gönderildi',
+      `₺${payload.amount} ${payload.method} ödemesi kaydedildi.${payload.proofUri ? '\nDekont yüklendi.' : payload.proofUrl ? '\nDekont linki eklendi.' : ''}`,
     );
   };
 
   const getStatusColor = (status: PaymentStatus) => {
     switch (status) {
-      case 'paid':
-        return colors.success;
-      case 'partial':
-        return colors.warning;
-      case 'unpaid':
-        return colors.error;
+      case 'paid': return colors.success;
+      case 'partial': return colors.warning;
+      case 'unpaid': return colors.error;
     }
   };
 
   const getStatusLabel = (status: PaymentStatus) => {
     switch (status) {
-      case 'paid':
-        return 'Ödendi';
-      case 'partial':
-        return 'Kısmi';
-      case 'unpaid':
-        return 'Ödenmemiş';
+      case 'paid': return 'Ödendi';
+      case 'partial': return 'Kısmi';
+      case 'unpaid': return 'Ödenmemiş';
     }
   };
 
-  const getStatusIcon = (status: PaymentStatus) => {
+  const getStatusIcon = (status: PaymentStatus): string => {
     switch (status) {
-      case 'paid':
-        return 'check-circle';
-      case 'partial':
-        return 'clock-outline';
-      case 'unpaid':
-        return 'alert-circle';
+      case 'paid': return 'check-circle';
+      case 'partial': return 'clock-outline';
+      case 'unpaid': return 'alert-circle';
+    }
+  };
+
+  const getProofStatusColor = (status: ProofEntry['status']) => {
+    switch (status) {
+      case 'approved': return '#10B981';
+      case 'rejected': return '#EF4444';
+      case 'pending': return '#F59E0B';
+    }
+  };
+
+  const getProofStatusLabel = (status: ProofEntry['status']) => {
+    switch (status) {
+      case 'approved': return 'Onaylı';
+      case 'rejected': return 'Reddedildi';
+      case 'pending': return 'Bekliyor';
     }
   };
 
@@ -238,6 +271,55 @@ export default function MemberPaymentsScreen() {
                 />
               </View>
 
+              {/* Proof History Section */}
+              {payment.proofHistory && payment.proofHistory.length > 0 && (
+                <>
+                  <TouchableOpacity
+                    style={styles.proofHistoryToggle}
+                    onPress={() => setExpandedHistory(expandedHistory === payment.id ? null : payment.id)}
+                    activeOpacity={0.7}
+                  >
+                    <Icon name="history" size={14} color={colors.info} />
+                    <Text style={styles.proofHistoryToggleText}>
+                      Dekont Geçmişi ({payment.proofHistory.length})
+                    </Text>
+                    <Icon
+                      name={expandedHistory === payment.id ? 'chevron-up' : 'chevron-down'}
+                      size={16}
+                      color={colors.text.tertiary}
+                    />
+                  </TouchableOpacity>
+
+                  {expandedHistory === payment.id && payment.proofHistory.map((proof) => (
+                    <View key={proof.id} style={styles.proofHistoryItem}>
+                      <View style={styles.proofHistoryLeft}>
+                        <Icon
+                          name={proof.type === 'image' ? 'image' : proof.type === 'pdf' ? 'file-pdf-box' : 'link'}
+                          size={18}
+                          color={colors.text.secondary}
+                        />
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.proofHistoryMethod}>
+                            {proof.method === 'eft' ? 'EFT/Havale' : proof.method === 'cash' ? 'Nakit' : 'Kart'} · ₺{proof.amount}
+                          </Text>
+                          <Text style={styles.proofHistoryDate}>
+                            {new Date(proof.submittedAt).toLocaleDateString('tr-TR', {
+                              day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
+                            })}
+                            {proof.note ? ` · ${proof.note}` : ''}
+                          </Text>
+                        </View>
+                      </View>
+                      <View style={[styles.proofStatusBadge, { backgroundColor: `${getProofStatusColor(proof.status)}20` }]}>
+                        <Text style={[styles.proofStatusText, { color: getProofStatusColor(proof.status) }]}>
+                          {getProofStatusLabel(proof.status)}
+                        </Text>
+                      </View>
+                    </View>
+                  ))}
+                </>
+              )}
+
               <View style={styles.paymentBottom}>
                 <Text style={styles.paymentDue}>
                   <Icon name="calendar-clock" size={12} color={colors.text.tertiary} /> Son: {payment.dueDate}
@@ -245,11 +327,11 @@ export default function MemberPaymentsScreen() {
                 {payment.status !== 'paid' && (
                   <TouchableOpacity
                     style={styles.uploadBtn}
-                    onPress={() => handleUploadProof(payment.id)}
+                    onPress={() => handleOpenProofModal(payment)}
                     activeOpacity={0.7}
                   >
-                    <Icon name="camera-plus" size={16} color={colors.primary} />
-                    <Text style={styles.uploadBtnText}>Dekont Yükle</Text>
+                    <Icon name="send" size={16} color={colors.primary} />
+                    <Text style={styles.uploadBtnText}>Ödeme Gönder</Text>
                   </TouchableOpacity>
                 )}
               </View>
@@ -257,6 +339,17 @@ export default function MemberPaymentsScreen() {
           ))
         )}
       </AppScrollView>
+
+      {/* Payment Proof Modal */}
+      <PaymentProofModal
+        visible={proofModalVisible}
+        onClose={() => { setProofModalVisible(false); setSelectedPayment(null); }}
+        onSubmit={handleProofSubmit}
+        expectedAmount={selectedPayment?.amount ?? 0}
+        paidAmount={selectedPayment?.paidAmount ?? 0}
+        reservationLabel={selectedPayment?.label}
+        proofHistory={selectedPayment?.proofHistory}
+      />
     </View>
   );
 }
@@ -446,6 +539,62 @@ const styles = StyleSheet.create({
     height: '100%',
     borderRadius: borderRadius.full,
   },
+  // Proof history
+  proofHistoryToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    backgroundColor: `${colors.info}10`,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: `${colors.info}20`,
+    marginBottom: spacing.sm,
+  },
+  proofHistoryToggleText: {
+    flex: 1,
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.info,
+  },
+  proofHistoryItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    marginBottom: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.05)',
+  },
+  proofHistoryLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flex: 1,
+  },
+  proofHistoryMethod: {
+    color: colors.text.primary,
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  proofHistoryDate: {
+    color: colors.text.tertiary,
+    fontSize: 10,
+    marginTop: 1,
+  },
+  proofStatusBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
+  proofStatusText: {
+    fontSize: 9,
+    fontWeight: '800',
+  },
   paymentBottom: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -462,6 +611,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.xs,
+    backgroundColor: `${colors.primary}12`,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: `${colors.primary}25`,
   },
   uploadBtnText: {
     fontSize: typography.fontSize.sm,

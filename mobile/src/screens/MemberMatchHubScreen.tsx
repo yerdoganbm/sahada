@@ -18,6 +18,7 @@ import { useNavigation } from '@react-navigation/native';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import AppScrollView from '../components/AppScrollView';
+import PaymentProofModal, { type ProofSubmitPayload } from '../components/PaymentProofModal';
 import { colors, spacing, borderRadius, typography } from '../theme';
 
 type RsvpStatus = 'yes' | 'maybe' | 'no' | null;
@@ -40,7 +41,7 @@ export default function MemberMatchHubScreen() {
   const navigation = useNavigation();
   const { user } = useAuth();
   const [rsvp, setRsvp] = useState<RsvpStatus>(null);
-  const [uploading, setUploading] = useState(false);
+  const [proofModalVisible, setProofModalVisible] = useState(false);
   const [proofUploaded, setProofUploaded] = useState(false);
 
   const handleRsvp = (status: RsvpStatus) => {
@@ -52,13 +53,12 @@ export default function MemberMatchHubScreen() {
     Alert.alert('Kopyalandi', 'IBAN panoya kopyalandi.');
   };
 
-  const handleUploadProof = async () => {
-    setUploading(true);
-    // Simulate upload
-    await new Promise((r) => setTimeout(r, 1500));
-    setUploading(false);
+  const handleProofSubmit = async (payload: ProofSubmitPayload) => {
     setProofUploaded(true);
-    Alert.alert('Yuklendi', 'Odeme dekontu basariyla yuklendi.');
+    Alert.alert(
+      'Gönderildi',
+      `₺${payload.amount} ${payload.method} ödemesi kaydedildi.${payload.proofUri ? '\nDekont yüklendi.' : ''}`,
+    );
   };
 
   const handleCopyMessage = () => {
@@ -192,32 +192,31 @@ export default function MemberMatchHubScreen() {
         </View>
 
         {/* Payment Proof Upload */}
-        <Text style={styles.sectionLabel}>DEKONT YUKLE</Text>
+        <Text style={styles.sectionLabel}>ÖDEME GÖNDER</Text>
         <View style={styles.uploadCard}>
           {proofUploaded ? (
             <View style={styles.uploadSuccess}>
               <Icon name="check-circle" size={48} color={colors.success} />
-              <Text style={styles.uploadSuccessText}>Dekont yuklendi</Text>
-              <Text style={styles.uploadSuccessSub}>Kaptan onayinizi bekleyin</Text>
+              <Text style={styles.uploadSuccessText}>Ödeme gönderildi</Text>
+              <Text style={styles.uploadSuccessSub}>Kaptan onayınızı bekleyin</Text>
+              <TouchableOpacity
+                style={styles.sendAnotherBtn}
+                onPress={() => setProofModalVisible(true)}
+                activeOpacity={0.7}
+              >
+                <Icon name="plus" size={16} color={colors.primary} />
+                <Text style={styles.sendAnotherText}>Yeni Ödeme Ekle</Text>
+              </TouchableOpacity>
             </View>
           ) : (
-            <>
-              <TouchableOpacity
-                style={[styles.uploadBtn, uploading && styles.uploadBtnDisabled]}
-                onPress={handleUploadProof}
-                disabled={uploading}
-              >
-                {uploading ? (
-                  <ActivityIndicator color={colors.primary} size="large" />
-                ) : (
-                  <>
-                    <Icon name="camera-plus" size={36} color={colors.primary} />
-                    <Text style={styles.uploadBtnText}>Dekont Yukle</Text>
-                    <Text style={styles.uploadBtnSub}>Kamera veya galeriden secin</Text>
-                  </>
-                )}
-              </TouchableOpacity>
-            </>
+            <TouchableOpacity
+              style={styles.uploadBtn}
+              onPress={() => setProofModalVisible(true)}
+            >
+              <Icon name="send" size={36} color={colors.primary} />
+              <Text style={styles.uploadBtnText}>Ödeme / Dekont Gönder</Text>
+              <Text style={styles.uploadBtnSub}>Nakit, EFT, kart — kamera veya galeriden dekont ekle</Text>
+            </TouchableOpacity>
           )}
         </View>
 
@@ -248,6 +247,16 @@ export default function MemberMatchHubScreen() {
           </Text>
         </View>
       </AppScrollView>
+
+      {/* Payment Proof Modal */}
+      <PaymentProofModal
+        visible={proofModalVisible}
+        onClose={() => setProofModalVisible(false)}
+        onSubmit={handleProofSubmit}
+        expectedAmount={150}
+        paidAmount={0}
+        reservationLabel="Yıldız Halısaha · 05 Mart"
+      />
     </View>
   );
 }
@@ -433,7 +442,23 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.xl,
     gap: spacing.sm,
   },
-  uploadBtnDisabled: { opacity: 0.6 },
+  sendAnotherBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: spacing.md,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 10,
+    backgroundColor: `${colors.primary}12`,
+    borderWidth: 1,
+    borderColor: `${colors.primary}25`,
+  },
+  sendAnotherText: {
+    fontSize: typography.fontSize.sm,
+    fontWeight: '600',
+    color: colors.primary,
+  },
   uploadBtnText: {
     fontSize: typography.fontSize.md,
     fontWeight: '700',

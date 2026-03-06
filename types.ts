@@ -796,6 +796,22 @@ export interface CaptainPaymentPlan {
   depositPaidAt?: string;
 }
 
+/** Single proof/receipt entry attached to a contribution */
+export interface ProofEntry {
+  id: string;
+  url: string;
+  /** 'image' | 'pdf' | 'link' */
+  type: 'image' | 'pdf' | 'link';
+  method: MoneyMethod;
+  amount: number;
+  note?: string;
+  submittedAt: string;
+  /** Captain review */
+  status: 'pending' | 'approved' | 'rejected';
+  reviewedAt?: string;
+  reviewNote?: string;
+}
+
 export interface MemberContribution {
   id: string;
   teamId: string;
@@ -808,6 +824,8 @@ export interface MemberContribution {
   lastUpdatedAt: string;
   proofUrl?: string;
   proofNote?: string;
+  /** Ordered proof history (newest first) */
+  proofHistory?: ProofEntry[];
 }
 
 export interface CaptainPayoutProfile {
