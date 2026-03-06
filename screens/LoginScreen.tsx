@@ -183,12 +183,14 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
   };
 
   const handleVenueRoute = () => {
-    // Staff/accountant: check if known demo or route to dashboard
     const known = DEMO_USERS.find(u => rawPhone.endsWith(u.phone));
+    // Known demo users → direct login (existing account)
+    if (known?.role === 'venue_owner')      { onLogin('venue_owner_1');      return; }
     if (known?.role === 'venue_staff')      { onLogin('venue_staff_1');      return; }
     if (known?.role === 'venue_accountant') { onLogin('venue_accountant_1'); return; }
+    // Non-demo staff → dashboard
     if (isVenueStaff) { onLogin('venue_staff_' + rawPhone); return; }
-    // Owner path
+    // Non-demo owner → new registration onboarding
     if (onRegisterVenueOwner) {
       onRegisterVenueOwner(rawPhone);
     } else {
