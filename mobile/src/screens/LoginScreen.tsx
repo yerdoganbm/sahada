@@ -153,6 +153,11 @@ export default function LoginScreen() {
       hapticLight();
       if (hasCode) {
         navigation.navigate('JoinTeam', { inviteCode: pendingJoinCode });
+      } else if (isVenue) {
+        navigation.dispatch(CommonActions.reset({
+          index: 0,
+          routes: [{ name: 'VenueOwnerOnboarding', params: { phone: rawPhone.slice(-10) } }],
+        }));
       } else {
         navigation.dispatch(CommonActions.reset({ index: 0, routes: [{ name: 'MainTabs' }] }));
       }

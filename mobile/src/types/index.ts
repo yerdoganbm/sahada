@@ -667,7 +667,7 @@ export interface InboxItem {
 // ─── Navigation ────────────────────────────────────────────────────
 export type RootStackParamList = {
   Welcome: undefined;
-  Login: undefined;
+  Login: { userType?: 'venue_owner'; pendingJoinCode?: string; pendingRole?: 'captain' | 'member' } | undefined;
   Register: { prefillPhone?: string; inviteCode?: string };
   MainTabs: NavigatorScreenParams<MainTabParamList> | undefined;
   MatchDetails: { matchId: string };
@@ -725,7 +725,7 @@ export type RootStackParamList = {
   TeamManagement: undefined;
   // Venue screens
   VenueLocationEditor: { venueId: string; venueName?: string } | undefined;
-  VenueOwnerOnboarding: undefined;
+  VenueOwnerOnboarding: { phone?: string } | undefined;
   VenueSettings: undefined;
   VenueAnalytics: undefined;
   // Business pack

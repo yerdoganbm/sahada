@@ -14,7 +14,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp, CommonActions } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { RootStackParamList } from '../types';
@@ -104,7 +104,7 @@ export default function VenueOwnerOnboardingScreen() {
       if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) errs.email = 'Geçerli e-posta girin';
     }
     if (step === 1) {
-      if (!form.companyName.trim()) errs.companyName = 'Şirket adı gerekli';
+      // companyName opsiyonel — web ile uyumlu (işletme bilgisi atlanabilir)
       if (form.taxNumber && !/^\d{10}$/.test(form.taxNumber.replace(/\s/g, ''))) errs.taxNumber = 'Vergi no 10 haneli olmalı';
     }
     if (step === 2) {
@@ -184,7 +184,9 @@ export default function VenueOwnerOnboardingScreen() {
         priceHistory: [],
       };
       setIsLoading(false);
-      navigation.navigate('Login', undefined);
+      navigation.dispatch(
+        CommonActions.reset({ index: 0, routes: [{ name: 'VenueOwnerDashboard' }] })
+      );
     }, 1500);
   };
 
