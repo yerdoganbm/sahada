@@ -121,6 +121,13 @@ export default function VenueOwnerDashboardScreen() {
       onPress: () => navigation.navigate('CustomerManagement'),
     },
     {
+      icon: 'account-group',
+      label: 'Ekip Yönetimi',
+      sublabel: 'Personel & muhasebeci',
+      color: '#8B5CF6',
+      onPress: () => navigation.navigate('VenueStaffManagement'),
+    },
+    {
       icon: 'plus-circle',
       label: 'Yeni Saha Ekle',
       sublabel: 'Tesisini platforma ekle',

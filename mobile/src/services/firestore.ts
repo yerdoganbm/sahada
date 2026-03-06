@@ -26,7 +26,69 @@ const COLLECTIONS = {
   // Legacy "player proposal" flow used this key for `player_join_requests`; deprecated in favor of canonical model.
   join_requests: 'player_join_requests',
   ledger_entries: 'ledger_entries',
+  venue_staff_invites: 'venue_staff_invites',
 } as const;
+
+// ─── Venue Staff Invite ────────────────────────────────────────────────────
+export interface VenueStaffInvite {
+  id: string;
+  venueId: string;
+  venueName: string;
+  phone: string;
+  role: 'venue_staff' | 'venue_accountant';
+  invitedBy: string;
+  invitedByName: string;
+  status: 'pending' | 'accepted' | 'revoked';
+  createdAt: string;
+  acceptedAt?: string;
+  acceptedUserId?: string;
+}
+
+export async function getVenueStaffInvites(venueId: string): Promise<VenueStaffInvite[]> {
+  try {
+    const snap = await firestore()
+      .collection(COLLECTIONS.venue_staff_invites)
+      .where('venueId', '==', venueId)
+      .orderBy('createdAt', 'desc')
+      .get();
+    return snap.docs.map(d => ({ id: d.id, ...d.data() } as VenueStaffInvite));
+  } catch {
+    return [];
+  }
+}
+
+export async function createVenueStaffInvite(invite: Omit<VenueStaffInvite, 'id' | 'status' | 'createdAt'>): Promise<string> {
+  const doc = await firestore()
+    .collection(COLLECTIONS.venue_staff_invites)
+    .add({
+      ...invite,
+      status: 'pending',
+      createdAt: new Date().toISOString(),
+    });
+  return doc.id;
+}
+
+export async function revokeVenueStaffInvite(inviteId: string): Promise<void> {
+  await firestore()
+    .collection(COLLECTIONS.venue_staff_invites)
+    .doc(inviteId)
+    .update({ status: 'revoked' });
+}
+
+export async function getVenueStaffMembers(venueIds: string[]): Promise<Player[]> {
+  if (!venueIds.length) return [];
+  try {
+    const snap = await firestore()
+      .collection(COLLECTIONS.users)
+      .where('role', 'in', ['venue_staff', 'venue_accountant'])
+      .get();
+    return snap.docs
+      .map(d => ({ id: d.id, ...d.data() } as Player))
+      .filter(u => u.venueOwnerInfo?.venueIds?.some(v => venueIds.includes(v)));
+  } catch {
+    return [];
+  }
+}
 
 export interface NotificationItem {
   id: string;

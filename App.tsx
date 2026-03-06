@@ -66,6 +66,7 @@ import { RecurringManagement } from './screens/RecurringManagement';
 import { CashRegister } from './screens/CashRegister';
 import { MaintenanceCenter } from './screens/MaintenanceCenter';
 import { BroadcastCenter } from './screens/BroadcastCenter';
+import { VenueStaffManagement } from './screens/VenueStaffManagement';
 // ── CAPTAIN / MEMBER SCREENS ──────────────────────────────────────────────
 import { CaptainDashboard } from './screens/CaptainDashboard';
 import { TeamManagement } from './screens/TeamManagement';
@@ -2876,6 +2877,16 @@ function App() {
             />
           );
         }
+
+      case 'venueStaffManagement':
+        if (!currentUser || currentUser.role !== 'venue_owner') { navigateTo('login'); return null; }
+        return (
+          <VenueStaffManagement
+            currentUser={currentUser}
+            onBack={goBack}
+            onNavigate={navigateTo}
+          />
+        );
 
       // ========== SCOUT SYSTEM ==========
       case 'scoutDashboard':
