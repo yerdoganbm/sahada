@@ -11,11 +11,14 @@ import {
   addPayment as addPaymentInFirestore,
   addTransaction as addTransactionInFirestore,
   updatePaymentProof as updatePaymentProofInFirestore,
+  getVenueIncomingEfts as getVenueIncomingEftsFromFirestore,
+  updateVenueEftStatus as updateVenueEftStatusInFirestore,
   type Reservation,
+  type VenueIncomingEftEntry,
 } from './firestore';
 import { uploadProofImage as uploadProofImageToStorage } from './storage';
 
-export type { Reservation };
+export type { Reservation, VenueIncomingEftEntry };
 
 export async function getPayments(params?: {
   teamId?: string;
@@ -82,4 +85,23 @@ export async function uploadAndSetPaymentProof(
 /** Ödeme dekont URL'ini günceller (Firestore). */
 export async function updatePaymentProof(paymentId: string, proofUrl: string): Promise<void> {
   return updatePaymentProofInFirestore(paymentId, proofUrl);
+}
+
+/** Saha sahibine gönderilen EFT/havale işlemlerini getirir. */
+export async function getVenueIncomingEfts(venueId: string): Promise<VenueIncomingEftEntry[]> {
+  try {
+    return await getVenueIncomingEftsFromFirestore(venueId);
+  } catch (e) {
+    console.warn('getVenueIncomingEfts failed', e);
+    return [];
+  }
+}
+
+/** EFT girişini onayla veya reddet. */
+export async function updateVenueEftStatus(
+  entryId: string,
+  status: 'approved' | 'rejected',
+  reviewNote?: string
+): Promise<void> {
+  return updateVenueEftStatusInFirestore(entryId, status, reviewNote);
 }

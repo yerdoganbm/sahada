@@ -80,6 +80,7 @@ import VenueLocationEditorScreen from '../screens/VenueLocationEditorScreen';
 import VenueOwnerOnboardingScreen from '../screens/VenueOwnerOnboardingScreen';
 import VenueSettingsScreen from '../screens/VenueSettingsScreen';
 import VenueAnalyticsScreen from '../screens/VenueAnalyticsScreen';
+import VenueIncomingEftScreen from '../screens/VenueIncomingEftScreen';
 
 // Business pack screens
 import AuditLogScreen from '../screens/AuditLogScreen';
@@ -153,6 +154,7 @@ export default function RootNavigator() {
           <Stack.Screen name="VenueSettings" component={VenueSettingsScreen} />
           <Stack.Screen name="VenueAnalytics" component={VenueAnalyticsScreen} />
           <Stack.Screen name="VenueFinancialReports" component={VenueFinancialReportsScreen} />
+          <Stack.Screen name="VenueIncomingEft" component={VenueIncomingEftScreen} />
 
           {/* Profile & Settings */}
           <Stack.Screen name="ProfileDetails" component={ProfileScreen} />

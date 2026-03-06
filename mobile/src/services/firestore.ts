@@ -25,6 +25,7 @@ const COLLECTIONS = {
   // Canonical join requests: top-level `join_requests` + joinRequestService + CF. Use canonicalJoinRequestApi for UI.
   // Legacy "player proposal" flow used this key for `player_join_requests`; deprecated in favor of canonical model.
   join_requests: 'player_join_requests',
+  ledger_entries: 'ledger_entries',
 } as const;
 
 export interface NotificationItem {
@@ -1161,4 +1162,58 @@ export async function addManualPlayer(
     createdAt: firestore.FieldValue.serverTimestamp(),
   });
   return getUserById(ref.id);
+}
+
+export interface VenueIncomingEftEntry {
+  id: string;
+  at: string;
+  reservationId?: string;
+  teamId?: string;
+  teamName?: string;
+  actorUserId: string;
+  actorName?: string;
+  amount: number;
+  note?: string;
+  proofUrl?: string;
+  status: 'pending' | 'approved' | 'rejected';
+}
+
+/** Saha sahibine gönderilen EFT transferlerini getirir (captain_to_venue, method: eft). */
+export async function getVenueIncomingEfts(venueId: string): Promise<VenueIncomingEftEntry[]> {
+  const snap = await firestore()
+    .collection(COLLECTIONS.ledger_entries)
+    .where('direction', '==', 'captain_to_venue')
+    .where('method', '==', 'eft')
+    .where('venueId', '==', venueId)
+    .orderBy('at', 'desc')
+    .get();
+  return snap.docs.map((doc) => {
+    const d = (doc.data() || {}) as Record<string, unknown>;
+    return {
+      id: doc.id,
+      at: (d.at as string) ?? '',
+      reservationId: d.reservationId as string | undefined,
+      teamId: d.teamId as string | undefined,
+      teamName: d.teamName as string | undefined,
+      actorUserId: (d.actorUserId as string) ?? '',
+      actorName: d.actorName as string | undefined,
+      amount: typeof d.amount === 'number' ? d.amount : 0,
+      note: d.note as string | undefined,
+      proofUrl: d.proofUrl as string | undefined,
+      status: ((d.status as string) ?? 'pending') as VenueIncomingEftEntry['status'],
+    };
+  });
+}
+
+/** EFT girişinin onay durumunu günceller. */
+export async function updateVenueEftStatus(
+  entryId: string,
+  status: 'approved' | 'rejected',
+  reviewNote?: string
+): Promise<void> {
+  await firestore().collection(COLLECTIONS.ledger_entries).doc(entryId).update({
+    status,
+    reviewedAt: firestore.FieldValue.serverTimestamp(),
+    reviewNote: reviewNote ?? null,
+  });
 }

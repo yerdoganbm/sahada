@@ -17,6 +17,7 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { getVenues } from '../services/venues';
 import { getReservations } from '../services/finance';
+import { useAuth } from '../contexts/AuthContext';
 import AppScrollView from '../components/AppScrollView';
 import { RootStackParamList } from '../types';
 import { colors, spacing, borderRadius, typography, shadows } from '../theme';
@@ -34,6 +35,12 @@ interface MenuItem {
 
 export default function VenueOwnerDashboardScreen() {
   const navigation = useNavigation<NavProp>();
+  const { user } = useAuth();
+  const role = user?.role ?? 'venue_owner';
+  const isOwner      = role === 'venue_owner' || role === 'admin';
+  const isAccountant = role === 'venue_accountant';
+  // venue_staff sees reservations + calendar; accountant sees finance only; owner sees all
+
   const [venues, setVenues] = useState<Array<{ id: string; name: string; pricePerHour: number }>>([]);
   const [reservations, setReservations] = useState<Awaited<ReturnType<typeof getReservations>>>([]);
   const [loading, setLoading] = useState(true);
@@ -68,7 +75,8 @@ export default function VenueOwnerDashboardScreen() {
     return r.date === today;
   }).length;
 
-  const menuItems: MenuItem[] = [
+  // ── Full menu (owner / admin) ──────────────────────────────────────────────
+  const ownerMenuItems: MenuItem[] = [
     {
       icon: 'domain',
       label: 'Sahalar',
@@ -97,6 +105,13 @@ export default function VenueOwnerDashboardScreen() {
       sublabel: `₺${totalRevenue.toLocaleString('tr-TR')} toplam`,
       color: '#F59E0B',
       onPress: () => navigation.navigate('VenueFinancialReports'),
+    },
+    {
+      icon: 'bank-transfer-in',
+      label: 'Gelen EFT / Havale',
+      sublabel: 'Kaptanlardan gelen transferler',
+      color: '#6366F1',
+      onPress: () => navigation.navigate('VenueIncomingEft'),
     },
     {
       icon: 'account-tie',
@@ -128,6 +143,63 @@ export default function VenueOwnerDashboardScreen() {
     },
   ];
 
+  // ── Accountant menu (gelir + EFT only) ───────────────────────────────────
+  const accountantMenuItems: MenuItem[] = [
+    {
+      icon: 'chart-line',
+      label: 'Gelir Raporları',
+      sublabel: `₺${totalRevenue.toLocaleString('tr-TR')} toplam`,
+      color: '#F59E0B',
+      onPress: () => navigation.navigate('VenueFinancialReports'),
+    },
+    {
+      icon: 'bank-transfer-in',
+      label: 'Gelen EFT / Havale',
+      sublabel: 'Kaptanlardan gelen transferler',
+      color: '#6366F1',
+      onPress: () => navigation.navigate('VenueIncomingEft'),
+    },
+  ];
+
+  // ── Staff menu (rezervasyon + takvim + müşteri) ───────────────────────────
+  const staffMenuItems: MenuItem[] = [
+    {
+      icon: 'calendar-edit',
+      label: 'Rezervasyon Yönetimi',
+      sublabel: `${pendingCount} bekleyen`,
+      color: '#3B82F6',
+      onPress: () => navigation.navigate('ReservationManagement'),
+      badge: pendingCount,
+    },
+    {
+      icon: 'calendar-month',
+      label: 'Saha Takvimi',
+      sublabel: `Bugün ${todayRes} rezervasyon`,
+      color: '#8B5CF6',
+      onPress: () => navigation.navigate('VenueCalendar'),
+    },
+    {
+      icon: 'account-tie',
+      label: 'Müşteri Yönetimi',
+      sublabel: 'CRM ve müşteri listesi',
+      color: '#EC4899',
+      onPress: () => navigation.navigate('CustomerManagement'),
+    },
+    {
+      icon: 'bank-transfer-in',
+      label: 'Gelen EFT / Havale',
+      sublabel: 'Ödeme takibi',
+      color: '#6366F1',
+      onPress: () => navigation.navigate('VenueIncomingEft'),
+    },
+  ];
+
+  const menuItems: MenuItem[] = isOwner
+    ? ownerMenuItems
+    : isAccountant
+    ? accountantMenuItems
+    : staffMenuItems;
+
   const recentReservations = [...reservations]
     .sort((a, b) => b.date.localeCompare(a.date))
     .slice(0, 5);
@@ -148,8 +220,12 @@ export default function VenueOwnerDashboardScreen() {
           <Icon name="arrow-left" size={24} color={colors.text.primary} />
         </TouchableOpacity>
         <View>
-          <Text style={styles.headerTitle}>Saha Sahibi Paneli</Text>
-          <Text style={styles.headerSub}>Partner Dashboard</Text>
+          <Text style={styles.headerTitle}>
+            {isAccountant ? 'Muhasebe Paneli' : role === 'venue_staff' ? 'Personel Paneli' : 'Saha Sahibi Paneli'}
+          </Text>
+          <Text style={styles.headerSub}>
+            {isAccountant ? 'Finans & Raporlar' : role === 'venue_staff' ? 'Rezervasyon & Operasyon' : 'Partner Dashboard'}
+          </Text>
         </View>
         <View style={[styles.backBtn, { backgroundColor: '#F59E0B22' }]}>
           <Icon name="crown" size={22} color="#F59E0B" />

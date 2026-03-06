@@ -49,6 +49,21 @@ const ROLES = [
       { icon: '👥', text: 'Personel yönetimi ve bakım takibi' },
     ],
   },
+  {
+    id: 'venue_staff',
+    emoji: '👷',
+    title: 'Sahada Çalışıyorum',
+    subtitle: 'Personel veya muhasebe girişi',
+    color: '#8B5CF6',
+    colorDim: 'rgba(139,92,246,0.12)',
+    colorBorder: 'rgba(139,92,246,0.3)',
+    badge: 'Personel',
+    perks: [
+      { icon: '📋', text: 'Rezervasyon takibi ve takvim görünümü' },
+      { icon: '💳', text: 'Gelen EFT ve kasa hareketleri' },
+      { icon: '🔔', text: 'Bildirim ve müşteri iletişimi' },
+    ],
+  },
 ] as const;
 
 const PLAYER_FIRST_STEPS = [
@@ -93,12 +108,12 @@ const VENUE_FEATURES = [
 ];
 
 type Nav = StackNavigationProp<RootStackParamList, 'Welcome'>;
-type Step = 'hero' | 'player_start' | 'venue_start';
+type Step = 'hero' | 'player_start' | 'venue_start' | 'venue_staff_start';
 
 export default function WelcomeScreen() {
   const navigation = useNavigation<Nav>();
   const [step, setStep] = useState<Step>('hero');
-  const [activeRole, setActiveRole] = useState<0 | 1>(0);
+  const [activeRole, setActiveRole] = useState<0 | 1 | 2>(0);
   const [selectedPath, setSelectedPath] = useState<number | null>(null);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -122,7 +137,10 @@ export default function WelcomeScreen() {
       onPanResponderRelease: (_, gs) => {
         if (Math.abs(gs.dx) > 40) {
           hapticLight();
-          setActiveRole(gs.dx < 0 ? 1 : 0);
+          setActiveRole((prev) => {
+            if (gs.dx < 0) return Math.min(prev + 1, 2) as 0 | 1 | 2;
+            return Math.max(prev - 1, 0) as 0 | 1 | 2;
+          });
         }
       },
     })
@@ -221,12 +239,18 @@ export default function WelcomeScreen() {
 
               {/* CTA inside card */}
               <TouchableOpacity
-                onPress={() => goTo(role.id === 'player' ? 'player_start' : 'venue_start')}
+                onPress={() => {
+                  if (role.id === 'player') { goTo('player_start'); }
+                  else if (role.id === 'venue') { goTo('venue_start'); }
+                  else { goTo('venue_staff_start'); }
+                }}
                 style={[s.cardCta, { backgroundColor: role.color, shadowColor: role.color }]}
                 activeOpacity={0.85}
               >
                 <Text style={s.cardCtaText}>
-                  {role.id === 'player' ? 'Oyuncu Olarak Başla' : 'Saha Sahibi Olarak Başla'}
+                  {role.id === 'player' ? 'Oyuncu Olarak Başla'
+                    : role.id === 'venue' ? 'Saha Sahibi Olarak Başla'
+                    : 'Personel Girişi Yap'}
                 </Text>
                 <Text style={s.cardCtaArrow}>→</Text>
               </TouchableOpacity>
@@ -387,6 +411,83 @@ export default function WelcomeScreen() {
   }
 
   // ══════════════════════════════════════════════════════════
+  // VENUE STAFF START
+  // ══════════════════════════════════════════════════════════
+  if (step === 'venue_staff_start') {
+    return (
+      <SafeAreaView style={s.root}>
+        <StatusBar barStyle="light-content" backgroundColor="#060a0e" />
+        <ScrollView contentContainerStyle={{ flexGrow: 1 }} showsVerticalScrollIndicator={false} bounces={false}>
+          <Animated.View style={[s.subPage, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
+            <TouchableOpacity onPress={() => goTo('hero')} style={s.backBtn} activeOpacity={0.7}>
+              <Text style={s.backIcon}>‹</Text>
+              <Text style={s.backText}>Geri</Text>
+            </TouchableOpacity>
+
+            <View style={s.venueHeaderRow}>
+              <Text style={{ fontSize: 28 }}>👷</Text>
+              <View style={[s.venueBadge, { backgroundColor: 'rgba(139,92,246,0.15)', borderColor: 'rgba(139,92,246,0.35)' }]}>
+                <Text style={[s.venueBadgeText, { color: '#8B5CF6' }]}>Personel</Text>
+              </View>
+            </View>
+
+            <Text style={s.subHeadline}>
+              Sahada{'\n'}
+              <Text style={{ color: '#8B5CF6' }}>Çalışıyorum.</Text>
+            </Text>
+            <Text style={s.subDesc}>
+              Saha yöneticisi, personel veya muhasebe olarak giriş yapın. Yetkilendirme saha sahibi tarafından yapılır.
+            </Text>
+
+            <View style={s.kpiRow}>
+              {[['3 Rol', 'Yönetici / Personel / Muhasebe'], ['Anlık', 'Rezervasyon bildirimleri'], ['Güvenli', 'Rol bazlı erişim']].map(([v, l], i) => (
+                <View key={i} style={s.kpiItem}>
+                  <Text style={s.kpiValue}>{v}</Text>
+                  <Text style={s.kpiLabel}>{l}</Text>
+                </View>
+              ))}
+            </View>
+
+            {[
+              { icon: '📋', label: 'Rezervasyon Takibi', desc: 'Gelen rezervasyonları gör, onayla veya reddet' },
+              { icon: '💳', label: 'EFT & Kasa', desc: 'Gelen ödemeleri ve kasa hareketlerini izle' },
+              { icon: '📊', label: 'Gelir Raporları', desc: 'Muhasebe rolüyle finansal raporlara eriş' },
+            ].map((f, i) => (
+              <View key={i} style={s.featureRow}>
+                <View style={[s.featureIconBox, { backgroundColor: 'rgba(139,92,246,0.15)' }]}>
+                  <Text style={{ fontSize: 16 }}>{f.icon}</Text>
+                </View>
+                <View style={s.featureContent}>
+                  <Text style={s.featureLabel}>{f.label}</Text>
+                  <Text style={s.featureDesc}>{f.desc}</Text>
+                </View>
+              </View>
+            ))}
+
+            <View style={{ flex: 1, minHeight: 20 }} />
+
+            <TouchableOpacity
+              onPress={() => { hapticLight(); navigation.navigate('Login', { userType: 'venue_staff' }); }}
+              style={[s.mainCta, { backgroundColor: '#8B5CF6', shadowColor: '#8B5CF6', shadowOpacity: 0.4 }]}
+              activeOpacity={0.85}
+            >
+              <Text style={[s.mainCtaText, { color: 'white' }]}>Personel Girişi Yap →</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity onPress={() => navigation.navigate('Login')} style={s.subLoginLink} activeOpacity={0.7}>
+              <Text style={s.subLoginLinkText}>Hesabım var, giriş yap</Text>
+            </TouchableOpacity>
+
+            <Text style={s.terms}>
+              Devam ederek Kullanım Koşulları ve Gizlilik Politikası'nı kabul edersiniz.
+            </Text>
+          </Animated.View>
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
+
+  // ══════════════════════════════════════════════════════════
   // VENUE START
   // ══════════════════════════════════════════════════════════
   return (
@@ -444,7 +545,7 @@ export default function WelcomeScreen() {
 
           {/* CTAs */}
           <TouchableOpacity
-            onPress={() => { hapticLight(); navigation.navigate('Login', { userType: 'venue_owner' } as any); }}
+            onPress={() => { hapticLight(); navigation.navigate('Login', { userType: 'venue_owner' }); }}
             style={[s.mainCta, { backgroundColor: '#3B82F6', shadowColor: '#3B82F6', shadowOpacity: 0.4 }]}
             activeOpacity={0.85}
           >

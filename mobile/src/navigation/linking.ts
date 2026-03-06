@@ -48,6 +48,7 @@ export const linking: LinkingOptions<RootStackParamList> = {
       VenueSettings: 'venue/settings',
       VenueAnalytics: 'venue/analytics',
       VenueFinancialReports: 'venue/financial',
+      VenueIncomingEft: 'venue/incoming-eft',
 
       // Profile
       ProfileDetails: { path: 'user/:userId', parse: { userId: (id: string) => id } },

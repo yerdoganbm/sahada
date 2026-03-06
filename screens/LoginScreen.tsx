@@ -10,7 +10,7 @@ interface LoginScreenProps {
   onLogin: (userId: string, isNewTeam?: boolean) => void;
   onRegisterVenueOwner?: (phone: string) => void;
   onNavigate?: (screen: string, params?: any) => void;
-  userType?: 'player' | 'venue_owner' | null;
+  userType?: 'player' | 'venue_owner' | 'venue_staff' | null;
   pendingJoinCode?: string | null;
   pendingRole?: 'captain' | 'member' | null;
 }
@@ -21,10 +21,12 @@ const OTP_LEN = 4;
 
 // Demo users quick-access
 const DEMO_USERS = [
-  { phone: '5000000001', label: 'Admin', icon: '🛡', role: 'admin' },
-  { phone: '5000000007', label: 'Kaptan Ali', icon: '🏆', role: 'captain' },
-  { phone: '5000000002', label: 'Üye Ahmet', icon: '⚽', role: 'member' },
-  { phone: '5000000099', label: 'Saha Sahibi', icon: '🏟', role: 'venue' },
+  { phone: '5000000001', label: 'Admin',           icon: '🛡',  role: 'admin' },
+  { phone: '5000000007', label: 'Kaptan Ali',      icon: '🏆',  role: 'captain' },
+  { phone: '5000000002', label: 'Üye Ahmet',       icon: '⚽',  role: 'member' },
+  { phone: '5000000099', label: 'Saha Sahibi',     icon: '🏟',  role: 'venue_owner' },
+  { phone: '5000000098', label: 'Saha Personeli',  icon: '👷',  role: 'venue_staff' },
+  { phone: '5000000097', label: 'Saha Muhasebeci', icon: '📊',  role: 'venue_accountant' },
 ];
 
 // ─── Accent configs ────────────────────────────────────────────────
@@ -61,12 +63,14 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
   pendingJoinCode,
   pendingRole,
 }) => {
-  const isVenue = userType === 'venue_owner';
-  const isCaptain = pendingRole === 'captain';
-  const hasCode = !!pendingJoinCode;
+  const isVenue      = userType === 'venue_owner';
+  const isVenueStaff = userType === 'venue_staff';
+  const isAnyVenue   = isVenue || isVenueStaff;
+  const isCaptain    = pendingRole === 'captain';
+  const hasCode      = !!pendingJoinCode;
 
   // Accent color
-  const accentKey = isVenue ? 'blue' : isCaptain ? 'yellow' : 'green';
+  const accentKey = isAnyVenue ? 'blue' : isCaptain ? 'yellow' : 'green';
   const ac = ACCENTS[accentKey];
 
   // Steps: phone → otp → name (skip if code or venue onboarding)
@@ -168,10 +172,10 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
       }
       setVerified(true);
       setTimeout(() => {
-        if (isVenue) { handleVenueRoute(); return; }
+        if (isAnyVenue) { handleVenueRoute(); return; }
         if (hasCode) { finishLogin('Yeni Üye'); return; }
         // check if known demo user
-        const known = DEMO_USERS.find(u => rawPhone.endsWith(u.phone.replace('500', '')));
+        const known = DEMO_USERS.find(u => rawPhone.endsWith(u.phone));
         if (known) { finishLogin(known.label); return; }
         setStep('name');
       }, 550);
@@ -179,6 +183,12 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
   };
 
   const handleVenueRoute = () => {
+    // Staff/accountant: check if known demo or route to dashboard
+    const known = DEMO_USERS.find(u => rawPhone.endsWith(u.phone));
+    if (known?.role === 'venue_staff')      { onLogin('venue_staff_1');      return; }
+    if (known?.role === 'venue_accountant') { onLogin('venue_accountant_1'); return; }
+    if (isVenueStaff) { onLogin('venue_staff_' + rawPhone); return; }
+    // Owner path
     if (onRegisterVenueOwner) {
       onRegisterVenueOwner(rawPhone);
     } else {
@@ -189,14 +199,14 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
   // ── Finish login (resolve userId from phone) ──────────────────────
   const finishLogin = (displayName?: string) => {
     // Demo user mapping
-    if (rawPhone === '5000000001' || rawPhone === '1') { onLogin('1'); return; }
-    if (rawPhone === '5000000007' || rawPhone === '7') { onLogin('7'); return; }
-    if (rawPhone === '5000000002' || rawPhone === '2') { onLogin('2'); return; }
-    if (rawPhone === '5000000099')  { onLogin('venue_owner_1'); return; }
-    if (rawPhone === '5000000098')  { onLogin('venue_staff_1'); return; }
-    if (rawPhone === '5000000097')  { onLogin('venue_accountant_1'); return; }
-    // New user
-    onLogin('new_player_' + rawPhone);
+    if (rawPhone === '5000000001') { onLogin('1'); return; }
+    if (rawPhone === '5000000007') { onLogin('7'); return; }
+    if (rawPhone === '5000000002') { onLogin('2'); return; }
+    if (rawPhone === '5000000099') { onLogin('venue_owner_1'); return; }
+    if (rawPhone === '5000000098') { onLogin('venue_staff_1'); return; }
+    if (rawPhone === '5000000097') { onLogin('venue_accountant_1'); return; }
+    // New user — onLogin with name so the app can register them
+    onLogin('new_player_' + rawPhone, undefined);
   };
 
   // ── Quick demo fill ───────────────────────────────────────────────
@@ -218,17 +228,19 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
   };
 
   const otpFull = otp.every(Boolean);
-  const totalSteps = hasCode || isVenue ? 2 : 3;
+  const totalSteps = hasCode || isAnyVenue ? 2 : 3;
   const stepIdx = ['phone', 'otp', 'name'].indexOf(step);
 
   // ── Context badge ─────────────────────────────────────────────────
   const badge = hasCode
     ? { emoji: '🔗', text: `Kod: ${pendingJoinCode}`, col: '#10B981' }
     : isCaptain
-      ? { emoji: '🏆', text: 'Kaptan kaydı', col: '#F59E0B' }
-      : isVenue
-        ? { emoji: '🏟', text: 'Saha sahibi girişi', col: '#3B82F6' }
-        : null;
+      ? { emoji: '🏆', text: 'Kaptan kaydı',              col: '#F59E0B' }
+      : isVenueStaff
+        ? { emoji: '👷', text: 'Personel / Muhasebe girişi', col: '#8B5CF6' }
+        : isVenue
+          ? { emoji: '🏟', text: 'Saha sahibi girişi',    col: '#3B82F6' }
+          : null;
 
   return (
     <>
