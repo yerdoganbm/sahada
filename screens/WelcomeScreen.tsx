@@ -7,7 +7,7 @@ interface WelcomeScreenProps {
   onSetRole?: (role: 'captain' | 'member' | null) => void;
 }
 
-type Step = 'hero' | 'player_start' | 'venue_start';
+type Step = 'hero' | 'player_start' | 'venue_start' | 'venue_staff_start';
 
 const PLAYER_FIRST_STEPS = [
   {
@@ -82,13 +82,28 @@ const ROLES = [
       { icon: '👥', text: 'Personel yönetimi ve bakım takibi' },
     ],
   },
+  {
+    id: 'venue_staff',
+    emoji: '👷',
+    title: 'Sahada Çalışıyorum',
+    subtitle: 'Personel veya muhasebe girişi',
+    color: '#8B5CF6',
+    colorDim: 'rgba(139,92,246,0.12)',
+    colorBorder: 'rgba(139,92,246,0.3)',
+    badge: 'Personel',
+    perks: [
+      { icon: '📋', text: 'Rezervasyon takibi ve takvim görünümü' },
+      { icon: '💳', text: 'Gelen EFT ve kasa hareketleri' },
+      { icon: '📊', text: 'Muhasebe rolüyle gelir raporlarına eriş' },
+    ],
+  },
 ] as const;
 
 // ─── MAIN COMPONENT ─────────────────────────────────────────
 export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onNavigate, onSetRole }) => {
   const [step, setStep] = useState<Step>('hero');
   const [animating, setAnimating] = useState(false);
-  const [activeRole, setActiveRole] = useState<0 | 1>(0);
+  const [activeRole, setActiveRole] = useState<0 | 1 | 2>(0);
   const [dragging, setDragging] = useState(false);
   const dragStart = useRef(0);
 
@@ -101,14 +116,14 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onNavigate, onSetR
   const onTouchStart = (e: React.TouchEvent) => { dragStart.current = e.touches[0].clientX; };
   const onTouchEnd   = (e: React.TouchEvent) => {
     const delta = dragStart.current - e.changedTouches[0].clientX;
-    if (Math.abs(delta) > 40) setActiveRole(delta > 0 ? 1 : 0);
+    if (Math.abs(delta) > 40) setActiveRole(prev => (delta > 0 ? Math.min(prev + 1, 2) : Math.max(prev - 1, 0)) as 0 | 1 | 2);
   };
   const onMouseDown  = (e: React.MouseEvent) => { setDragging(true); dragStart.current = e.clientX; };
   const onMouseUp    = (e: React.MouseEvent) => {
     if (!dragging) return;
     setDragging(false);
     const delta = dragStart.current - e.clientX;
-    if (Math.abs(delta) > 40) setActiveRole(delta > 0 ? 1 : 0);
+    if (Math.abs(delta) > 40) setActiveRole(prev => (delta > 0 ? Math.min(prev + 1, 2) : Math.max(prev - 1, 0)) as 0 | 1 | 2);
   };
 
   const role = ROLES[activeRole];
@@ -318,14 +333,18 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onNavigate, onSetR
             <div className="absolute bottom-0 left-0 right-0 px-5 py-4"
               style={{ background: `linear-gradient(to top, ${role.colorDim}, transparent)` }}>
               <button
-                onClick={() => role.id === 'player' ? goTo('player_start') : goTo('venue_start')}
+                onClick={() => {
+                  if (role.id === 'player') goTo('player_start');
+                  else if (role.id === 'venue') goTo('venue_start');
+                  else goTo('venue_staff_start');
+                }}
                 className="w-full py-3 rounded-2xl font-black text-sm flex items-center justify-center gap-2 transition-all active:scale-[0.97]"
                 style={{
                   background: role.color,
-                  color: '#060a0e',
+                  color: role.id === 'venue_staff' ? 'white' : '#060a0e',
                   boxShadow: `0 0 24px ${role.color}44`,
                 }}>
-                <span>{role.id === 'player' ? 'Oyuncu Olarak Başla' : 'Saha Sahibi Olarak Başla'}</span>
+                <span>{role.id === 'player' ? 'Oyuncu Olarak Başla' : role.id === 'venue' ? 'Saha Sahibi Olarak Başla' : 'Personel Girişi Yap'}</span>
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
                   <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.8"
                     strokeLinecap="round" strokeLinejoin="round" />
@@ -392,6 +411,10 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onNavigate, onSetR
   // ── SAHA SAHİBİ DETAY ────────────────────────────────────
   if (step === 'venue_start') {
     return <VenueStartScreen animating={animating} onBack={() => goTo('hero')} onNavigate={onNavigate} />;
+  }
+
+  if (step === 'venue_staff_start') {
+    return <VenueStaffStartScreen animating={animating} onBack={() => goTo('hero')} onNavigate={onNavigate} />;
   }
 
   return null;
@@ -626,10 +649,105 @@ const VenueStartScreen: React.FC<{
 
       {/* CTAs */}
       <div className="mt-5 space-y-2.5">
-        <button onClick={() => onNavigate('login')}
+        <button onClick={() => onNavigate('login', { userType: 'venue_owner' })}
           className="w-full py-4 rounded-2xl font-black text-[15px] text-white flex items-center justify-center gap-2 transition-all active:scale-[0.97]"
           style={{ background: '#3B82F6', boxShadow: '0 0 32px rgba(59,130,246,0.4)' }}>
           Sahami Kaydet &amp; Başla
+          <svg width="17" height="17" viewBox="0 0 17 17" fill="none">
+            <path d="M3 8.5h11M9.5 3.5l5 5-5 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </button>
+        <button onClick={() => onNavigate('login')}
+          className="w-full py-3 rounded-xl text-slate-600 text-xs font-bold flex items-center justify-center transition-colors hover:text-slate-400"
+          style={{ border: '1px solid rgba(255,255,255,0.05)' }}>
+          Hesabım var, giriş yap
+        </button>
+      </div>
+
+      <p className="text-[8px] text-center text-slate-800 mt-4">
+        Devam ederek{' '}
+        <span className="text-slate-600 underline">Kullanım Koşulları</span> ve{' '}
+        <span className="text-slate-600 underline">Gizlilik Politikası</span>{"'"}nı kabul edersiniz.
+      </p>
+    </div>
+  </div>
+);
+
+
+// ─────────────────────────────────────────────────────────────
+// SAHA PERSONELİ / MUHASEBE GİRİŞİ
+// ─────────────────────────────────────────────────────────────
+const VenueStaffStartScreen: React.FC<{
+  animating: boolean;
+  onBack: () => void;
+  onNavigate: (s: ScreenName, p?: any) => void;
+}> = ({ animating, onBack, onNavigate }) => (
+  <div className={`min-h-screen bg-[#060a0e] flex flex-col overflow-hidden relative transition-opacity duration-200 ${animating ? 'opacity-0' : 'opacity-100'}`}>
+    <div className="absolute inset-0 pointer-events-none">
+      <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse 70% 50% at 50% 0%, rgba(139,92,246,0.06) 0%, transparent 70%)' }} />
+    </div>
+
+    <div className="relative z-10 flex flex-col flex-1 px-5 pt-12 pb-8 overflow-y-auto">
+      <button onClick={onBack} className="flex items-center gap-2 mb-8 w-fit group">
+        <div className="w-8 h-8 rounded-xl flex items-center justify-center"
+          style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+            <path d="M9 2L4 7l5 5" stroke="rgba(255,255,255,0.4)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </div>
+        <span className="text-slate-600 text-xs font-bold group-hover:text-slate-400 transition-colors">Geri</span>
+      </button>
+
+      <div className="mb-6">
+        <div className="flex items-center gap-2 mb-2">
+          <span className="text-2xl">👷</span>
+          <span className="text-[9px] font-black px-2 py-1 rounded-full"
+            style={{ background: 'rgba(139,92,246,0.12)', color: '#A78BFA', border: '1px solid rgba(139,92,246,0.2)' }}>
+            Personel
+          </span>
+        </div>
+        <h2 className="text-[28px] font-black text-white leading-none tracking-tight">
+          Sahada<br />
+          <span style={{ color: '#8B5CF6' }}>Çalışıyorum.</span>
+        </h2>
+        <p className="text-slate-600 text-[11px] mt-2">Saha yöneticisi, personel veya muhasebe olarak giriş yapın.</p>
+      </div>
+
+      <div className="grid grid-cols-3 gap-2 mb-5">
+        {[['3 Rol','Yönetici/Personel/Muhasebe'],['Anlık','Bildirimler'],['Güvenli','Rol bazlı erişim']].map(([v,l],i) => (
+          <div key={i} className="flex flex-col items-center py-3 rounded-2xl"
+            style={{ background: 'rgba(139,92,246,0.07)', border: '1px solid rgba(139,92,246,0.15)' }}>
+            <span className="text-[14px] font-black" style={{ color: '#A78BFA' }}>{v}</span>
+            <span className="text-[8px] text-slate-600 uppercase font-bold tracking-wide mt-0.5 text-center">{l}</span>
+          </div>
+        ))}
+      </div>
+
+      <div className="space-y-2 flex-1">
+        {[
+          { icon: '📋', label: 'Rezervasyon Takibi', desc: 'Gelen rezervasyonları gör, onayla veya reddet' },
+          { icon: '💳', label: 'EFT & Kasa', desc: 'Gelen ödemeleri ve kasa hareketlerini izle' },
+          { icon: '📊', label: 'Gelir Raporları', desc: 'Muhasebe rolüyle finansal raporlara eriş' },
+        ].map((f, i) => (
+          <div key={i} className="flex items-center gap-3 px-3.5 py-3 rounded-2xl"
+            style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}>
+            <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
+              style={{ background: 'rgba(139,92,246,0.1)' }}>
+              <span className="text-sm">{f.icon}</span>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-white text-xs font-bold leading-none">{f.label}</p>
+              <p className="text-slate-700 text-[10px] mt-0.5">{f.desc}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-5 space-y-2.5">
+        <button onClick={() => onNavigate('login', { userType: 'venue_staff' })}
+          className="w-full py-4 rounded-2xl font-black text-[15px] text-white flex items-center justify-center gap-2 transition-all active:scale-[0.97]"
+          style={{ background: '#8B5CF6', boxShadow: '0 0 32px rgba(139,92,246,0.4)' }}>
+          Personel Girişi Yap
           <svg width="17" height="17" viewBox="0 0 17 17" fill="none">
             <path d="M3 8.5h11M9.5 3.5l5 5-5 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
           </svg>

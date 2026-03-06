@@ -40,16 +40,18 @@ type LoginNav   = StackNavigationProp<RootStackParamList, 'Login'>;
 export default function LoginScreen() {
   const navigation = useNavigation<LoginNav>();
   const route      = useRoute<LoginRoute>();
-  const { loginWithCredentials } = useAuth();
+  const { loginWithCredentials, registerAndLogin } = useAuth();
 
   const pendingJoinCode = (route.params as any)?.pendingJoinCode as string | undefined;
   const pendingRole     = (route.params as any)?.pendingRole as 'captain' | 'member' | undefined;
-  const userType        = (route.params as any)?.userType as 'venue_owner' | undefined;
+  const userType        = route.params?.userType;
 
-  const isVenue   = userType === 'venue_owner';
-  const isCaptain = pendingRole === 'captain';
+  const isVenue      = userType === 'venue_owner';
+  const isVenueStaff = userType === 'venue_staff';
+  const isAnyVenue   = isVenue || isVenueStaff;
+  const isCaptain    = pendingRole === 'captain';
   const hasCode   = !!pendingJoinCode;
-  const accentKey = isVenue ? 'blue' : isCaptain ? 'yellow' : 'green';
+  const accentKey = isAnyVenue ? 'blue' : isCaptain ? 'yellow' : 'green';
   const ac        = ACCENTS[accentKey];
 
   const [step, setStep]           = useState<'phone' | 'otp' | 'name'>('phone');
@@ -140,7 +142,7 @@ export default function LoginScreen() {
       }
       setVerified(true);
       setTimeout(() => {
-        if (isVenue || hasCode) { finishLogin(); return; }
+        if (isAnyVenue || hasCode) { finishLogin(); return; }
         const known = DEMO_USERS.some(u => rawPhone.endsWith(u.phone));
         if (known) { finishLogin(); return; }
         setStep('name');
@@ -151,25 +153,41 @@ export default function LoginScreen() {
   const finishLogin = async () => {
     setLoading(true);
     try {
-      try { await loginWithCredentials({ phone: rawPhone.slice(-10) }); } catch {}
       hapticLight();
-
+      const phone10 = rawPhone.slice(-10);
       const knownUser = DEMO_USERS.find(u => rawPhone.endsWith(u.phone));
-      const isVenueRole = knownUser?.role === 'venue_owner' || knownUser?.role === 'venue_staff' || knownUser?.role === 'venue_accountant';
+      const isVenueRole = knownUser?.role === 'venue_owner'
+        || knownUser?.role === 'venue_staff'
+        || knownUser?.role === 'venue_accountant';
+
+      // Try to log in existing user; create new one if not found
+      let loginSucceeded = false;
+      try {
+        await loginWithCredentials({ phone: phone10 });
+        loginSucceeded = true;
+      } catch {
+        // New user — register them with the entered name (if any)
+        if (name.trim().length >= 2) {
+          try {
+            await registerAndLogin({ name: name.trim(), phone: phone10 });
+            loginSucceeded = true;
+          } catch {}
+        }
+      }
 
       if (hasCode) {
         navigation.navigate('JoinTeam', { inviteCode: pendingJoinCode });
-      } else if (isVenueRole) {
-        // Kayıtlı saha kullanıcısı — onboarding atla, direkt dashboard
+      } else if (isVenueRole || isVenueStaff) {
+        // Demo venue staff/accountant OR existing venue user — skip onboarding
         navigation.dispatch(CommonActions.reset({
           index: 0,
           routes: [{ name: 'VenueOwnerDashboard' }],
         }));
       } else if (isVenue) {
-        // Yeni saha sahibi kaydı — onboarding'e yönlendir
+        // New venue owner — run onboarding
         navigation.dispatch(CommonActions.reset({
           index: 0,
-          routes: [{ name: 'VenueOwnerOnboarding', params: { phone: rawPhone.slice(-10) } }],
+          routes: [{ name: 'VenueOwnerOnboarding', params: { phone: phone10 } }],
         }));
       } else {
         navigation.dispatch(CommonActions.reset({ index: 0, routes: [{ name: 'MainTabs' }] }));
@@ -189,11 +207,12 @@ export default function LoginScreen() {
   };
 
   const stepIdx    = ['phone', 'otp', 'name'].indexOf(step);
-  const totalSteps = hasCode || isVenue ? 2 : 3;
+  const totalSteps = hasCode || isAnyVenue ? 2 : 3;
 
-  const badge = hasCode ? { emoji: '🔗', text: `Kod: ${pendingJoinCode}`, color: '#10B981' }
-    : isCaptain ? { emoji: '🏆', text: 'Kaptan kaydı', color: '#F59E0B' }
-    : isVenue   ? { emoji: '🏟', text: 'Saha sahibi girişi', color: '#3B82F6' }
+  const badge = hasCode      ? { emoji: '🔗', text: `Kod: ${pendingJoinCode}`, color: '#10B981' }
+    : isCaptain              ? { emoji: '🏆', text: 'Kaptan kaydı',           color: '#F59E0B' }
+    : isVenueStaff           ? { emoji: '👷', text: 'Personel / Muhasebe girişi', color: '#8B5CF6' }
+    : isVenue                ? { emoji: '🏟', text: 'Saha sahibi girişi',     color: '#3B82F6' }
     : null;
 
   return (
@@ -230,8 +249,8 @@ export default function LoginScreen() {
 
             {step === 'phone' && (
               <>
-                <Text style={s.headline}>{isVenue ? 'Sahanı\nEkle' : hasCode ? 'Takıma\nKatıl' : isCaptain ? 'Kaptan\nKaydı' : 'Hoş\nGeldin'}</Text>
-                <Text style={s.subhead}>{isVenue ? 'Saha sahibi girişi' : hasCode ? 'Giriş yap, takıma katıl' : 'Telefon numaranı gir'}</Text>
+                <Text style={s.headline}>{isVenueStaff ? 'Personel\nGirişi' : isVenue ? 'Sahanı\nEkle' : hasCode ? 'Takıma\nKatıl' : isCaptain ? 'Kaptan\nKaydı' : 'Hoş\nGeldin'}</Text>
+                <Text style={s.subhead}>{isVenueStaff ? 'Personel veya muhasebe girişi' : isVenue ? 'Saha sahibi girişi' : hasCode ? 'Giriş yap, takıma katıl' : 'Telefon numaranı gir'}</Text>
                 <View style={[s.phoneWrap, { borderColor: phoneValid ? ac.primary : 'rgba(255,255,255,0.1)' }, phoneValid && { shadowColor: ac.primary, shadowOpacity: 0.3, shadowRadius: 12, elevation: 4 }]}>
                   <Text style={{ fontSize: 22 }}>🇹🇷</Text>
                   <View style={s.phoneDivider} />

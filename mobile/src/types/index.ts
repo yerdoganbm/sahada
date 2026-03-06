@@ -667,7 +667,7 @@ export interface InboxItem {
 // ─── Navigation ────────────────────────────────────────────────────
 export type RootStackParamList = {
   Welcome: undefined;
-  Login: { userType?: 'venue_owner'; pendingJoinCode?: string; pendingRole?: 'captain' | 'member' } | undefined;
+  Login: { userType?: 'venue_owner' | 'venue_staff'; pendingJoinCode?: string; pendingRole?: 'captain' | 'member' } | undefined;
   Register: { prefillPhone?: string; inviteCode?: string };
   MainTabs: NavigatorScreenParams<MainTabParamList> | undefined;
   MatchDetails: { matchId: string };
