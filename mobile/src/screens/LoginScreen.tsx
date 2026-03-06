@@ -1,616 +1,378 @@
 /**
- * Login Screen
- * User authentication with biometric support
+ * LoginScreen (APK) — Web v11 ile birebir eşleştirildi
+ * Akış: phone → 4-digit OTP (1234 demo) → name (yeni kullanıcı)
+ * Context-aware: player / captain / venue_owner / join-code
  */
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  KeyboardAvoidingView,
-  Platform,
-  ActivityIndicator,
+  View, Text, TextInput, TouchableOpacity, StyleSheet,
+  SafeAreaView, KeyboardAvoidingView, Platform, ScrollView,
+  Animated, Easing, StatusBar, Dimensions,
 } from 'react-native';
-import AppScrollView from '../components/AppScrollView';
-import { useNavigation, useRoute, CommonActions } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp, CommonActions } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import { RouteProp } from '@react-navigation/native';
-import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../contexts/AuthContext';
 import { RootStackParamList } from '../types';
-import { colors, spacing, borderRadius, typography } from '../theme';
 import { hapticLight } from '../utils/haptic';
-import AlertModal from '../components/AlertModal';
 
-const BIOMETRIC_USER_KEY = '@sahada_biometric_user';
+const { width: SW } = Dimensions.get('window');
+const OTP_LEN  = 4;
+const DEMO_OTP = '1234';
 
-type LoginScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Login'>;
-
-// react-native-biometrics sadece native'de; web'de yok
-const getBiometrics = () =>
-  Platform.OS === 'web' ? null : require('react-native-biometrics').default;
-
-const LOG = (msg: string, data?: object, hyp?: string) => {
-  const payload = { sessionId: '9eeead', location: 'LoginScreen', message: msg, data: data ?? {}, hypothesisId: hyp ?? 'H0', timestamp: Date.now() };
-  fetch('http://127.0.0.1:7748/ingest/ac5c5351-5103-4522-8149-3f9d9e41282d', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '9eeead' }, body: JSON.stringify(payload) }).catch(() => {});
-  if (__DEV__) console.warn('[DEBUG]', msg, data ?? '');
+const ACCENTS = {
+  green:  { primary: '#10B981', dim: 'rgba(16,185,129,0.12)', border: 'rgba(16,185,129,0.35)' },
+  yellow: { primary: '#F59E0B', dim: 'rgba(245,158,11,0.12)',  border: 'rgba(245,158,11,0.35)'  },
+  blue:   { primary: '#3B82F6', dim: 'rgba(59,130,246,0.12)',  border: 'rgba(59,130,246,0.35)'  },
 };
 
+const DEMO_USERS = [
+  { phone: '5000000001', label: 'Admin',       icon: '🛡' },
+  { phone: '5000000007', label: 'Kaptan Ali',  icon: '🏆' },
+  { phone: '5000000002', label: 'Üye Ahmet',   icon: '⚽' },
+  { phone: '5000000099', label: 'Saha Sahibi', icon: '🏟' },
+];
+
+type LoginRoute = RouteProp<RootStackParamList, 'Login'>;
+type LoginNav   = StackNavigationProp<RootStackParamList, 'Login'>;
+
 export default function LoginScreen() {
-  const navigation = useNavigation<LoginScreenNavigationProp>();
-  const route = useRoute<RouteProp<RootStackParamList, 'Login'>>();
-  const userType = route.params?.userType;
-  const { login, loginWithCredentials, restoreSession } = useAuth();
-  
-  const [phone, setPhone] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [alert, setAlert] = useState<{
-    title: string;
-    message: string;
-    type?: 'info' | 'error' | 'warning' | 'success';
-    confirmText?: string;
-    onConfirm?: () => void;
-    secondaryText?: string;
-    onSecondary?: () => void;
-  } | null>(null);
-  const [biometricAvailable, setBiometricAvailable] = useState(false);
-  const [savedUserId, setSavedUserId] = useState<string | null>(null);
+  const navigation = useNavigation<LoginNav>();
+  const route      = useRoute<LoginRoute>();
+  const { loginWithCredentials } = useAuth();
+
+  const pendingJoinCode = (route.params as any)?.pendingJoinCode as string | undefined;
+  const pendingRole     = (route.params as any)?.pendingRole as 'captain' | 'member' | undefined;
+  const userType        = (route.params as any)?.userType as 'venue_owner' | undefined;
+
+  const isVenue   = userType === 'venue_owner';
+  const isCaptain = pendingRole === 'captain';
+  const hasCode   = !!pendingJoinCode;
+  const accentKey = isVenue ? 'blue' : isCaptain ? 'yellow' : 'green';
+  const ac        = ACCENTS[accentKey];
+
+  const [step, setStep]           = useState<'phone' | 'otp' | 'name'>('phone');
+  const [phone, setPhone]         = useState('');
+  const [otp, setOtp]             = useState<string[]>(Array(OTP_LEN).fill(''));
+  const [name, setName]           = useState('');
+  const [error, setError]         = useState('');
+  const [loading, setLoading]     = useState(false);
+  const [verified, setVerified]   = useState(false);
+  const [countdown, setCountdown] = useState(0);
+  const [showDemo, setShowDemo]   = useState(false);
+
+  const fadeAnim  = useRef(new Animated.Value(0)).current;
+  const shakeAnim = useRef(new Animated.Value(0)).current;
+  const otpRefs   = useRef<(TextInput | null)[]>(Array(OTP_LEN).fill(null));
 
   useEffect(() => {
-    LOG('LoginScreen mounted', { platform: Platform.OS }, 'H4');
-    let cancelled = false;
-    try {
-      const Biometrics = getBiometrics();
-      if (!Biometrics) {
-        LOG('getBiometrics returned null (web?)', { platform: Platform.OS }, 'H1');
+    fadeAnim.setValue(0);
+    Animated.timing(fadeAnim, { toValue: 1, duration: 300, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start();
+  }, [step]);
+
+  useEffect(() => {
+    if (countdown <= 0) return;
+    const t = setTimeout(() => setCountdown(c => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [countdown]);
+
+  const rawPhone   = phone.replace(/\D/g, '');
+  const phoneValid = rawPhone.length >= 10;
+
+  const fmtPhone = (v: string) => {
+    const d = v.replace(/\D/g, '').slice(0, 11);
+    if (d.length <= 4) return d;
+    if (d.length <= 7) return `${d.slice(0,4)} ${d.slice(4)}`;
+    if (d.length <= 9) return `${d.slice(0,4)} ${d.slice(4,7)} ${d.slice(7)}`;
+    return `${d.slice(0,4)} ${d.slice(4,7)} ${d.slice(7,9)} ${d.slice(9)}`;
+  };
+
+  const triggerShake = () => {
+    shakeAnim.setValue(0);
+    Animated.sequence([
+      Animated.timing(shakeAnim, { toValue: 10,  duration: 70, useNativeDriver: true }),
+      Animated.timing(shakeAnim, { toValue: -10, duration: 70, useNativeDriver: true }),
+      Animated.timing(shakeAnim, { toValue: 8,   duration: 60, useNativeDriver: true }),
+      Animated.timing(shakeAnim, { toValue: -8,  duration: 60, useNativeDriver: true }),
+      Animated.timing(shakeAnim, { toValue: 0,   duration: 50, useNativeDriver: true }),
+    ]).start();
+  };
+
+  const handleSend = () => {
+    hapticLight();
+    if (!phoneValid) { setError('Geçerli bir numara gir (min 10 hane)'); return; }
+    setLoading(true); setError('');
+    setTimeout(() => {
+      setLoading(false); setStep('otp'); setCountdown(59);
+      setTimeout(() => otpRefs.current[0]?.focus(), 150);
+    }, 700);
+  };
+
+  const handleOtpChange = useCallback((idx: number, val: string) => {
+    const d = val.replace(/\D/g, '').slice(-1);
+    const next = [...otp]; next[idx] = d; setOtp(next); setError('');
+    if (d && idx < OTP_LEN - 1) setTimeout(() => otpRefs.current[idx + 1]?.focus(), 30);
+    if (d && idx === OTP_LEN - 1 && next.every(Boolean)) setTimeout(() => doVerify(next), 80);
+  }, [otp]);
+
+  const handleOtpKey = (idx: number, key: string) => {
+    if (key === 'Backspace') {
+      if (otp[idx]) { const n = [...otp]; n[idx] = ''; setOtp(n); }
+      else if (idx > 0) {
+        const n = [...otp]; n[idx-1] = ''; setOtp(n);
+        setTimeout(() => otpRefs.current[idx-1]?.focus(), 30);
+      }
+    }
+  };
+
+  const doVerify = (arr: string[]) => {
+    const code = arr.join('');
+    if (code.length < OTP_LEN) return;
+    setLoading(true); setError('');
+    setTimeout(() => {
+      setLoading(false);
+      if (code !== DEMO_OTP) {
+        setError(`Hatalı kod — Demo: ${DEMO_OTP}`); triggerShake();
+        setOtp(Array(OTP_LEN).fill(''));
+        setTimeout(() => otpRefs.current[0]?.focus(), 60);
         return;
       }
-      const rnBiometrics = new Biometrics();
-      (async () => {
-        try {
-          const [sensor, userId] = await Promise.all([
-            rnBiometrics.isSensorAvailable(),
-            AsyncStorage.getItem(BIOMETRIC_USER_KEY),
+      setVerified(true);
+      setTimeout(() => {
+        if (isVenue || hasCode) { finishLogin(); return; }
+        const known = DEMO_USERS.some(u => rawPhone.endsWith(u.phone));
+        if (known) { finishLogin(); return; }
+        setStep('name');
+      }, 500);
+    }, 800);
+  };
+
+  const finishLogin = async () => {
+    setLoading(true);
+    try {
+      try {
+        await loginWithCredentials({ phone: rawPhone.slice(-10) });
+      } catch (e) {
+        if (isVenue) {
+          setLoading(false);
+          const { Alert } = require('react-native');
+          Alert.alert('Saha sahibi kaydı', 'Hesap bulunamadı. Saha sahibi kaydına yönlendiriliyorsunuz.', [
+            { text: 'Tamam', onPress: () => navigation.navigate('VenueOwnerOnboarding', { phone: rawPhone.slice(-10) }) },
           ]);
-          if (!cancelled) {
-            LOG('Biometrics check done', { available: sensor?.available, hasUserId: !!userId }, 'H1');
-            if (sensor?.available && userId) {
-              setBiometricAvailable(true);
-              setSavedUserId(userId);
-            }
-          }
-        } catch (e) {
-          if (!cancelled) {
-            LOG('Biometrics error', { err: String(e) }, 'H1');
-            setBiometricAvailable(false);
-          }
+          return;
         }
-      })();
-    } catch (e) {
-      LOG('getBiometrics/new Biometrics threw', { err: String(e), platform: Platform.OS }, 'H1');
-    }
-    return () => { cancelled = true; };
-  }, []);
-
-  const handleLogin = async () => {
-    LOG('handleLogin pressed', { phoneLen: phone.trim().length }, 'H2');
-    hapticLight();
-    const digits = phone.replace(/\D/g, '');
-    if (!digits || digits.length < 10) {
-      setAlert({
-        title: 'Hata',
-        message: 'Lütfen 10 haneli telefon numaranızı giriniz (5XX XXX XX XX).',
-        type: 'warning',
-      });
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      await loginWithCredentials({ phone: phone.trim() });
-    } catch (err) {
-      console.error('Login error:', err);
-      const digits = phone.trim().replace(/\D/g, '');
-      const rawPhone =
-        digits.length >= 10
-          ? digits.startsWith('90')
-            ? digits.slice(2)
-            : digits.startsWith('0')
-              ? digits.slice(1)
-              : digits.slice(-10)
-          : phone.trim();
-      const phoneForPrefill = rawPhone || phone.trim();
-      if (userType === 'venue_owner') {
-        setAlert({
-          title: 'Saha sahibi kaydı',
-          message:
-            'Bu numarayla kayıtlı saha sahibi hesabı yok. Saha sahibi kaydını başlatmak ister misiniz?',
-          type: 'info',
-          confirmText: 'Evet, başlat',
-          onConfirm: () => {
-            setAlert(null);
-            navigation.navigate('VenueOwnerOnboarding', { phone: rawPhone });
-          },
-          secondaryText: 'İptal',
-          onSecondary: () => setAlert(null),
-        });
+        throw e;
+      }
+      hapticLight();
+      if (hasCode) {
+        navigation.navigate('JoinTeam', { inviteCode: pendingJoinCode });
       } else {
-        setAlert({
-          title: 'Hesabınız bulunamadı',
-          message:
-            'Bu numarayla kayıtlı hesap yok. Oyuna girmek için önce kayıt olun; ardından takım koduyla takıma katılabilir veya takım kurabilirsiniz.',
-          type: 'info',
-          confirmText: 'Kayıt Ol',
-          onConfirm: () => {
-            setAlert(null);
-            navigation.navigate('Register', { prefillPhone: phoneForPrefill });
-          },
-          secondaryText: 'Takım Kur',
-          onSecondary: () => {
-            setAlert(null);
-            navigation.navigate('TeamSetup', { prefillPhone: phoneForPrefill });
-          },
-        });
+        navigation.dispatch(CommonActions.reset({ index: 0, routes: [{ name: 'MainTabs' }] }));
       }
-    } finally {
-      setIsLoading(false);
-      LOG('handleLogin finished', {}, 'H2');
-    }
+    } finally { setLoading(false); }
   };
 
-  const handleBiometricLogin = async () => {
-    hapticLight();
-    if (!savedUserId) return;
-    const Biometrics = getBiometrics();
-    if (!Biometrics) return;
-    setIsLoading(true);
-    try {
-      const rnBiometrics = new Biometrics();
-      const { success } = await rnBiometrics.simplePrompt({
-        promptMessage: 'Sahada ile giriş yap',
-        cancelButtonText: 'İptal',
-      });
-      if (success) {
-        await restoreSession(savedUserId);
-      }
-    } catch {
-      setAlert({ title: 'Hata', message: 'Biyometrik doğrulama başarısız.', type: 'error' });
-    } finally {
-      setIsLoading(false);
-    }
+  const quickFill = (userPhone: string) => {
+    hapticLight(); setPhone(fmtPhone(userPhone)); setShowDemo(false);
+    setTimeout(() => {
+      setLoading(true);
+      setTimeout(() => {
+        setLoading(false); setStep('otp'); setCountdown(59);
+        setTimeout(() => { const d = DEMO_OTP.split(''); setOtp(d); setTimeout(() => doVerify(d), 80); }, 200);
+      }, 500);
+    }, 100);
   };
+
+  const stepIdx    = ['phone', 'otp', 'name'].indexOf(step);
+  const totalSteps = hasCode || isVenue ? 2 : 3;
+
+  const badge = hasCode ? { emoji: '🔗', text: `Kod: ${pendingJoinCode}`, color: '#10B981' }
+    : isCaptain ? { emoji: '🏆', text: 'Kaptan kaydı', color: '#F59E0B' }
+    : isVenue   ? { emoji: '🏟', text: 'Saha sahibi girişi', color: '#3B82F6' }
+    : null;
 
   return (
-    <>
-    <AlertModal
-      visible={!!alert}
-      title={alert?.title ?? ''}
-      message={alert?.message ?? ''}
-      type={alert?.type ?? 'info'}
-      confirmText={alert?.confirmText ?? 'Tamam'}
-      onConfirm={alert?.onConfirm ?? (() => setAlert(null))}
-      secondaryText={alert?.secondaryText}
-      onSecondary={alert?.onSecondary}
-    />
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
-    >
-      {/* Üst bar - geri butonu (logo ile çakışmayı önler) */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => {
-            navigation.dispatch(
-              CommonActions.reset({ index: 0, routes: [{ name: 'Welcome' }] })
-            );
-          }}
-          activeOpacity={0.7}
-          accessibilityLabel="Geri"
-          accessibilityRole="button"
-        >
-          <Icon name="arrow-left" size={24} color={colors.text.primary} />
-          <Text style={styles.backButtonText}>Geri</Text>
-        </TouchableOpacity>
-      </View>
+    <SafeAreaView style={[s.root, { backgroundColor: '#07090e' }]}>
+      <StatusBar barStyle="light-content" backgroundColor="#07090e" />
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+        <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
 
-      <AppScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="handled"
-      >
-      <View style={styles.content}>
-        {/* Logo */}
-        <View style={styles.logoContainer}>
-          <Icon name="soccer" size={56} color={colors.primary} />
-        </View>
-
-        {/* Title */}
-        <Text style={styles.title}>Giriş Yap</Text>
-        <Text style={styles.subtitle}>Numaran ile hızlıca sahalara dön.</Text>
-
-        {/* Phone Input */}
-        <View style={styles.inputContainer}>
-          <Text style={styles.label}>TELEFON NUMARASI *</Text>
-          <View style={styles.phoneInputWrapper}>
-            <Text style={styles.countryCode}>+90</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="5XX XXX XX XX"
-              placeholderTextColor={colors.text.disabled}
-              value={phone}
-              onChangeText={(t) => {
-                const d = t.replace(/\D/g, '');
-                const noLeadingZero = d.startsWith('0') ? d.slice(1) : d;
-                setPhone(noLeadingZero.slice(0, 10));
-              }}
-              keyboardType="phone-pad"
-              maxLength={10}
-              autoFocus
-              returnKeyType="done"
-              onSubmitEditing={handleLogin}
-              accessibilityLabel="Telefon numarası"
-            />
-          </View>
-        </View>
-
-        {/* Login Button */}
-        <TouchableOpacity
-          style={[styles.loginButton, isLoading && styles.loginButtonDisabled]}
-          onPress={handleLogin}
-          disabled={isLoading}
-          activeOpacity={0.8}
-          accessibilityLabel="Devam Et"
-          accessibilityRole="button"
-        >
-          {isLoading ? (
-            <ActivityIndicator color={colors.secondary} />
-          ) : (
-            <>
-              <Text style={styles.loginButtonText}>Devam Et</Text>
-              <Icon name="arrow-right" size={20} color={colors.secondary} />
-            </>
-          )}
-        </TouchableOpacity>
-
-        {/* Biometric Login */}
-        {biometricAvailable && (
-          <TouchableOpacity
-            style={styles.biometricButton}
-            onPress={handleBiometricLogin}
-            disabled={isLoading}
-            activeOpacity={0.8}
-          >
-            <Icon name="fingerprint" size={24} color={colors.primary} />
-            <Text style={styles.biometricButtonText}>
-              Face ID / Parmak izi ile giriş
-            </Text>
-          </TouchableOpacity>
-        )}
-
-        {/* Hesap oluştur - her zaman görünür */}
-        <TouchableOpacity
-          style={styles.registerButton}
-          onPress={() => {
-            LOG('Register button pressed', {}, 'H3');
-            hapticLight();
-            const digits = phone.replace(/\D/g, '');
-            const prefill =
-              digits.length >= 10
-                ? digits.startsWith('90')
-                  ? digits.slice(2)
-                  : digits.startsWith('0')
-                    ? digits.slice(1)
-                    : digits.slice(-10)
-                : '';
-            navigation.navigate('Register', { prefillPhone: prefill });
-          }}
-          activeOpacity={0.8}
-          accessibilityLabel="Hesap oluştur"
-          accessibilityRole="button"
-        >
-          <Icon name="account-plus-outline" size={20} color={colors.primary} />
-          <Text style={styles.registerButtonText}>Hesap oluştur</Text>
-        </TouchableOpacity>
-
-        {/* Divider */}
-        <View style={styles.divider}>
-          <View style={styles.dividerLine} />
-          <Text style={styles.dividerText}>VEYA</Text>
-          <View style={styles.dividerLine} />
-        </View>
-
-        {/* Create Team Button */}
-        <TouchableOpacity
-          style={styles.secondaryButton}
-          onPress={() => {
-            hapticLight();
-            const digitsForPrefill = phone.replace(/\D/g, '');
-            const prefill =
-              digitsForPrefill.length >= 10
-                ? digitsForPrefill.startsWith('90')
-                  ? digitsForPrefill.slice(2)
-                  : digitsForPrefill.startsWith('0')
-                    ? digitsForPrefill.slice(1)
-                    : digitsForPrefill.slice(-10)
-                : '';
-            navigation.navigate('TeamSetup', { prefillPhone: prefill });
-          }}
-          activeOpacity={0.8}
-          accessibilityLabel="Takımını sıfırdan kur"
-          accessibilityRole="button"
-        >
-          <Icon name="plus-circle-outline" size={20} color={colors.text.secondary} />
-          <Text style={styles.secondaryButtonText}>Takımını Sıfırdan Kur</Text>
-        </TouchableOpacity>
-
-        {/* Demo Accounts */}
-        <View style={styles.demoSection}>
-          <Text style={styles.demoTitle}>DEMO HESAPLAR</Text>
-          <View style={styles.demoButtons}>
-            {[
-              { label: '👑 Admin', phone: '05320000001' },
-              { label: '⭐ Kaptan', phone: '05320000002' },
-              { label: '⚽ Üye', phone: '05320000003' },
-              { label: '🏟️ Partner', phone: '05320000008' },
-            ].map((d) => (
+          <View style={s.header}>
+            <View style={s.navRow}>
               <TouchableOpacity
-                key={d.phone}
-                style={styles.demoBtn}
-                onPress={() => {
-                  LOG('Demo button pressed', { phone: d.phone }, 'H3');
-                  setPhone(d.phone);
-                }}
-              >
-                <Text style={styles.demoBtnText}>{d.label}</Text>
+                onPress={() => step === 'otp'
+                  ? (setStep('phone'), setOtp(Array(OTP_LEN).fill('')), setVerified(false))
+                  : navigation.goBack()}
+                style={s.backBtn} activeOpacity={0.7}>
+                <Text style={s.backIcon}>‹</Text>
               </TouchableOpacity>
-            ))}
+              <View style={s.progress}>
+                {Array.from({ length: totalSteps }).map((_, i) => (
+                  <View key={i} style={[s.dot, { width: i === stepIdx ? 22 : 7, backgroundColor: i <= stepIdx ? ac.primary : 'rgba(255,255,255,0.1)' }]} />
+                ))}
+              </View>
+              <Text style={s.stepCount}>{stepIdx + 1}/{totalSteps}</Text>
+            </View>
+            {badge && (
+              <View style={[s.badge, { backgroundColor: badge.color + '18', borderColor: badge.color + '50' }]}>
+                <Text style={s.badgeEmoji}>{badge.emoji}</Text>
+                <Text style={[s.badgeText, { color: badge.color }]}>{badge.text}</Text>
+              </View>
+            )}
           </View>
-          <Text style={styles.testInfoText}>
-            Seçip "Devam Et" butonuna basın
-          </Text>
-        </View>
-      </View>
-      </AppScrollView>
-    </KeyboardAvoidingView>
-    </>
+
+          <Animated.View style={[s.body, { opacity: fadeAnim, transform: [{ translateX: shakeAnim }] }]}>
+
+            {step === 'phone' && (
+              <>
+                <Text style={s.headline}>{isVenue ? 'Sahanı\nEkle' : hasCode ? 'Takıma\nKatıl' : isCaptain ? 'Kaptan\nKaydı' : 'Hoş\nGeldin'}</Text>
+                <Text style={s.subhead}>{isVenue ? 'Saha sahibi girişi' : hasCode ? 'Giriş yap, takıma katıl' : 'Telefon numaranı gir'}</Text>
+                <View style={[s.phoneWrap, { borderColor: phoneValid ? ac.primary : 'rgba(255,255,255,0.1)' }, phoneValid && { shadowColor: ac.primary, shadowOpacity: 0.3, shadowRadius: 12, elevation: 4 }]}>
+                  <Text style={{ fontSize: 22 }}>🇹🇷</Text>
+                  <View style={s.phoneDivider} />
+                  <TextInput style={s.phoneInput} value={phone} onChangeText={v => { setPhone(fmtPhone(v)); setError(''); }} placeholder="0532 000 00 00" placeholderTextColor="rgba(255,255,255,0.15)" keyboardType="phone-pad" returnKeyType="done" onSubmitEditing={handleSend} autoFocus />
+                  {phoneValid && <View style={[s.check, { backgroundColor: ac.primary }]}><Text style={s.checkTxt}>✓</Text></View>}
+                </View>
+                {error ? <Text style={s.error}>{error}</Text> : null}
+                <View style={s.infoBox}><Text style={s.infoTxt}>Demo — herhangi bir numara (min 10 hane)</Text></View>
+                <TouchableOpacity onPress={() => { hapticLight(); setShowDemo(d => !d); }} style={s.demoToggle} activeOpacity={0.7}>
+                  <Text style={s.demoToggleTxt}>⚡ Hızlı Demo Girişi</Text>
+                  <Text style={{ color: 'rgba(255,255,255,0.25)', fontSize: 10 }}>{showDemo ? '▲' : '▼'}</Text>
+                </TouchableOpacity>
+                {showDemo && (
+                  <View style={s.demoPanel}>
+                    {DEMO_USERS.map(u => (
+                      <TouchableOpacity key={u.phone} onPress={() => quickFill(u.phone)} style={s.demoRow} activeOpacity={0.7}>
+                        <Text style={{ fontSize: 18, width: 28, textAlign: 'center' }}>{u.icon}</Text>
+                        <View style={{ flex: 1 }}>
+                          <Text style={s.demoLabel}>{u.label}</Text>
+                          <Text style={s.demoPhone}>+90 {u.phone}</Text>
+                        </View>
+                        <View style={s.demoBadge}><Text style={s.demoBadgeTxt}>1 tık</Text></View>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                )}
+                <View style={{ flex: 1, minHeight: 32 }} />
+                <TouchableOpacity onPress={handleSend} disabled={loading || !phoneValid} activeOpacity={0.85}
+                  style={[s.cta, { backgroundColor: phoneValid ? ac.primary : 'rgba(255,255,255,0.06)', shadowColor: ac.primary, shadowOpacity: phoneValid ? 0.5 : 0, shadowRadius: 18, elevation: phoneValid ? 6 : 0 }]}>
+                  <Text style={[s.ctaTxt, { color: phoneValid ? '#060a0e' : 'rgba(255,255,255,0.2)' }]}>{loading ? 'Gönderiliyor…' : 'Kod Gönder →'}</Text>
+                </TouchableOpacity>
+              </>
+            )}
+
+            {step === 'otp' && (
+              <>
+                <View style={[s.otpIcon, { backgroundColor: ac.dim, borderColor: ac.border }]}><Text style={{ fontSize: 32 }}>⚽</Text></View>
+                <Text style={s.headline}>{verified ? '✓ Doğrulandı' : 'Kodu Gir'}</Text>
+                <Text style={s.subhead}><Text style={{ color: 'white', fontWeight: '900' }}>{phone} </Text>numarasına {OTP_LEN} haneli SMS</Text>
+                <View style={s.otpRow}>
+                  {otp.map((d, i) => (
+                    <TextInput key={i} ref={el => { otpRefs.current[i] = el; }}
+                      style={[s.otpBox, { borderColor: verified ? ac.primary : d ? ac.primary : 'rgba(255,255,255,0.12)', backgroundColor: verified ? ac.dim : d ? ac.dim : 'rgba(255,255,255,0.04)', color: verified ? ac.primary : 'white', transform: [{ scale: d ? 1.05 : 1 }] }]}
+                      value={d} onChangeText={v => handleOtpChange(i, v)} onKeyPress={({ nativeEvent: { key } }) => handleOtpKey(i, key)}
+                      keyboardType="number-pad" maxLength={1} textAlign="center" editable={!loading && !verified} selectTextOnFocus />
+                  ))}
+                </View>
+                {error ? <View style={s.errBox}><Text style={s.errTxt}>{error}</Text></View> : null}
+                <View style={s.otpFooter}>
+                  <TouchableOpacity onPress={() => { setStep('phone'); setOtp(Array(OTP_LEN).fill('')); setVerified(false); setError(''); }}>
+                    <Text style={s.changeTxt}>‹ Değiştir</Text>
+                  </TouchableOpacity>
+                  {countdown > 0
+                    ? <Text style={s.cdTxt}>{countdown}s bekle</Text>
+                    : <TouchableOpacity onPress={handleSend}><Text style={[s.resendTxt, { color: ac.primary }]}>Tekrar gönder</Text></TouchableOpacity>}
+                </View>
+                <TouchableOpacity onPress={() => { const d = DEMO_OTP.split(''); setOtp(d); setError(''); setTimeout(() => doVerify(d), 80); }} style={s.demoShortcut} activeOpacity={0.7}>
+                  <Text style={s.demoShortcutTxt}>⚡ Demo kod: {DEMO_OTP} — otomatik doldur</Text>
+                </TouchableOpacity>
+                <View style={{ flex: 1, minHeight: 32 }} />
+                <TouchableOpacity onPress={() => doVerify(otp)} disabled={!otp.every(Boolean) || loading || verified} activeOpacity={0.85}
+                  style={[s.cta, { backgroundColor: verified ? '#10B981' : otp.every(Boolean) ? ac.primary : 'rgba(255,255,255,0.06)', shadowColor: ac.primary, shadowOpacity: otp.every(Boolean) ? 0.5 : 0, shadowRadius: 18, elevation: otp.every(Boolean) ? 6 : 0 }]}>
+                  <Text style={[s.ctaTxt, { color: otp.every(Boolean) ? '#060a0e' : 'rgba(255,255,255,0.2)' }]}>
+                    {verified ? 'Doğrulandı! ✓' : loading ? 'Kontrol ediliyor…' : `Doğrula ${hasCode ? '& Katıl' : '& Giriş Yap'} →`}
+                  </Text>
+                </TouchableOpacity>
+              </>
+            )}
+
+            {step === 'name' && (
+              <>
+                <Text style={{ fontSize: 52, textAlign: 'center', marginBottom: 20 }}>👋</Text>
+                <Text style={s.headline}>Adını gir</Text>
+                <Text style={s.subhead}>{isCaptain ? 'Takım üyeleri seni bu isimle tanıyacak' : 'Diğer oyuncular seni bu isimle görecek'}</Text>
+                <TextInput style={[s.nameInput, { borderColor: name.trim().length >= 2 ? ac.primary : 'rgba(255,255,255,0.1)', shadowColor: ac.primary, shadowOpacity: name.trim().length >= 2 ? 0.25 : 0, shadowRadius: 12 }]}
+                  value={name} onChangeText={setName} placeholder={isCaptain ? 'Kaptan adı…' : 'Ad Soyad'}
+                  placeholderTextColor="rgba(255,255,255,0.15)" autoFocus returnKeyType="done"
+                  onSubmitEditing={() => name.trim().length >= 2 && finishLogin()} />
+                <View style={s.emojiRow}>
+                  {['⚽','🏃','🔥','💪','⚡','🎯'].map(e => (
+                    <TouchableOpacity key={e} onPress={() => { hapticLight(); setName(n => n + e); }} style={s.emojiBtn} activeOpacity={0.7}>
+                      <Text style={{ fontSize: 20 }}>{e}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+                <View style={{ flex: 1, minHeight: 32 }} />
+                <TouchableOpacity onPress={finishLogin} disabled={name.trim().length < 2 || loading} activeOpacity={0.85}
+                  style={[s.cta, { backgroundColor: name.trim().length >= 2 ? ac.primary : 'rgba(255,255,255,0.06)', shadowColor: ac.primary, shadowOpacity: name.trim().length >= 2 ? 0.5 : 0, shadowRadius: 18, elevation: name.trim().length >= 2 ? 6 : 0 }]}>
+                  <Text style={[s.ctaTxt, { color: name.trim().length >= 2 ? '#060a0e' : 'rgba(255,255,255,0.2)' }]}>{loading ? 'Giriş yapılıyor…' : "Sahada'ya Başla →"}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => navigation.navigate('Register', { prefillPhone: rawPhone.slice(-10) })} style={{ marginTop: 14, alignItems: 'center' }} activeOpacity={0.7}>
+                  <Text style={{ color: 'rgba(255,255,255,0.25)', fontSize: 12, fontWeight: '600' }}>Tam hesap oluştur →</Text>
+                </TouchableOpacity>
+              </>
+            )}
+          </Animated.View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background.primary,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: spacing.lg,
-    paddingTop: Platform.OS === 'web' ? 24 : 60,
-    paddingBottom: spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.light,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    flexGrow: 1,
-    paddingBottom: 100,
-  },
-  content: {
-    flex: 1,
-    padding: spacing.lg,
-    justifyContent: 'center',
-    minHeight: 400,
-  },
-  backButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
-    borderRadius: borderRadius.lg,
-    backgroundColor: colors.surface,
-    gap: spacing.sm,
-  },
-  backButtonText: {
-    color: colors.text.primary,
-    fontSize: typography.fontSize.md,
-    fontWeight: typography.fontWeight.semiBold,
-  },
-  logoContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: borderRadius.xxl,
-    backgroundColor: colors.surface,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: spacing.lg,
-    borderWidth: 1,
-    borderColor: colors.border.light,
-    transform: [{ rotate: '3deg' }],
-  },
-  title: {
-    fontSize: typography.fontSize.display,
-    fontWeight: typography.fontWeight.bold,
-    color: colors.text.primary,
-    marginBottom: spacing.sm,
-  },
-  subtitle: {
-    fontSize: typography.fontSize.md,
-    color: colors.text.secondary,
-    marginBottom: spacing.xl,
-  },
-  inputContainer: {
-    marginBottom: spacing.lg,
-  },
-  label: {
-    fontSize: typography.fontSize.xs,
-    fontWeight: typography.fontWeight.bold,
-    color: colors.text.tertiary,
-    letterSpacing: 1,
-    marginBottom: spacing.sm,
-    marginLeft: spacing.xs,
-  },
-  phoneInputWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.surface,
-    borderRadius: borderRadius.lg,
-    borderWidth: 1,
-    borderColor: colors.border.light,
-    paddingHorizontal: spacing.md,
-  },
-  countryCode: {
-    fontSize: typography.fontSize.lg,
-    fontWeight: typography.fontWeight.medium,
-    color: colors.text.secondary,
-    marginRight: spacing.sm,
-  },
-  input: {
-    flex: 1,
-    height: 56,
-    fontSize: typography.fontSize.lg,
-    fontWeight: typography.fontWeight.medium,
-    color: colors.text.primary,
-    letterSpacing: 1,
-  },
-  loginButton: {
-    backgroundColor: colors.primary,
-    borderRadius: borderRadius.lg,
-    height: 56,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: spacing.lg,
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
-    ...(Platform.OS === 'web' && { cursor: 'pointer' }),
-  },
-  loginButtonDisabled: {
-    opacity: 0.7,
-  },
-  biometricButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: spacing.md,
-    marginBottom: spacing.sm,
-  },
-  biometricButtonText: {
-    color: colors.primary,
-    fontSize: typography.fontSize.md,
-    fontWeight: typography.fontWeight.semiBold,
-    marginLeft: spacing.sm,
-  },
-  loginButtonText: {
-    color: colors.secondary,
-    fontSize: typography.fontSize.lg,
-    fontWeight: typography.fontWeight.bold,
-    marginRight: spacing.sm,
-  },
-  divider: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: spacing.lg,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: colors.border.light,
-  },
-  dividerText: {
-    fontSize: typography.fontSize.xs,
-    fontWeight: typography.fontWeight.bold,
-    color: colors.text.disabled,
-    marginHorizontal: spacing.md,
-    letterSpacing: 1.5,
-  },
-  registerButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: spacing.md,
-    marginBottom: spacing.sm,
-    borderRadius: borderRadius.lg,
-    borderWidth: 1,
-    borderColor: colors.primary,
-    backgroundColor: 'transparent',
-  },
-  registerButtonText: {
-    color: colors.primary,
-    fontSize: typography.fontSize.md,
-    fontWeight: typography.fontWeight.semiBold,
-    marginLeft: spacing.sm,
-  },
-  secondaryButton: {
-    backgroundColor: colors.surface,
-    borderRadius: borderRadius.lg,
-    height: 56,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: colors.border.light,
-  },
-  secondaryButtonText: {
-    color: colors.text.primary,
-    fontSize: typography.fontSize.md,
-    fontWeight: typography.fontWeight.semiBold,
-    marginLeft: spacing.sm,
-  },
-  testInfo: {
-    marginTop: spacing.sm,
-    padding: spacing.md,
-    alignItems: 'center',
-  },
-  testInfoText: {
-    fontSize: typography.fontSize.xs,
-    color: colors.text.disabled,
-    textAlign: 'center',
-  },
-  demoSection: {
-    marginTop: spacing.xl,
-    padding: spacing.md,
-    backgroundColor: 'rgba(16,185,129,0.06)',
-    borderRadius: borderRadius.lg,
-    borderWidth: 1,
-    borderColor: 'rgba(16,185,129,0.2)',
-  },
-  demoTitle: {
-    fontSize: typography.fontSize.xs,
-    fontWeight: typography.fontWeight.bold,
-    color: colors.primary,
-    letterSpacing: 1.5,
-    marginBottom: spacing.sm,
-    textAlign: 'center',
-  },
-  demoButtons: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
-    justifyContent: 'center',
-    marginBottom: spacing.sm,
-  },
-  demoBtn: {
-    backgroundColor: colors.surface,
-    borderRadius: borderRadius.md,
-    paddingHorizontal: spacing.md,
-    paddingVertical: 8,
-    borderWidth: 1,
-    borderColor: colors.border.light,
-  },
-  demoBtnText: {
-    fontSize: typography.fontSize.xs,
-    fontWeight: typography.fontWeight.semiBold,
-    color: colors.text.primary,
-  },
+const s = StyleSheet.create({
+  root: { flex: 1 },
+  header: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 8 },
+  navRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 },
+  backBtn: { width: 40, height: 40, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.09)', alignItems: 'center', justifyContent: 'center' },
+  backIcon: { color: 'rgba(255,255,255,0.5)', fontSize: 26, lineHeight: 30, marginTop: -2 },
+  progress: { flexDirection: 'row', gap: 5, alignItems: 'center' },
+  dot: { height: 3, borderRadius: 4 },
+  stepCount: { fontSize: 10, fontWeight: '900', color: 'rgba(255,255,255,0.2)', minWidth: 24, textAlign: 'right' },
+  badge: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 100, borderWidth: 1, alignSelf: 'flex-start', marginBottom: 4 },
+  badgeEmoji: { fontSize: 13 },
+  badgeText: { fontSize: 11, fontWeight: '900', letterSpacing: 0.3 },
+  body: { flex: 1, paddingHorizontal: 20, paddingBottom: 36, minHeight: 480 },
+  headline: { fontSize: 34, fontWeight: '900', color: 'white', lineHeight: 40, letterSpacing: -0.5, marginBottom: 10 },
+  subhead: { fontSize: 14, color: 'rgba(255,255,255,0.38)', marginBottom: 32, lineHeight: 20 },
+  phoneWrap: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.04)', borderWidth: 1.5, borderRadius: 20, paddingHorizontal: 16, height: 66, marginBottom: 8 },
+  phoneDivider: { width: 1, height: 20, backgroundColor: 'rgba(255,255,255,0.1)', marginHorizontal: 12 },
+  phoneInput: { flex: 1, color: 'white', fontSize: 20, fontWeight: '900', letterSpacing: 2 },
+  check: { width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
+  checkTxt: { color: '#060a0e', fontSize: 14, fontWeight: '900' },
+  error: { color: '#F87171', fontSize: 11, fontWeight: '700', marginBottom: 8, marginLeft: 4 },
+  infoBox: { backgroundColor: 'rgba(59,130,246,0.07)', borderWidth: 1, borderColor: 'rgba(59,130,246,0.15)', borderRadius: 12, padding: 10, marginBottom: 12 },
+  infoTxt: { color: '#60A5FA', fontSize: 11, fontWeight: '700', textAlign: 'center' },
+  demoToggle: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: 'rgba(255,255,255,0.03)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.07)', borderRadius: 14, paddingHorizontal: 16, paddingVertical: 11, marginBottom: 4 },
+  demoToggleTxt: { fontSize: 10, fontWeight: '900', color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: 1.5 },
+  demoPanel: { backgroundColor: 'rgba(255,255,255,0.02)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)', borderRadius: 14, overflow: 'hidden', marginBottom: 16 },
+  demoRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' },
+  demoLabel: { color: 'white', fontSize: 12, fontWeight: '900' },
+  demoPhone: { color: 'rgba(255,255,255,0.3)', fontSize: 10, marginTop: 1 },
+  demoBadge: { backgroundColor: 'rgba(16,185,129,0.1)', borderWidth: 1, borderColor: 'rgba(16,185,129,0.25)', borderRadius: 100, paddingHorizontal: 8, paddingVertical: 2 },
+  demoBadgeTxt: { color: '#10B981', fontSize: 9, fontWeight: '900' },
+  otpIcon: { width: 64, height: 64, borderRadius: 20, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center', marginBottom: 20 },
+  otpRow: { flexDirection: 'row', gap: 10, marginBottom: 10, justifyContent: 'center' },
+  otpBox: { width: (SW - 80) / 4, height: 76, borderRadius: 20, borderWidth: 2, fontSize: 30, fontWeight: '900' },
+  errBox: { backgroundColor: 'rgba(239,68,68,0.08)', borderWidth: 1, borderColor: 'rgba(239,68,68,0.2)', borderRadius: 12, padding: 12, marginBottom: 12 },
+  errTxt: { color: '#FCA5A5', fontSize: 12, fontWeight: '700', textAlign: 'center' },
+  otpFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+  changeTxt: { color: 'rgba(255,255,255,0.3)', fontSize: 11, fontWeight: '700' },
+  cdTxt: { color: 'rgba(255,255,255,0.2)', fontSize: 11, fontWeight: '700' },
+  resendTxt: { fontSize: 12, fontWeight: '900' },
+  demoShortcut: { backgroundColor: 'rgba(245,158,11,0.07)', borderWidth: 1, borderColor: 'rgba(245,158,11,0.18)', borderRadius: 14, paddingVertical: 12, alignItems: 'center', marginBottom: 8 },
+  demoShortcutTxt: { color: '#FCD34D', fontSize: 12, fontWeight: '900' },
+  nameInput: { backgroundColor: 'rgba(255,255,255,0.04)', borderWidth: 1.5, borderRadius: 20, paddingHorizontal: 20, height: 64, color: 'white', fontSize: 22, fontWeight: '900', marginBottom: 14 },
+  emojiRow: { flexDirection: 'row', gap: 8, marginBottom: 16 },
+  emojiBtn: { flex: 1, height: 42, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', alignItems: 'center', justifyContent: 'center' },
+  cta: { height: 58, borderRadius: 20, alignItems: 'center', justifyContent: 'center', marginTop: 8 },
+  ctaTxt: { fontSize: 17, fontWeight: '900', letterSpacing: 0.3 },
 });

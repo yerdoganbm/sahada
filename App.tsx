@@ -25,7 +25,7 @@ import { LineupManager } from './screens/LineupManager';
 import { SquadShareWizard } from './screens/SquadShareWizard';
 import { Settings } from './screens/Settings';
 import { LoginScreen } from './screens/LoginScreen';
-import { JoinTeamScreen } from './screens/JoinTeamScreen'; 
+// Old JoinTeamScreen removed (replaced by JoinTeamImproved)
 import { VenueAdd } from './screens/VenueAdd';
 import { CreateProfile } from './screens/CreateProfile';
 import { Leaderboard } from './screens/Leaderboard';
@@ -303,7 +303,12 @@ function App() {
       setCurrentUser(newPlayer);
       setPlayers(prev => [...prev, newPlayer]);
       setScreenHistory([]);
-      setCurrentScreen('createProfile');
+      // Davet koduyla geldiyse → joinTeam (profil sonra tamamlanabilir)
+      if (pendingJoinCode) {
+        setCurrentScreen('joinTeam');
+      } else {
+        setCurrentScreen('createProfile');
+      }
     } else {
       // Unknown — minimal profile, default to member
       const fallbackUser: Player = {
@@ -319,7 +324,12 @@ function App() {
       setCurrentUser(fallbackUser);
       setPlayers(prev => [...prev, fallbackUser]);
       setScreenHistory([]);
-      setCurrentScreen('createProfile');
+      // Davet koduyla geldiyse → joinTeam
+      if (pendingJoinCode) {
+        setCurrentScreen('joinTeam');
+      } else {
+        setCurrentScreen('createProfile');
+      }
     }
   };
 
@@ -387,11 +397,15 @@ function App() {
       setCurrentScreen(previousScreen);
       setRenderScreenKey(k => k + 1);
     } else {
-      // Varsayılan geri dönüş
-      if (currentUser) {
-        setCurrentScreen('dashboard');
-      } else {
+      // Varsayılan geri dönüş — role'e göre doğru home ekranına yönlendir
+      if (!currentUser) {
         setCurrentScreen('welcome');
+      } else {
+        const role = (currentUser as any)?.role;
+        if (role === 'admin') setCurrentScreen('dashboard');
+        else if (role === 'captain') setCurrentScreen('captainDashboard');
+        else if (role === 'venue_owner' || role === 'venue_staff' || role === 'venue_accountant') setCurrentScreen('venueOwnerDashboard');
+        else setCurrentScreen('memberHome');
       }
       setRenderScreenKey(k => k + 1);
     }
@@ -622,7 +636,10 @@ function App() {
     // Route based on role: member → memberHome, captain → captainDashboard, else → dashboard
     setScreenHistory([]);
     const role = (currentUser as any)?.role;
-    if (pendingRole === 'captain' || role === 'captain') {
+    // Davet koduyla gelen kullanıcı profili tamamladıktan sonra joinTeam'e dönmeli
+    if (pendingJoinCode) {
+      setCurrentScreen('joinTeam');
+    } else if (pendingRole === 'captain' || role === 'captain') {
       setCurrentScreen('captainDashboard');
       setPendingRole(null);
     } else if (pendingRole === 'member' || role === 'member' || !role) {
@@ -1673,10 +1690,18 @@ function App() {
     console.log('👋 Çıkış yapılıyor...');
     const confirmLogout = window.confirm('Çıkış yapmak istediğinize emin misiniz?');
     if (confirmLogout) {
+      // Tüm kullanıcı & navigasyon state'ini temizle
       setCurrentUser(null);
       setCurrentScreen('welcome');
       setScreenHistory([]);
       setTeamProfile(null);
+      setPendingJoinCode(null);
+      setPendingRole(null);
+      setNavParams({});
+      setMatchDetailsId(null);
+      setVenueDetailsId(null);
+      setReservationDetailsId(null);
+      setAuthRedirectPath(null);
       console.log('✅ Çıkış başarılı!');
     }
   };
@@ -2148,6 +2173,7 @@ function App() {
             allMatches={matches}
             allPlayers={players}
             teamProfile={teamProfile}
+            onLogout={handleLogout}
           />
         );
 
@@ -2978,6 +3004,7 @@ function App() {
           onNavigate={navigateTo}
           onRecordPayment={handleRecordMemberPayment}
           onCaptainPayVenue={handleCaptainPayVenue}
+          onOpenPaymentModal={openPaymentModal}
           onCopyOutbox={(id) => {
             const msg = outboxMessages.find(m => m.id === id);
             if (msg) handleCopyMessage(id, msg.body);
@@ -3059,6 +3086,22 @@ function App() {
           onLogout={handleLogout}
         />;
 
+      case 'memberMatchHub':
+        return <MemberHome
+          currentUser={currentUser}
+          teams={teams}
+          reservations={reservations}
+          memberContributions={memberContributions}
+          matchRsvps={matchRsvps}
+          outboxMessages={outboxMessages}
+          inboxItems={inboxItems}
+          onBack={goBack}
+          onNavigate={navigateTo}
+          onNavigateWithParam={(s, p) => { setNavParams(p); navigateTo(s); }}
+          onJoinTeam={() => navigateTo('joinTeam')}
+          onLogout={handleLogout}
+        />;
+
       case 'memberMatchDetails':
         return <MemberMatchDetails
           currentUser={currentUser}
@@ -3085,6 +3128,7 @@ function App() {
           onNavigate={navigateTo}
           onNavigateWithParam={(s, p) => { setNavParams(p); navigateTo(s); }}
           onSubmitProof={handleMemberSubmitProof}
+          onOpenPaymentModal={openPaymentModal}
         />;
 
       case 'joinTeam':
@@ -3210,12 +3254,12 @@ function App() {
 
         {/* Main Content - with screen transition */}
         <style>{`
-          @keyframes sc-fwd  { from { opacity:0; transform:translateX(20px) scale(0.985); } to { opacity:1; transform:none; } }
-          @keyframes sc-back { from { opacity:0; transform:translateX(-20px) scale(0.985); } to { opacity:1; transform:none; } }
-          @keyframes sc-up   { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:none; } }
-          .sc-in   { animation: sc-fwd  0.25s cubic-bezier(0.16,1,0.3,1) both; }
-          .sc-back { animation: sc-back 0.25s cubic-bezier(0.16,1,0.3,1) both; }
-          .sc-up   { animation: sc-up   0.25s cubic-bezier(0.16,1,0.3,1) both; }
+          @keyframes sc-fwd  { from { opacity:0; transform:translateX(28px) scale(0.98); } to { opacity:1; transform:none; } }
+          @keyframes sc-back { from { opacity:0; transform:translateX(-28px) scale(0.98); } to { opacity:1; transform:none; } }
+          @keyframes sc-up   { from { opacity:0; transform:translateY(22px) scale(0.98); } to { opacity:1; transform:none; } }
+          .sc-in   { animation: sc-fwd  0.3s cubic-bezier(0.16,1,0.3,1) both; }
+          .sc-back { animation: sc-back 0.3s cubic-bezier(0.16,1,0.3,1) both; }
+          .sc-up   { animation: sc-up   0.3s cubic-bezier(0.16,1,0.3,1) both; }
         `}</style>
         <main key={renderScreen_key} className={`flex-grow ${transitionDir === 'back' ? 'sc-back' : 'sc-in'} ${showBottomNav ? 'pb-[76px]' : ''}`}>
           {renderScreen()}

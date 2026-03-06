@@ -1,5 +1,6 @@
 
 import React, { useState } from 'react';
+import { ProfileMenu } from '../components/ProfileMenu';
 import { Icon } from '../components/Icon';
 import { ScreenName, Player, RsvpStatus, TransferRequest, Match, TeamProfile } from '../types';
 
@@ -12,6 +13,7 @@ interface DashboardProps {
   allMatches?: Match[];
   allPlayers?: Player[];
   teamProfile?: TeamProfile | null;
+  onLogout?: () => void;
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({ 
@@ -22,7 +24,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
     transferRequests = [],
     allMatches = [],
     allPlayers = [],
-    teamProfile
+    teamProfile,
+    onLogout,
 }) => {
   const [hasNotification, setHasNotification] = useState(true);
   

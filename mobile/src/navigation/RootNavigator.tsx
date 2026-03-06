@@ -14,6 +14,7 @@ import { RootStackParamList } from '../types';
 import WelcomeScreen from '../screens/WelcomeScreen';
 import LoginScreen from '../screens/LoginScreen';
 import RegisterScreen from '../screens/RegisterScreen';
+import VenueOwnerOnboardingScreen from '../screens/VenueOwnerOnboardingScreen';
 
 // Main App
 import MainTabNavigator from './MainTabNavigator';
@@ -59,7 +60,6 @@ import SquadShareWizardScreen from '../screens/SquadShareWizardScreen';
 import MessageLogsScreen from '../screens/MessageLogsScreen';
 import TeamChatScreen from '../screens/TeamChatScreen';
 import MatchAnalysisScreen from '../screens/MatchAnalysisScreen';
-import VenueOwnerOnboardingScreen from '../screens/VenueOwnerOnboardingScreen';
 import VenueSettingsScreen from '../screens/VenueSettingsScreen';
 import MyReservationsScreen from '../screens/MyReservationsScreen';
 import AuditLogScreen from '../screens/AuditLogScreen';
@@ -104,8 +104,8 @@ export default function RootNavigator() {
         <>
           <Stack.Screen name="Welcome" component={WelcomeScreen} />
           <Stack.Screen name="Login" component={LoginScreen} />
-          <Stack.Screen name="Register" component={RegisterScreen} />
           <Stack.Screen name="VenueOwnerOnboarding" component={VenueOwnerOnboardingScreen} />
+          <Stack.Screen name="Register" component={RegisterScreen} />
           <Stack.Screen name="TeamSetup" component={TeamSetupScreen} />
           <Stack.Screen name="JoinTeam" component={JoinTeamScreen} />
         </>

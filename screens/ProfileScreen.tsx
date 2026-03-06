@@ -127,7 +127,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onBack, onNavigate
             highlight={isPremium && !isPartner}
           />
           
-          <ProfileMenuItem icon="support_agent" label="Destek" onClick={() => {/* TODO: Navigate to support screen */}} />
+          <ProfileMenuItem icon="support_agent" label="Destek" onClick={() => { window.open('https://sahada.app/destek', '_blank'); }} />
           
           <ProfileMenuItem 
             icon="logout" 

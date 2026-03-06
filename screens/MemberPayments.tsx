@@ -12,13 +12,14 @@ interface Props {
   onNavigate: (s: ScreenName) => void;
   onNavigateWithParam: (s: ScreenName, p: Record<string, any>) => void;
   onSubmitProof: (teamId: string, reservationId: string, userId: string, proofUrl: string, note?: string) => void;
+  onOpenPaymentModal?: (opts: { teamId: string; reservationId: string; userId: string; memberName?: string; expectedAmount: number; paidAmount?: number; captainMode?: boolean }) => void;
 }
 
 type Filter = 'all' | 'unpaid' | 'partial' | 'paid';
 
 export const MemberPayments: React.FC<Props> = ({
   currentUser, reservations, memberContributions, captainPayoutProfiles, teams,
-  onBack, onNavigate, onNavigateWithParam, onSubmitProof,
+  onBack, onNavigate, onNavigateWithParam, onSubmitProof, onOpenPaymentModal,
 }) => {
   const [filter, setFilter] = useState<Filter>('all');
 
@@ -124,6 +125,18 @@ export const MemberPayments: React.FC<Props> = ({
                       {mc.status === 'paid' ? '✓ Ödendi' : mc.status === 'partial' ? `${remaining}₺ kaldı` : `${mc.expectedAmount}₺ bekliyor`}
                     </span>
                   </button>
+
+                  {/* Quick pay / proof button */}
+                  {mc.status !== 'paid' && onOpenPaymentModal && res && (
+                    <div className="px-4 pb-3 pt-0">
+                      <button
+                        onClick={() => onOpenPaymentModal({ teamId: mc.teamId, reservationId: mc.reservationId, userId: mc.memberUserId, memberName: currentUser?.name ?? '', expectedAmount: mc.expectedAmount, paidAmount: mc.paidAmount })}
+                        className="w-full py-2.5 rounded-xl font-black text-[12px] flex items-center justify-center gap-2 transition-all active:scale-[0.97]"
+                        style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.2)', color: '#10B981' }}>
+                        💳 Ödeme / Dekont Gönder
+                      </button>
+                    </div>
+                  )}
 
                   {/* Payment info for unpaid */}
                   {mc.status !== 'paid' && captainProfile?.iban && (

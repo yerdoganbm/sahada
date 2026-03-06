@@ -15,7 +15,33 @@
     <!-- <link rel="icon" type="image/png" sizes="32x32" href="/icons/icon-192x192.png" /> -->
     <title>Sahada App</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+      :root {
+        --c-bg:      #06080d;
+        --c-bg2:     #0a0e15;
+        --c-surface: #0f1520;
+        --c-border:  rgba(255,255,255,0.07);
+        --c-green:   #10B981;
+        --c-yellow:  #F59E0B;
+        --c-blue:    #3B82F6;
+        --c-red:     #EF4444;
+        --c-text:    #ffffff;
+        --c-muted:   rgba(255,255,255,0.45);
+        --c-faint:   rgba(255,255,255,0.12);
+        --r-sm: 12px; --r-md: 16px; --r-lg: 20px; --r-xl: 24px;
+        --font: 'Outfit', system-ui, sans-serif;
+      }
+      * { font-family: var(--font) !important; -webkit-font-smoothing: antialiased; }
+      body { background: var(--c-bg); overscroll-behavior: none; }
+      input, button, textarea, select { font-family: var(--font) !important; }
+      /* Scrollbar hide */
+      ::-webkit-scrollbar { display: none; }
+      * { scrollbar-width: none; }
+      /* Safe area */
+      .pt-safe { padding-top: env(safe-area-inset-top, 48px); }
+      .pb-safe { padding-bottom: env(safe-area-inset-bottom, 24px); }
+    </style>
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
     <link rel="stylesheet" href="/src/styles/animations.css">
     <link rel="stylesheet" href="/src/styles/mobile.css">

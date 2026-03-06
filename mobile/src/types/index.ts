@@ -37,7 +37,7 @@ export interface Player {
   whatsappEnabled?: boolean;
   authzMigrationVersion?: number;
   trialStatus?: 'pending_approval' | 'in_trial' | 'promoted' | 'rejected';
-  venueOwnerInfo?: { venueIds: string[]; totalRevenue?: number; totalReservations?: number; responseTime?: number };
+  venueOwnerInfo?: { venueId?: string; venueName?: string };
   attributes?: {
     pac: number;
     sho: number;
@@ -152,21 +152,18 @@ export interface JoinRequest {
 
 export interface AuditEvent {
   id: string;
-  action: string;
-  entityType: string;
-  entityId: string;
-  actorId: string;
-  actorName: string;
-  at: string;
-  meta?: Record<string, unknown>;
+  type: string;
+  userId?: string;
+  timestamp: string;
+  payload?: Record<string, unknown>;
 }
 
 // Navigation types
 export type RootStackParamList = {
   Welcome: undefined;
-  Login: { userType?: 'player' | 'venue_owner' } | undefined;
-  Register: { prefillPhone?: string; inviteCode?: string };
+  Login: { userType?: 'player' | 'venue_owner' };
   VenueOwnerOnboarding: { phone: string };
+  Register: { prefillPhone?: string; inviteCode?: string };
   MainTabs: NavigatorScreenParams<MainTabParamList> | undefined;
   MatchDetails: { matchId: string };
   VenueDetails: { venueId: string };

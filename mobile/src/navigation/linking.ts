@@ -12,8 +12,8 @@ export const linking: LinkingOptions<RootStackParamList> = {
     screens: {
       Welcome: 'welcome',
       Login: 'login',
+      VenueOwnerOnboarding: { path: 'venue-owner-onboarding/:phone', parse: { phone: (p: string) => p } },
       Register: 'register',
-      VenueOwnerOnboarding: { path: 'venue-owner-onboarding/:phone', parse: { phone: (phone: string) => phone ?? '' } },
       TeamSetup: 'team-setup',
       JoinTeam: {
         path: 'join/:inviteCode?',

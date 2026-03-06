@@ -474,3 +474,112 @@
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ==============================================
+   SAHADA v11 — ULTRA PREMIUM TRANSITIONS
+   ============================================== */
+
+/* ── Screen transitions ── */
+@keyframes sc-enter-fwd {
+  from { opacity: 0; transform: translateX(28px) scale(0.98); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes sc-enter-back {
+  from { opacity: 0; transform: translateX(-28px) scale(0.98); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes sc-enter-up {
+  from { opacity: 0; transform: translateY(24px) scale(0.98); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes sc-exit-fwd {
+  from { opacity: 1; transform: none; }
+  to   { opacity: 0; transform: translateX(-18px) scale(0.97); }
+}
+.sc-in   { animation: sc-enter-fwd  0.28s cubic-bezier(0.16,1,0.3,1) both; }
+.sc-back { animation: sc-enter-back 0.28s cubic-bezier(0.16,1,0.3,1) both; }
+.sc-up   { animation: sc-enter-up   0.28s cubic-bezier(0.16,1,0.3,1) both; }
+
+/* ── Stagger helpers ── */
+.sd-0 { animation-delay: 0ms; }
+.sd-1 { animation-delay: 40ms; }
+.sd-2 { animation-delay: 80ms; }
+.sd-3 { animation-delay: 130ms; }
+.sd-4 { animation-delay: 190ms; }
+.sd-5 { animation-delay: 260ms; }
+
+@keyframes reveal-up {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: none; }
+}
+.rv { animation: reveal-up 0.45s cubic-bezier(0.16,1,0.3,1) both; }
+.rv-1 { animation: reveal-up 0.45s cubic-bezier(0.16,1,0.3,1) both 0.04s; }
+.rv-2 { animation: reveal-up 0.45s cubic-bezier(0.16,1,0.3,1) both 0.09s; }
+.rv-3 { animation: reveal-up 0.45s cubic-bezier(0.16,1,0.3,1) both 0.15s; }
+.rv-4 { animation: reveal-up 0.45s cubic-bezier(0.16,1,0.3,1) both 0.22s; }
+.rv-5 { animation: reveal-up 0.45s cubic-bezier(0.16,1,0.3,1) both 0.30s; }
+
+/* ── Card shine on hover ── */
+@keyframes shine {
+  from { transform: translateX(-100%) skewX(-12deg); }
+  to   { transform: translateX(200%) skewX(-12deg); }
+}
+.card-shine:hover::after {
+  content: '';
+  position: absolute; inset: 0;
+  background: linear-gradient(90deg, transparent 30%, rgba(255,255,255,0.06) 50%, transparent 70%);
+  animation: shine 0.7s ease;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+/* ── Glow pulse ── */
+@keyframes glow-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(16,185,129,0.4); }
+  50%       { box-shadow: 0 0 0 10px rgba(16,185,129,0); }
+}
+.glow-pulse { animation: glow-pulse 2s ease infinite; }
+
+/* ── Number counter spin ── */
+@keyframes num-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: none; }
+}
+.num-up { animation: num-up 0.3s cubic-bezier(0.16,1,0.3,1) both; }
+
+/* ── Bottom sheet ── */
+@keyframes sheet-up {
+  from { transform: translateY(100%); opacity: 0; }
+  to   { transform: none; opacity: 1; }
+}
+@keyframes sheet-down {
+  from { transform: none; opacity: 1; }
+  to   { transform: translateY(100%); opacity: 0; }
+}
+.sheet-up { animation: sheet-up 0.32s cubic-bezier(0.16,1,0.3,1) both; }
+
+/* ── Input focus ring ── */
+.premium-input {
+  background: rgba(255,255,255,0.03);
+  border: 1.5px solid rgba(255,255,255,0.08);
+  border-radius: 16px;
+  color: white;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  outline: none;
+}
+.premium-input:focus {
+  border-color: var(--c-green);
+  box-shadow: 0 0 0 3px rgba(16,185,129,0.12);
+}
+
+/* ── Button press ── */
+.btn-press { transition: transform 0.1s; }
+.btn-press:active { transform: scale(0.96); }
+
+/* ── Skeleton ── */
+@keyframes skeleton {
+  0%, 100% { opacity: 0.4; }
+  50%       { opacity: 0.7; }
+}
+.skeleton { animation: skeleton 1.4s ease infinite; background: rgba(255,255,255,0.08); border-radius: 8px; }
+
