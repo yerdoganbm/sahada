@@ -3,7 +3,7 @@
  * First screen users see - converted from web version
  */
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -22,8 +22,7 @@ type WelcomeScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Welc
 
 export default function WelcomeScreen() {
   const navigation = useNavigation<WelcomeScreenNavigationProp>();
-  const [selectedRole, setSelectedRole] = useState<'player' | 'venue_owner' | null>(null);
-
+  
   // Animations
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
@@ -109,29 +108,11 @@ export default function WelcomeScreen() {
           ))}
         </View>
 
-        {/* Role selection */}
-        <View style={styles.roleRow}>
-          <TouchableOpacity
-            style={[styles.roleChip, selectedRole === 'player' && styles.roleChipActive]}
-            onPress={() => setSelectedRole('player')}
-            activeOpacity={0.8}
-          >
-            <Text style={[styles.roleChipText, selectedRole === 'player' && styles.roleChipTextActive]}>Oyuncuyum</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.roleChip, selectedRole === 'venue_owner' && styles.roleChipActiveVenue]}
-            onPress={() => setSelectedRole('venue_owner')}
-            activeOpacity={0.8}
-          >
-            <Text style={[styles.roleChipText, selectedRole === 'venue_owner' && styles.roleChipTextActiveVenue]}>Saha Sahibiyim</Text>
-          </TouchableOpacity>
-        </View>
-
         {/* Action Buttons */}
         <View style={styles.actionsContainer}>
           <TouchableOpacity
             style={styles.primaryButton}
-            onPress={() => navigation.navigate('Login', { userType: selectedRole ?? 'player' })}
+            onPress={() => navigation.navigate('Login')}
             activeOpacity={0.8}
             accessibilityLabel="Hemen başla, giriş yap"
             accessibilityRole="button"
@@ -265,39 +246,6 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.sm,
     fontStyle: 'italic',
     marginLeft: spacing.sm,
-  },
-  roleRow: {
-    flexDirection: 'row',
-    gap: spacing.md,
-    marginBottom: spacing.lg,
-  },
-  roleChip: {
-    flex: 1,
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.lg,
-    borderRadius: borderRadius.lg,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
-    alignItems: 'center',
-  },
-  roleChipActive: {
-    backgroundColor: `${colors.primary}30`,
-    borderColor: colors.primary,
-  },
-  roleChipActiveVenue: {
-    backgroundColor: 'rgba(59,130,246,0.3)',
-    borderColor: '#3B82F6',
-  },
-  roleChipText: {
-    color: colors.text.secondary,
-    fontSize: typography.fontSize.sm,
-    fontWeight: typography.fontWeight.semiBold,
-  },
-  roleChipTextActive: {
-    color: colors.primary,
-  },
-  roleChipTextActiveVenue: {
-    color: '#3B82F6',
   },
   actionsContainer: {
     marginBottom: spacing.lg,

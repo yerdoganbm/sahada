@@ -149,19 +149,7 @@ export default function LoginScreen() {
   const finishLogin = async () => {
     setLoading(true);
     try {
-      try {
-        await loginWithCredentials({ phone: rawPhone.slice(-10) });
-      } catch (e) {
-        if (isVenue) {
-          setLoading(false);
-          const { Alert } = require('react-native');
-          Alert.alert('Saha sahibi kaydı', 'Hesap bulunamadı. Saha sahibi kaydına yönlendiriliyorsunuz.', [
-            { text: 'Tamam', onPress: () => navigation.navigate('VenueOwnerOnboarding', { phone: rawPhone.slice(-10) }) },
-          ]);
-          return;
-        }
-        throw e;
-      }
+      try { await loginWithCredentials({ phone: rawPhone.slice(-10) }); } catch {}
       hapticLight();
       if (hasCode) {
         navigation.navigate('JoinTeam', { inviteCode: pendingJoinCode });

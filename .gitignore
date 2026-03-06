@@ -102,3 +102,6 @@ stats.html
 
 # Screenshots (optional)
 screenshots/
+
+# Zip archives
+*.zip
