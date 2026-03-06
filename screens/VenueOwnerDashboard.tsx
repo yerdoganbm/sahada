@@ -163,36 +163,65 @@ export const VenueOwnerDashboard: React.FC<VenueOwnerDashboardProps> = ({
         <div>
           <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3">Hızlı İşlemler</h3>
           <div className="grid grid-cols-2 gap-3">
-            <QuickActionCard
-              icon="list_alt"
-              title="Rezervasyonlar"
-              subtitle={`${myReservations.length} toplam`}
-              color="bg-blue-500/10 text-blue-500 border-blue-500/20"
-              onClick={() => onNavigate('reservationManagement')}
-            />
-            <QuickActionCard
-              icon="calendar_month"
-              title="Takvim"
-              subtitle="Bu hafta"
-              color="bg-purple-500/10 text-purple-500 border-purple-500/20"
-              onClick={() => onNavigate('venueCalendar')}
-            />
+            {/* ── Sahalar: sadece owner ── */}
+            {currentUser.role === 'venue_owner' && (
+              <QuickActionCard
+                icon="domain"
+                title="Sahalar"
+                subtitle={`${venueIds.length} aktif saha`}
+                color="bg-green-500/10 text-green-500 border-green-500/20"
+                onClick={() => onNavigate('venueList')}
+              />
+            )}
+            {/* ── Rezervasyonlar: owner + staff ── */}
+            {(currentUser.role === 'venue_owner' || currentUser.role === 'venue_staff') && (
+              <QuickActionCard
+                icon="list_alt"
+                title="Rezervasyonlar"
+                subtitle={`${myReservations.length} toplam`}
+                color="bg-blue-500/10 text-blue-500 border-blue-500/20"
+                onClick={() => onNavigate('reservationManagement')}
+              />
+            )}
+            {/* ── Takvim: owner + staff ── */}
+            {(currentUser.role === 'venue_owner' || currentUser.role === 'venue_staff') && (
+              <QuickActionCard
+                icon="calendar_month"
+                title="Takvim"
+                subtitle="Bu hafta"
+                color="bg-purple-500/10 text-purple-500 border-purple-500/20"
+                onClick={() => onNavigate('venueCalendar')}
+              />
+            )}
+            {/* ── Gelir Raporu: owner + accountant ── */}
             {(currentUser.role === 'venue_owner' || currentUser.role === 'venue_accountant') && (
               <QuickActionCard
                 icon="account_balance_wallet"
                 title="Gelir Raporu"
-                subtitle={`${currentUser.venueOwnerInfo?.totalRevenue.toLocaleString('tr-TR')}₺`}
+                subtitle={`${currentUser.venueOwnerInfo?.totalRevenue?.toLocaleString('tr-TR') ?? '0'}₺`}
                 color="bg-green-500/10 text-green-500 border-green-500/20"
                 onClick={() => onNavigate('venueFinancialReports')}
               />
             )}
+            {/* ── Gelen EFT: herkes ── */}
             <QuickActionCard
-              icon="groups"
-              title="Müşteriler"
-              subtitle={`${currentUser.venueOwnerInfo?.totalReservations} rezervasyon`}
-              color="bg-orange-500/10 text-orange-500 border-orange-500/20"
-              onClick={() => onNavigate('customerManagement')}
+              icon="account_balance"
+              title="Gelen EFT"
+              subtitle="Kaptanlardan transferler"
+              color="bg-indigo-500/10 text-indigo-400 border-indigo-500/20"
+              onClick={() => onNavigate('venueIncomingEft')}
             />
+            {/* ── Müşteriler: owner + staff ── */}
+            {(currentUser.role === 'venue_owner' || currentUser.role === 'venue_staff') && (
+              <QuickActionCard
+                icon="groups"
+                title="Müşteriler"
+                subtitle={`${currentUser.venueOwnerInfo?.totalReservations ?? 0} rezervasyon`}
+                color="bg-orange-500/10 text-orange-500 border-orange-500/20"
+                onClick={() => onNavigate('customerManagement')}
+              />
+            )}
+            {/* ── Analitik: owner + accountant ── */}
             {(currentUser.role === 'venue_owner' || currentUser.role === 'venue_accountant') && (
               <QuickActionCard
                 icon="bar_chart"
@@ -202,6 +231,7 @@ export const VenueOwnerDashboard: React.FC<VenueOwnerDashboardProps> = ({
                 onClick={() => onNavigate('venueAnalytics')}
               />
             )}
+            {/* ── Audit Log: owner + accountant ── */}
             {(currentUser.role === 'venue_owner' || currentUser.role === 'venue_accountant') && (
               <QuickActionCard
                 icon="history"
@@ -211,8 +241,25 @@ export const VenueOwnerDashboard: React.FC<VenueOwnerDashboardProps> = ({
                 onClick={() => onNavigate('auditLog')}
               />
             )}
-
-            {/* ── BUSINESS PACK ── */}
+            {/* ── Saha Ekle: sadece owner ── */}
+            {currentUser.role === 'venue_owner' && (
+              <QuickActionCard
+                icon="add_circle"
+                title="Yeni Saha Ekle"
+                subtitle="Tesisini platforma ekle"
+                color="bg-teal-500/10 text-teal-400 border-teal-500/20"
+                onClick={() => onNavigate('venueAdd')}
+              />
+            )}
+            {/* ── Kasa: herkes ── */}
+            <QuickActionCard
+              icon="point_of_sale"
+              title="Kasa"
+              subtitle="Günlük tahsilat"
+              color="bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+              onClick={() => onNavigate('cashRegister')}
+            />
+            {/* ── Sabit Rezv: owner + staff ── */}
             {(currentUser.role === 'venue_owner' || currentUser.role === 'venue_staff') && (
               <QuickActionCard
                 icon="repeat"
@@ -222,15 +269,7 @@ export const VenueOwnerDashboard: React.FC<VenueOwnerDashboardProps> = ({
                 onClick={() => onNavigate('recurringManagement')}
               />
             )}
-            {(currentUser.role === 'venue_owner' || currentUser.role === 'venue_staff' || currentUser.role === 'venue_accountant') && (
-              <QuickActionCard
-                icon="point_of_sale"
-                title="Kasa"
-                subtitle="Günlük tahsilat"
-                color="bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-                onClick={() => onNavigate('cashRegister')}
-              />
-            )}
+            {/* ── Bakım: owner + staff ── */}
             {(currentUser.role === 'venue_owner' || currentUser.role === 'venue_staff') && (
               <QuickActionCard
                 icon="construction"
@@ -240,6 +279,7 @@ export const VenueOwnerDashboard: React.FC<VenueOwnerDashboardProps> = ({
                 onClick={() => onNavigate('maintenanceCenter')}
               />
             )}
+            {/* ── Toplu Mesaj: owner + staff ── */}
             {(currentUser.role === 'venue_owner' || currentUser.role === 'venue_staff') && (
               <QuickActionCard
                 icon="campaign"

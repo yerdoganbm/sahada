@@ -166,10 +166,13 @@ export default function LoginScreen() {
         await loginWithCredentials({ phone: phone10 });
         loginSucceeded = true;
       } catch {
-        // New user — register them with the entered name (if any)
-        if (name.trim().length >= 2) {
+        // Determine a name for registration
+        const regName = name.trim().length >= 2
+          ? name.trim()
+          : knownUser?.label || (isAnyVenue ? 'Saha Kullanıcı' : '');
+        if (regName.length >= 2) {
           try {
-            await registerAndLogin({ name: name.trim(), phone: phone10 });
+            await registerAndLogin({ name: regName, phone: phone10 });
             loginSucceeded = true;
           } catch {}
         }
@@ -178,16 +181,22 @@ export default function LoginScreen() {
       if (hasCode) {
         navigation.navigate('JoinTeam', { inviteCode: pendingJoinCode });
       } else if (isVenueRole || isVenueStaff) {
-        // Demo venue staff/accountant OR existing venue user — skip onboarding
+        // Known venue user OR staff — go straight to dashboard
         navigation.dispatch(CommonActions.reset({
           index: 0,
           routes: [{ name: 'VenueOwnerDashboard' }],
         }));
-      } else if (isVenue) {
-        // New venue owner — run onboarding
+      } else if (isVenue && !loginSucceeded) {
+        // New venue owner (login failed, no known user) — run onboarding
         navigation.dispatch(CommonActions.reset({
           index: 0,
           routes: [{ name: 'VenueOwnerOnboarding', params: { phone: phone10 } }],
+        }));
+      } else if (isVenue && loginSucceeded) {
+        // Existing venue owner — go to dashboard
+        navigation.dispatch(CommonActions.reset({
+          index: 0,
+          routes: [{ name: 'VenueOwnerDashboard' }],
         }));
       } else {
         navigation.dispatch(CommonActions.reset({ index: 0, routes: [{ name: 'MainTabs' }] }));

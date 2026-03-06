@@ -256,7 +256,7 @@ function App() {
         setCurrentScreen('venueOwnerDashboard');
       } else if (user.role === 'venue_accountant') {
         console.log('📊 Saha muhasebecisi olarak giriş yapıldı:', user.name);
-        setCurrentScreen('venueAnalytics');
+        setCurrentScreen('venueOwnerDashboard');
       } else {
         console.log('✅ Giriş yapıldı:', user.name);
         setCurrentScreen('dashboard');
@@ -2664,7 +2664,7 @@ function App() {
         );
 
       case 'reservationDetails':
-        if (!currentUser || currentUser.role !== 'venue_owner' || !reservationDetailsId) {
+        if (!currentUser || !(['venue_owner','venue_staff'] as string[]).includes(currentUser.role ?? '') || !reservationDetailsId) {
           navigateTo('venueOwnerDashboard');
           return null;
         }
