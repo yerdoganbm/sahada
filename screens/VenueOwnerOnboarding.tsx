@@ -236,7 +236,7 @@ export const VenueOwnerOnboarding: React.FC<VenueOwnerOnboardingProps> = ({ phon
       </div>
 
       {/* Form content */}
-      <div className="flex-1 overflow-y-auto px-5 py-6 pb-24">
+      <div className="flex-1 overflow-y-auto px-5 py-6 pb-6">
 
         {/* STEP 0 — Kişisel Bilgiler */}
         {step === 0 && (
@@ -258,10 +258,13 @@ export const VenueOwnerOnboarding: React.FC<VenueOwnerOnboardingProps> = ({ phon
               </Field>
             </div>
             <Field label="Telefon">
-              <div className="flex items-center bg-surface border border-white/10 rounded-xl px-4 py-3.5 gap-2">
+              <div className="flex items-center bg-surface border border-green-500/20 rounded-xl px-4 py-3.5 gap-2">
                 <span className="text-base">🇹🇷</span>
                 <span className="text-white font-bold text-sm">+90 {phone.replace(/(\d{3})(\d{3})(\d{2})(\d{2})/, '$1 $2 $3 $4')}</span>
-                <Icon name="verified" size={16} className="text-blue-400 ml-auto" />
+                <div className="ml-auto flex items-center gap-1">
+                  <Icon name="verified" size={14} className="text-green-400" />
+                  <span className="text-[10px] font-bold text-green-400">Onaylandı</span>
+                </div>
               </div>
             </Field>
             <Field label="E-posta (opsiyonel)" error={errors.email}>
@@ -457,7 +460,7 @@ export const VenueOwnerOnboarding: React.FC<VenueOwnerOnboardingProps> = ({ phon
       </div>
 
       {/* Bottom CTA */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 bg-secondary/95 backdrop-blur-xl border-t border-white/5 p-5 space-y-2">
+      <div className="sticky bottom-0 z-50 bg-secondary/95 backdrop-blur-xl border-t border-white/5 p-5 space-y-2 mt-auto flex-shrink-0">
         <button
           onClick={handleNext}
           disabled={isLoading}
