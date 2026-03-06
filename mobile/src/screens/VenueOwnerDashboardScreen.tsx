@@ -120,6 +120,13 @@ export default function VenueOwnerDashboardScreen() {
       onPress: () => navigation.navigate('ReserveSystem'),
     },
     {
+      icon: 'bank-transfer-in',
+      label: 'Gelen EFT / Havale',
+      sublabel: 'Kaptanlardan gelen transferler',
+      color: '#6366F1',
+      onPress: () => navigation.navigate('VenueIncomingEft'),
+    },
+    {
       icon: 'whatsapp',
       label: 'WhatsApp Entegrasyonu',
       sublabel: 'Otomatik mesajlaşma',

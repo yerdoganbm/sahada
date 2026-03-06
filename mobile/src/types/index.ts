@@ -737,6 +737,8 @@ export type RootStackParamList = {
   // Payment
   ReservationPaymentHub: { reservationId?: string } | undefined;
   MyReservations: undefined;
+  // Venue owner EFT inbox
+  VenueIncomingEft: undefined;
 };
 
 export type MainTabParamList = {
